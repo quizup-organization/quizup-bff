@@ -1,3 +1,9 @@
+## [1.2.3](https://github.com/quizup-organization/quizup-bff/compare/v1.2.2...v1.2.3) (2026-09-24)
+
+### Bug Fixes
+
+* **bff:** read untyped rows for paginated followers (query-bus element erasure) ([a5fc431](https://github.com/quizup-organization/quizup-bff/commit/a5fc43130051c620780c727d953cbd3dc3b489fa))
+
 ## [1.2.2](https://github.com/quizup-organization/quizup-bff/compare/v1.2.1...v1.2.2) (2026-09-24)
 
 ### Bug Fixes
