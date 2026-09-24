@@ -59,7 +59,14 @@ public class LeaderboardScopeService {
 
         Set<String> ids = new LinkedHashSet<>();
         ids.add(requesterId);
-        page.content().forEach(follow -> ids.add(follow.followedId()));
+        // Le transport du query bus ne préserve pas le type des éléments de `PageResult<T>`
+        // (désérialisés en Map) : on lit le champ `followedId` par nom.
+        page.content().forEach(row -> {
+            Object followedId = ((java.util.Map<?, ?>) (Object) row).get("followedId");
+            if (followedId != null) {
+                ids.add(followedId.toString());
+            }
+        });
         return new ArrayList<>(ids);
     }
 

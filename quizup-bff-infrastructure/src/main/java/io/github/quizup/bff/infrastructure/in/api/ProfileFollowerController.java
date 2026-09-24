@@ -24,8 +24,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Function;
 
 /**
  * Sous-collections {@code /api/profiles/{userId}/followers|following} — renvoient des
@@ -48,21 +48,23 @@ public class ProfileFollowerController {
     public CompletableFuture<ResponseEntity<PageResponse<Profile>>> followers(
             @PathVariable String userId,
             @RequestBody(required = false) SearchRequest searchRequest) {
-        return searchProfiles(userId, searchRequest, "followedId", UserFollower::followerId);
+        // Filtre sur `followedId = userId` ; chaque ligne porte le `followerId` à résoudre.
+        return searchProfiles(userId, searchRequest, "followedId", "followerId");
     }
 
     @PostMapping("/{userId}/following/search")
     public CompletableFuture<ResponseEntity<PageResponse<Profile>>> following(
             @PathVariable String userId,
             @RequestBody(required = false) SearchRequest searchRequest) {
-        return searchProfiles(userId, searchRequest, "followerId", UserFollower::followedId);
+        // Filtre sur `followerId = userId` ; chaque ligne porte le `followedId` à résoudre.
+        return searchProfiles(userId, searchRequest, "followerId", "followedId");
     }
 
     private CompletableFuture<ResponseEntity<PageResponse<Profile>>> searchProfiles(
             String userId,
             SearchRequest searchRequest,
             String filterProperty,
-            Function<UserFollower, String> profileIdExtractor) {
+            String profileIdField) {
         SearchCriteria criteria = SearchRequestMapper.toSearchCriteria(searchRequest);
         List<FilterCriteria> filters = new ArrayList<>(criteria.filters());
         filters.add(new FilterRequest(filterProperty, FilterOperator.EQUALS, userId, null, null));
@@ -72,14 +74,18 @@ public class ProfileFollowerController {
                         new UserFollowerQuery.SearchUserFollowerQuery(filters, criteria.sorts(), criteria.page()),
                         QueryResponseTypes.pageResultOf(UserFollower.class)
                 )
-                .thenCompose(page -> resolveProfiles(page, profileIdExtractor))
+                .thenCompose(page -> resolveProfiles(page, profileIdField))
                 .thenApply(ResponseEntity::ok);
     }
 
     private CompletableFuture<PageResponse<Profile>> resolveProfiles(
             PageResult<UserFollower> page,
-            Function<UserFollower, String> profileIdExtractor) {
-        List<String> ids = page.content().stream().map(profileIdExtractor).toList();
+            String profileIdField) {
+        // Le transport du query bus ne préserve pas le type des éléments de `PageResult<T>`
+        // (désérialisés en Map) : on lit le champ par nom plutôt qu'un accesseur typé.
+        List<String> ids = page.content().stream()
+                .map(row -> (String) ((Map<?, ?>) (Object) row).get(profileIdField))
+                .toList();
         return profileLookup
                 .getAll(ids)
                 .thenApply(profiles -> PageMapper.toResponse(page, profiles));
