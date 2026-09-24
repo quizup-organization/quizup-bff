@@ -1,3 +1,9 @@
+## [1.2.1](https://github.com/quizup-organization/quizup-bff/compare/v1.2.0...v1.2.1) (2026-09-24)
+
+### Bug Fixes
+
+* **deps:** bump quizup-parent to 2.4.2 (search criteria type info) ([adbb16d](https://github.com/quizup-organization/quizup-bff/commit/adbb16d8a7abbe7d6996fa7628a3d69b2d02cb11))
+
 ## [1.2.0](https://github.com/quizup-organization/quizup-bff/compare/v1.1.0...v1.2.0) (2026-09-24)
 
 ### Features
