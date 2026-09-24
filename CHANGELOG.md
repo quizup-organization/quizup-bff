@@ -1,3 +1,9 @@
+## [1.2.4](https://github.com/quizup-organization/quizup-bff/compare/v1.2.3...v1.2.4) (2026-09-24)
+
+### Bug Fixes
+
+* **deps:** bump quizup-parent to 2.4.4 (typed PageResult over query transport) ([862a3de](https://github.com/quizup-organization/quizup-bff/commit/862a3de16e71df2fca300feb98458673d7dc345c))
+
 ## [1.2.3](https://github.com/quizup-organization/quizup-bff/compare/v1.2.2...v1.2.3) (2026-09-24)
 
 ### Bug Fixes
