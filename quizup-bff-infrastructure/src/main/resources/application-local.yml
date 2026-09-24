@@ -1,0 +1,13 @@
+server:
+  port: 8092
+
+spring:
+  config:
+    import: optional:classpath:quizup-local.yml
+    activate:
+      on-profile: local
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/quizup_bff
+    username: postgres
+    password: postgres

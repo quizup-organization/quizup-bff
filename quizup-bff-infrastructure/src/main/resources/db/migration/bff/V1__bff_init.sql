@@ -1,0 +1,2 @@
+-- BFF : aucune table propre (stateless d'agrégation).
+-- Les tables Axon (token store, etc.) sont fournies par le SDK (db/migration/axon).

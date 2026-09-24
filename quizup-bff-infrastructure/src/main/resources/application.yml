@@ -1,0 +1,21 @@
+spring:
+  config:
+    import: optional:classpath:quizup-defaults.yml
+  application:
+    name: quizup-bff
+  profiles:
+    default: local
+
+  flyway:
+    locations: classpath:db/migration/bff
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+
+microservice:
+  swagger:
+    description: QuizUp BFF - facade unique REST + WebSocket (services headless)
+  websocket:
+    enabled: true

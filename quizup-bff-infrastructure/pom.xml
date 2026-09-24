@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>io.github.quizup</groupId>
+        <artifactId>quizup-bff</artifactId>
+        <version>0.1.0-SNAPSHOT</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>quizup-bff-infrastructure</artifactId>
+
+    <properties>
+        <!-- Contrats inter-services : dernières versions publiées (GitHub Packages). -->
+        <quizup.identity-domain.version>1.8.0</quizup.identity-domain.version>
+        <quizup.theme-domain.version>1.6.4</quizup.theme-domain.version>
+        <quizup.social-domain.version>1.7.0</quizup.social-domain.version>
+        <quizup.game-domain.version>1.5.5</quizup.game-domain.version>
+        <quizup.profile-domain.version>1.7.0</quizup.profile-domain.version>
+        <quizup.matchmaking-domain.version>1.5.5</quizup.matchmaking-domain.version>
+        <quizup.leaderboard-domain.version>1.6.4</quizup.leaderboard-domain.version>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>io.github.quizup</groupId>
+            <artifactId>quizup-microservice-starter</artifactId>
+        </dependency>
+
+        <!-- Contrats inter-services (queries / commands / read models / events) -->
+        <dependency>
+            <groupId>io.github.quizup</groupId>
+            <artifactId>quizup-identity-domain</artifactId>
+            <version>${quizup.identity-domain.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.github.quizup</groupId>
+            <artifactId>quizup-theme-domain</artifactId>
+            <version>${quizup.theme-domain.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.github.quizup</groupId>
+            <artifactId>quizup-social-domain</artifactId>
+            <version>${quizup.social-domain.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.github.quizup</groupId>
+            <artifactId>quizup-game-domain</artifactId>
+            <version>${quizup.game-domain.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.github.quizup</groupId>
+            <artifactId>quizup-profile-domain</artifactId>
+            <version>${quizup.profile-domain.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.github.quizup</groupId>
+            <artifactId>quizup-matchmaking-domain</artifactId>
+            <version>${quizup.matchmaking-domain.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.github.quizup</groupId>
+            <artifactId>quizup-leaderboard-domain</artifactId>
+            <version>${quizup.leaderboard-domain.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <mainClass>io.github.quizup.bff.BffServiceApplication</mainClass>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>
