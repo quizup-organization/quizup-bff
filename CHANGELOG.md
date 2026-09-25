@@ -1,3 +1,14 @@
+## [2.0.0](https://github.com/quizup-organization/quizup-bff/compare/v1.2.4...v2.0.0) (2026-09-25)
+
+### ⚠ BREAKING CHANGES
+
+* **bff:** all application traffic now goes through the BFF; the business
+services are headless.
+
+### Features
+
+* **bff:** unique REST/WS surface for the headless services ([bb3f2a6](https://github.com/quizup-organization/quizup-bff/commit/bb3f2a65ddf26caefe75fa09c89cee4dad19b09c))
+
 ## [1.2.4](https://github.com/quizup-organization/quizup-bff/compare/v1.2.3...v1.2.4) (2026-09-24)
 
 ### Bug Fixes
