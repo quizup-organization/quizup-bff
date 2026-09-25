@@ -2,6 +2,7 @@ package io.github.quizup.bff.infrastructure.in.api;
 
 import io.github.quizup.bff.application.LeaderboardScopeService;
 import io.github.quizup.bff.application.LeaderboardScopeService.ScopeFilter;
+import io.github.quizup.bff.infrastructure.in.api.response.TopicLeaderboardEntryView;
 import io.github.quizup.leaderboard.domain.model.LeaderboardRank;
 import io.github.quizup.leaderboard.domain.model.LeaderboardRules;
 import io.github.quizup.leaderboard.domain.model.TopicLeaderboardEntry;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.IntStream;
 
 /**
  * Sous-ressource {@code /api/topics/{topicId}/leaderboard[/me]} — classement par sujet.
@@ -35,12 +37,13 @@ public class TopicLeaderboardController {
     }
 
     @GetMapping("/{topicId}/leaderboard")
-    public CompletableFuture<ResponseEntity<List<TopicLeaderboardEntry>>> top(
+    public CompletableFuture<ResponseEntity<List<TopicLeaderboardEntryView>>> top(
             @PathVariable String topicId,
             @RequestParam(defaultValue = "all-time") String period,
             @RequestParam(defaultValue = "world") String scope,
             @RequestParam(defaultValue = "50") int limit) {
-        ScopeFilter filter = scopeService.resolve(scope, SecurityHelper.getUserId());
+        // Portée `world` : le demandeur est optionnel (ex. token M2M) ; `following`/`country` le requièrent.
+        ScopeFilter filter = scopeService.resolve(scope, SecurityHelper.findUserId().orElse(null));
         return queryGateway
                 .query(
                         new LeaderboardQuery.TopByTopicQuery(
@@ -48,11 +51,14 @@ public class TopicLeaderboardController {
                                 filter.memberIds(), filter.country()),
                         QueryResponseTypes.multipleInstancesOf(TopicLeaderboardEntry.class)
                 )
+                .thenApply(entries -> IntStream.range(0, entries.size())
+                        .mapToObj(index -> toView(entries.get(index), index + 1))
+                        .toList())
                 .thenApply(ResponseEntity::ok);
     }
 
     @GetMapping("/{topicId}/leaderboard/me")
-    public CompletableFuture<ResponseEntity<TopicLeaderboardEntry>> me(
+    public CompletableFuture<ResponseEntity<TopicLeaderboardEntryView>> me(
             @PathVariable String topicId,
             @RequestParam(defaultValue = "all-time") String period,
             @RequestParam(defaultValue = "world") String scope) {
@@ -66,11 +72,24 @@ public class TopicLeaderboardController {
                         QueryResponseTypes.optionalInstanceOf(LeaderboardRank.class)
                 )
                 .thenApply(optional -> optional
-                        .map(rank -> ResponseEntity.ok(rank.entry()))
+                        .map(rank -> ResponseEntity.ok(toView(rank.entry(), rank.rank())))
                         .orElseGet(() -> ResponseEntity.noContent().build()));
     }
 
     private boolean isMonthly(String period) {
         return "monthly".equals(period);
+    }
+
+    private static TopicLeaderboardEntryView toView(TopicLeaderboardEntry entry, int rank) {
+        return new TopicLeaderboardEntryView(
+                rank,
+                entry.topicId(),
+                entry.userId(),
+                entry.displayName(),
+                entry.country(),
+                entry.totalXp(),
+                entry.monthlyXp(),
+                entry.level()
+        );
     }
 }

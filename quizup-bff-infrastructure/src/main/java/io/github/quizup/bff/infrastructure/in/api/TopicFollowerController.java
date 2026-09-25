@@ -1,14 +1,11 @@
 package io.github.quizup.bff.infrastructure.in.api;
 
-import io.github.quizup.bff.infrastructure.in.api.mapper.PageMapper;
 import io.github.quizup.bff.infrastructure.in.api.request.FollowTopicRequest;
-import io.github.quizup.microservice.core.domain.model.search.SearchCriteria;
 import io.github.quizup.microservice.core.infrastructure.axon.QueryResponseTypes;
 import io.github.quizup.microservice.core.infrastructure.in.api.ResponseEntityBuilder;
 import io.github.quizup.microservice.core.infrastructure.in.api.request.SearchRequest;
 import io.github.quizup.microservice.core.infrastructure.in.api.response.IdResponse;
-import io.github.quizup.microservice.core.infrastructure.in.api.response.PageResponse;
-import io.github.quizup.microservice.core.infrastructure.mapper.SearchRequestMapper;
+import io.github.quizup.microservice.core.infrastructure.in.api.response.SearchResponse;
 import io.github.quizup.microservice.security.SecurityHelper;
 import io.github.quizup.social.domain.command.TopicFollowerCommand;
 import io.github.quizup.social.domain.model.FollowerIds;
@@ -45,15 +42,10 @@ public class TopicFollowerController {
     }
 
     @PostMapping("/search")
-    public CompletableFuture<ResponseEntity<PageResponse<TopicFollower>>> search(
+    public CompletableFuture<ResponseEntity<SearchResponse<TopicFollower>>> search(
             @RequestBody(required = false) SearchRequest searchRequest) {
-        SearchCriteria criteria = SearchRequestMapper.toSearchCriteria(searchRequest);
         return queryGateway
-                .query(
-                        new TopicFollowerQuery.SearchTopicFollowerQuery(criteria.filters(), criteria.sorts(), criteria.page()),
-                        QueryResponseTypes.pageResultOf(TopicFollower.class)
-                )
-                .thenApply(PageMapper::toResponse)
+                .query(new TopicFollowerQuery.SearchTopicFollowerQuery(searchRequest), QueryResponseTypes.searchResponseOf(TopicFollower.class))
                 .thenApply(ResponseEntity::ok);
     }
 

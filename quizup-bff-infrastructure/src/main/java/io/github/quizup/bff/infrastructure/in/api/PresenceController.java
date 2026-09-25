@@ -1,15 +1,11 @@
 package io.github.quizup.bff.infrastructure.in.api;
 
-import io.github.quizup.bff.infrastructure.in.api.mapper.PageMapper;
-import io.github.quizup.microservice.core.domain.model.search.FilterCriteria;
 import io.github.quizup.microservice.core.domain.model.search.FilterOperator;
-import io.github.quizup.microservice.core.domain.model.search.SearchCriteria;
 import io.github.quizup.microservice.core.infrastructure.axon.QueryResponseTypes;
 import io.github.quizup.microservice.core.infrastructure.in.api.request.FilterRequest;
 import io.github.quizup.microservice.core.infrastructure.in.api.request.PageRequest;
 import io.github.quizup.microservice.core.infrastructure.in.api.request.SearchRequest;
-import io.github.quizup.microservice.core.infrastructure.in.api.response.PageResponse;
-import io.github.quizup.microservice.core.infrastructure.mapper.SearchRequestMapper;
+import io.github.quizup.microservice.core.infrastructure.in.api.response.SearchResponse;
 import io.github.quizup.profile.domain.model.PlayerPresence;
 import io.github.quizup.profile.domain.model.PresenceStatus;
 import io.github.quizup.profile.domain.query.PresenceQuery;
@@ -22,7 +18,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
@@ -42,28 +37,23 @@ public class PresenceController {
     /** Présence d'un joueur ; un inconnu est retourné {@code OFFLINE}. */
     @GetMapping("/{userId}")
     public CompletableFuture<ResponseEntity<PlayerPresence>> get(@PathVariable String userId) {
-        List<FilterCriteria> filters = new ArrayList<>();
-        filters.add(new FilterRequest("userId", FilterOperator.EQUALS, userId, null, null));
+        SearchRequest request = new SearchRequest(
+                List.of(new FilterRequest("userId", FilterOperator.EQUALS, userId, null, null)),
+                List.of(),
+                new PageRequest(0, 1)
+        );
         return queryGateway
-                .query(
-                        new PresenceQuery.PresenceSearchQuery(filters, List.of(), new PageRequest(0, 1)),
-                        QueryResponseTypes.pageResultOf(PlayerPresence.class)
-                )
+                .query(new PresenceQuery.PresenceSearchQuery(request), QueryResponseTypes.searchResponseOf(PlayerPresence.class))
                 .thenApply(page -> page.content().stream().findFirst()
                         .orElseGet(() -> PlayerPresence.builder().userId(userId).status(PresenceStatus.OFFLINE).build()))
                 .thenApply(ResponseEntity::ok);
     }
 
     @PostMapping("/search")
-    public CompletableFuture<ResponseEntity<PageResponse<PlayerPresence>>> search(
+    public CompletableFuture<ResponseEntity<SearchResponse<PlayerPresence>>> search(
             @RequestBody(required = false) SearchRequest searchRequest) {
-        SearchCriteria criteria = SearchRequestMapper.toSearchCriteria(searchRequest);
         return queryGateway
-                .query(
-                        new PresenceQuery.PresenceSearchQuery(criteria.filters(), criteria.sorts(), criteria.page()),
-                        QueryResponseTypes.pageResultOf(PlayerPresence.class)
-                )
-                .thenApply(PageMapper::toResponse)
+                .query(new PresenceQuery.PresenceSearchQuery(searchRequest), QueryResponseTypes.searchResponseOf(PlayerPresence.class))
                 .thenApply(ResponseEntity::ok);
     }
 }

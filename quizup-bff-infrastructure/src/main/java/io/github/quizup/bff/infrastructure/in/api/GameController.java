@@ -1,7 +1,6 @@
 package io.github.quizup.bff.infrastructure.in.api;
 
 import io.github.quizup.bff.application.ProfileLookup;
-import io.github.quizup.bff.infrastructure.in.api.mapper.PageMapper;
 import io.github.quizup.bff.infrastructure.in.api.request.AnswerQuestionRequest;
 import io.github.quizup.bff.infrastructure.in.api.request.CreateGameRequest;
 import io.github.quizup.bff.infrastructure.out.messaging.mapper.GameEventNotificationMapper;
@@ -16,13 +15,11 @@ import io.github.quizup.game.domain.model.GameQuestionChoice;
 import io.github.quizup.game.domain.query.GameQuery;
 import io.github.quizup.microservice.core.domain.constant.QuizUpConstants;
 import io.github.quizup.microservice.core.domain.model.notification.NotificationEnvelope;
-import io.github.quizup.microservice.core.domain.model.search.SearchCriteria;
 import io.github.quizup.microservice.core.infrastructure.axon.QueryResponseTypes;
 import io.github.quizup.microservice.core.infrastructure.in.api.ResponseEntityBuilder;
 import io.github.quizup.microservice.core.infrastructure.in.api.request.SearchRequest;
 import io.github.quizup.microservice.core.infrastructure.in.api.response.IdResponse;
-import io.github.quizup.microservice.core.infrastructure.in.api.response.PageResponse;
-import io.github.quizup.microservice.core.infrastructure.mapper.SearchRequestMapper;
+import io.github.quizup.microservice.core.infrastructure.in.api.response.SearchResponse;
 import io.github.quizup.microservice.security.SecurityHelper;
 import org.axonframework.commandhandling.gateway.CommandGateway;
 import org.axonframework.queryhandling.QueryGateway;
@@ -60,15 +57,10 @@ public class GameController {
     }
 
     @PostMapping("/search")
-    public CompletableFuture<ResponseEntity<PageResponse<Game>>> search(
+    public CompletableFuture<ResponseEntity<SearchResponse<Game>>> search(
             @RequestBody(required = false) SearchRequest searchRequest) {
-        SearchCriteria criteria = SearchRequestMapper.toSearchCriteria(searchRequest);
         return queryGateway
-                .query(
-                        new GameQuery.SearchGameQuery(criteria.filters(), criteria.sorts(), criteria.page()),
-                        QueryResponseTypes.pageResultOf(Game.class)
-                )
-                .thenApply(PageMapper::toResponse)
+                .query(new GameQuery.SearchGameQuery(searchRequest), QueryResponseTypes.searchResponseOf(Game.class))
                 .thenApply(ResponseEntity::ok);
     }
 

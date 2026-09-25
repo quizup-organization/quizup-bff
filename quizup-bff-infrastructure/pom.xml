@@ -15,13 +15,13 @@
 
     <properties>
         <!-- Contrats inter-services : dernières versions publiées (GitHub Packages). -->
-        <quizup.identity-domain.version>1.8.0</quizup.identity-domain.version>
-        <quizup.theme-domain.version>1.6.4</quizup.theme-domain.version>
-        <quizup.social-domain.version>1.7.0</quizup.social-domain.version>
-        <quizup.game-domain.version>1.5.5</quizup.game-domain.version>
-        <quizup.profile-domain.version>1.8.0</quizup.profile-domain.version>
-        <quizup.matchmaking-domain.version>1.5.5</quizup.matchmaking-domain.version>
-        <quizup.leaderboard-domain.version>1.6.4</quizup.leaderboard-domain.version>
+        <quizup.identity-domain.version>2.0.0</quizup.identity-domain.version>
+        <quizup.theme-domain.version>2.0.0</quizup.theme-domain.version>
+        <quizup.social-domain.version>2.0.0</quizup.social-domain.version>
+        <quizup.game-domain.version>2.0.0</quizup.game-domain.version>
+        <quizup.profile-domain.version>2.0.0</quizup.profile-domain.version>
+        <quizup.matchmaking-domain.version>2.0.0</quizup.matchmaking-domain.version>
+        <quizup.leaderboard-domain.version>2.0.0</quizup.leaderboard-domain.version>
     </properties>
 
     <dependencies>

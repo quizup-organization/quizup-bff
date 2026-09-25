@@ -1,15 +1,12 @@
 package io.github.quizup.bff.infrastructure.in.api;
 
-import io.github.quizup.bff.infrastructure.in.api.mapper.PageMapper;
 import io.github.quizup.bff.infrastructure.in.api.request.CreateChallengeRequest;
 import io.github.quizup.bff.infrastructure.in.api.request.RegisterChallengeRunRequest;
-import io.github.quizup.microservice.core.domain.model.search.SearchCriteria;
 import io.github.quizup.microservice.core.infrastructure.axon.QueryResponseTypes;
 import io.github.quizup.microservice.core.infrastructure.in.api.ResponseEntityBuilder;
 import io.github.quizup.microservice.core.infrastructure.in.api.request.SearchRequest;
 import io.github.quizup.microservice.core.infrastructure.in.api.response.IdResponse;
-import io.github.quizup.microservice.core.infrastructure.in.api.response.PageResponse;
-import io.github.quizup.microservice.core.infrastructure.mapper.SearchRequestMapper;
+import io.github.quizup.microservice.core.infrastructure.in.api.response.SearchResponse;
 import io.github.quizup.microservice.security.SecurityHelper;
 import io.github.quizup.social.domain.command.ChallengeCommand;
 import io.github.quizup.social.domain.model.Challenge;
@@ -45,15 +42,10 @@ public class ChallengeController {
     }
 
     @PostMapping("/search")
-    public CompletableFuture<ResponseEntity<PageResponse<Challenge>>> search(
+    public CompletableFuture<ResponseEntity<SearchResponse<Challenge>>> search(
             @RequestBody(required = false) SearchRequest searchRequest) {
-        SearchCriteria criteria = SearchRequestMapper.toSearchCriteria(searchRequest);
         return queryGateway
-                .query(
-                        new ChallengeQuery.SearchChallengeQuery(criteria.filters(), criteria.sorts(), criteria.page()),
-                        QueryResponseTypes.pageResultOf(Challenge.class)
-                )
-                .thenApply(PageMapper::toResponse)
+                .query(new ChallengeQuery.SearchChallengeQuery(searchRequest), QueryResponseTypes.searchResponseOf(Challenge.class))
                 .thenApply(ResponseEntity::ok);
     }
 

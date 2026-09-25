@@ -11,7 +11,8 @@ import java.util.Map;
 /**
  * Horloge serveur — ressource système {@code GET /api/clock}.
  *
- * <p>Utilisée par le client pour synchroniser son chrono de duel sur l'heure serveur.</p>
+ * <p>Utilisée par le client pour synchroniser son chrono de duel sur l'heure serveur.
+ * Contrat aligné sur l'ancien {@code GET /api/games/time} ({@code serverTime}, {@code epochMillis}).</p>
  */
 @RestController
 @RequestMapping("/api")
@@ -19,6 +20,10 @@ public class ClockController {
 
     @GetMapping("/clock")
     public ResponseEntity<Map<String, Object>> clock() {
-        return ResponseEntity.ok(Map.of("now", Instant.now()));
+        Instant now = Instant.now();
+        return ResponseEntity.ok(Map.of(
+                "serverTime", now,
+                "epochMillis", now.toEpochMilli()
+        ));
     }
 }

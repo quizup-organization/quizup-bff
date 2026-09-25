@@ -1,11 +1,8 @@
 package io.github.quizup.bff.infrastructure.in.api;
 
-import io.github.quizup.bff.infrastructure.in.api.mapper.PageMapper;
-import io.github.quizup.microservice.core.domain.model.search.SearchCriteria;
 import io.github.quizup.microservice.core.infrastructure.axon.QueryResponseTypes;
 import io.github.quizup.microservice.core.infrastructure.in.api.request.SearchRequest;
-import io.github.quizup.microservice.core.infrastructure.in.api.response.PageResponse;
-import io.github.quizup.microservice.core.infrastructure.mapper.SearchRequestMapper;
+import io.github.quizup.microservice.core.infrastructure.in.api.response.SearchResponse;
 import io.github.quizup.theme.domain.model.Topic;
 import io.github.quizup.theme.domain.query.TopicQuery;
 import org.axonframework.queryhandling.QueryGateway;
@@ -33,15 +30,10 @@ public class TopicController {
     }
 
     @PostMapping("/search")
-    public CompletableFuture<ResponseEntity<PageResponse<Topic>>> search(
+    public CompletableFuture<ResponseEntity<SearchResponse<Topic>>> search(
             @RequestBody(required = false) SearchRequest searchRequest) {
-        SearchCriteria criteria = SearchRequestMapper.toSearchCriteria(searchRequest);
         return queryGateway
-                .query(
-                        new TopicQuery.TopicSearchQuery(criteria.filters(), criteria.sorts(), criteria.page()),
-                        QueryResponseTypes.pageResultOf(Topic.class)
-                )
-                .thenApply(PageMapper::toResponse)
+                .query(new TopicQuery.TopicSearchQuery(searchRequest), QueryResponseTypes.searchResponseOf(Topic.class))
                 .thenApply(ResponseEntity::ok);
     }
 
