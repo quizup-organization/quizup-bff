@@ -1,3 +1,9 @@
+## [2.2.0](https://github.com/quizup-organization/quizup-bff/compare/v2.1.0...v2.2.0) (2026-09-27)
+
+### Features
+
+* **bff:** expose topic cover image in topic views ([f60af56](https://github.com/quizup-organization/quizup-bff/commit/f60af5648d626dbadafaa6b7955710e60a27d328))
+
 ## [2.1.0](https://github.com/quizup-organization/quizup-bff/compare/v2.0.0...v2.1.0) (2026-09-27)
 
 ### Features
