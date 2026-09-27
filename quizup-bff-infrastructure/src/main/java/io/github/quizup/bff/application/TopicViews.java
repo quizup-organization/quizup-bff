@@ -25,6 +25,7 @@ final class TopicViews {
                 topic.category() == null ? null : topic.category().label(),
                 topic.emoji(),
                 topic.color(),
+                topic.imageUrl(),
                 topic.followersCounter() == null ? 0 : topic.followersCounter(),
                 questionsCount,
                 followed);
@@ -32,12 +33,13 @@ final class TopicViews {
 
     static TopicRefView toRef(String topicId, Topic topic) {
         return topic == null
-                ? new TopicRefView(topicId, topicId, null, null, null)
+                ? new TopicRefView(topicId, topicId, null, null, null, null)
                 : new TopicRefView(
                         topic.topicId(),
                         topic.name(),
                         topic.category() == null ? null : topic.category().name(),
                         topic.emoji(),
-                        topic.color());
+                        topic.color(),
+                        topic.imageUrl());
     }
 }

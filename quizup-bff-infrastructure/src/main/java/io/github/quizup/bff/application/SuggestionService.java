@@ -62,6 +62,7 @@ public class SuggestionService {
                         topic.category() == null ? null : topic.category().label(),
                         topic.emoji(),
                         topic.color(),
+                        topic.imageUrl(),
                         null)));
                 players.forEach(profile -> suggestions.add(new SuggestionView(
                         SuggestionView.Type.PLAYER,
@@ -70,6 +71,7 @@ public class SuggestionService {
                         "Niveau " + ProgressionViews.toView(
                                 progressById.getOrDefault(profile.userId(),
                                         PlayerProgress.empty(profile.userId()))).level(),
+                        null,
                         null,
                         null,
                         profile.avatarOptions())));

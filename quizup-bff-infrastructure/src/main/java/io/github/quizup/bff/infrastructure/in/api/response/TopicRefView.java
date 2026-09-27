@@ -8,6 +8,7 @@ public record TopicRefView(
         String name,
         String category,
         String emoji,
-        String color
+        String color,
+        String imageUrl
 ) {
 }

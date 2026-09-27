@@ -10,6 +10,7 @@ public record SuggestionView(
         String subtitle,
         String emoji,
         String color,
+        String imageUrl,
         String avatarOptions
 ) {
 

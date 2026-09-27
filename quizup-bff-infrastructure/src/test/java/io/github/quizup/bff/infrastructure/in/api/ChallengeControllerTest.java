@@ -65,7 +65,7 @@ class ChallengeControllerTest {
                 "challenge-1",
                 ChallengeDirection.RECEIVED,
                 ChallengeStatus.PENDING,
-                new TopicRefView("topic-1", "Pokémon", "GAMES", null, null),
+                new TopicRefView("topic-1", "Pokémon", "GAMES", null, null, null),
                 new UserRefView("user-2", "Bravo", null),
                 Instant.parse("2026-09-27T10:00:00Z"),
                 Instant.parse("2026-09-28T10:00:00Z"),

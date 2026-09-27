@@ -13,6 +13,7 @@ public record TopicCardView(
         String categoryLabel,
         String emoji,
         String color,
+        String imageUrl,
         int followersCount,
         int questionsCount,
         boolean followed
