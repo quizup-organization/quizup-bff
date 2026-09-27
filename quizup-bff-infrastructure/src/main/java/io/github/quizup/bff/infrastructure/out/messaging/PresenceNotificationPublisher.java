@@ -1,6 +1,6 @@
 package io.github.quizup.bff.infrastructure.out.messaging;
 
-import io.github.quizup.bff.infrastructure.out.messaging.response.PresenceNotification;
+import io.github.quizup.bff.infrastructure.in.api.response.PresenceView;
 import io.github.quizup.profile.domain.event.PresenceEvent;
 import io.github.quizup.profile.domain.model.PresenceStatus;
 import org.axonframework.config.ProcessingGroup;
@@ -41,7 +41,7 @@ public class PresenceNotificationPublisher {
         logger.debug("Presence publiée: userId={}, status={}", userId, status);
         messagingTemplate.convertAndSend(
                 DESTINATION_PREFIX + userId,
-                new PresenceNotification(userId, status, lastSeenAt)
+                new PresenceView(userId, status, lastSeenAt)
         );
     }
 }

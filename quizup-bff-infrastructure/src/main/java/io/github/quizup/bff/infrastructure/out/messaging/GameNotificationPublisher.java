@@ -1,9 +1,9 @@
 package io.github.quizup.bff.infrastructure.out.messaging;
 
+import io.github.quizup.bff.infrastructure.in.api.response.EventEnvelopeResponse;
 import io.github.quizup.bff.infrastructure.out.messaging.mapper.GameEventNotificationMapper;
 import io.github.quizup.bff.infrastructure.out.messaging.response.GameNotification;
 import io.github.quizup.game.domain.event.GameEvent;
-import io.github.quizup.microservice.core.domain.model.notification.NotificationEnvelope;
 import org.axonframework.config.ProcessingGroup;
 import org.axonframework.eventhandling.DomainEventMessage;
 import org.axonframework.eventhandling.EventHandler;
@@ -15,7 +15,7 @@ import org.springframework.stereotype.Service;
 
 /**
  * Diffuse les événements de partie en temps réel sur {@code /topic/games/{gameId}}
- * (même contrat que l'historique REST).
+ * (même contrat que l'historique REST : {@link EventEnvelopeResponse}).
  */
 @Service
 @ProcessingGroup("game-notification")
@@ -47,11 +47,11 @@ public class GameNotificationPublisher {
             return;
         }
 
-        NotificationEnvelope<GameNotification> envelope = new NotificationEnvelope<>(
-                domainMessage.getIdentifier(),
-                event.gameId(),
+        EventEnvelopeResponse envelope = EventEnvelopeResponse.of(
+                domainMessage.getAggregateIdentifier(),
                 domainMessage.getSequenceNumber(),
                 domainMessage.getTimestamp(),
+                payload.type().name(),
                 payload
         );
 

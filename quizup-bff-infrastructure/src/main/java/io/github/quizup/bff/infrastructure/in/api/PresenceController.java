@@ -1,59 +1,34 @@
 package io.github.quizup.bff.infrastructure.in.api;
 
-import io.github.quizup.microservice.core.domain.model.search.FilterOperator;
-import io.github.quizup.microservice.core.infrastructure.axon.QueryResponseTypes;
-import io.github.quizup.microservice.core.infrastructure.in.api.request.FilterRequest;
-import io.github.quizup.microservice.core.infrastructure.in.api.request.PageRequest;
-import io.github.quizup.microservice.core.infrastructure.in.api.request.SearchRequest;
-import io.github.quizup.microservice.core.infrastructure.in.api.response.SearchResponse;
-import io.github.quizup.profile.domain.model.PlayerPresence;
-import io.github.quizup.profile.domain.model.PresenceStatus;
-import io.github.quizup.profile.domain.query.PresenceQuery;
-import org.axonframework.queryhandling.QueryGateway;
+import io.github.quizup.bff.application.ProfileViewService;
+import io.github.quizup.bff.infrastructure.in.api.response.PresenceView;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * Ressource {@code /api/presence} — présence joueur (read-model éphémère, pilote le cycle de vie STOMP).
+ * {@code /api/presence} — présence d'un joueur ({@code 404} si le joueur ne s'est jamais
+ * connecté ; l'absence vaut « hors ligne » côté client).
  */
 @RestController
 @RequestMapping("/api/presence")
 public class PresenceController {
 
-    private final QueryGateway queryGateway;
+    private final ProfileViewService profileViewService;
 
-    public PresenceController(QueryGateway queryGateway) {
-        this.queryGateway = queryGateway;
+    public PresenceController(ProfileViewService profileViewService) {
+        this.profileViewService = profileViewService;
     }
 
-    /** Présence d'un joueur ; un inconnu est retourné {@code OFFLINE}. */
     @GetMapping("/{userId}")
-    public CompletableFuture<ResponseEntity<PlayerPresence>> get(@PathVariable String userId) {
-        SearchRequest request = new SearchRequest(
-                List.of(new FilterRequest("userId", FilterOperator.EQUALS, userId, null, null)),
-                List.of(),
-                new PageRequest(0, 1)
-        );
-        return queryGateway
-                .query(new PresenceQuery.PresenceSearchQuery(request), QueryResponseTypes.searchResponseOf(PlayerPresence.class))
-                .thenApply(page -> page.content().stream().findFirst()
-                        .orElseGet(() -> PlayerPresence.builder().userId(userId).status(PresenceStatus.OFFLINE).build()))
-                .thenApply(ResponseEntity::ok);
-    }
-
-    @PostMapping("/search")
-    public CompletableFuture<ResponseEntity<SearchResponse<PlayerPresence>>> search(
-            @RequestBody(required = false) SearchRequest searchRequest) {
-        return queryGateway
-                .query(new PresenceQuery.PresenceSearchQuery(searchRequest), QueryResponseTypes.searchResponseOf(PlayerPresence.class))
-                .thenApply(ResponseEntity::ok);
+    public CompletableFuture<ResponseEntity<PresenceView>> presence(@PathVariable String userId) {
+        return profileViewService.presence(userId)
+                .thenApply(presence -> presence
+                        .map(ResponseEntity::ok)
+                        .orElseGet(() -> ResponseEntity.notFound().build()));
     }
 }

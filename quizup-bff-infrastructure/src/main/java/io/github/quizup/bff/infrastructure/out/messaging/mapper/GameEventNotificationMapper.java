@@ -9,6 +9,10 @@ import java.util.Optional;
 
 import static java.util.Objects.isNull;
 
+/**
+ * Mappe les événements du domaine Game (reçus typés via le codec du bus ou via Kafka) vers le
+ * contrat web {@link GameNotification}. Unique point de mapping pour l'historique REST et le WS.
+ */
 public final class GameEventNotificationMapper {
 
     private GameEventNotificationMapper() {

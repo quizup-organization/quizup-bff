@@ -1,15 +1,30 @@
 package io.github.quizup.bff.infrastructure.out.messaging.response;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import io.github.quizup.game.domain.model.GameQuestionChoice;
 
 import java.time.Instant;
 import java.util.Map;
 
 /**
- * Notifications de partie (rapatriées du service game ; le BFF est la seule surface WS).
- * Le discriminant est exposé explicitement par {@code type} ({@link JsonProperty}).
+ * Notifications de partie — contrat web du BFF (annotations Jackson ; {@code type} discriminant).
+ * Le payload du bus est un {@code GameEvent} typé ; le BFF le mappe vers ces DTOs.
  */
+@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.EXISTING_PROPERTY, property = "type")
+@JsonSubTypes({
+        @JsonSubTypes.Type(value = GameNotification.GameCreatedNotification.class, name = "GAME_CREATED"),
+        @JsonSubTypes.Type(value = GameNotification.PlayerJoinedNotification.class, name = "PLAYER_JOINED"),
+        @JsonSubTypes.Type(value = GameNotification.GameStartedNotification.class, name = "GAME_STARTED"),
+        @JsonSubTypes.Type(value = GameNotification.RoundStartedNotification.class, name = "ROUND_STARTED"),
+        @JsonSubTypes.Type(value = GameNotification.QuestionRevealedNotification.class, name = "QUESTION_REVEALED"),
+        @JsonSubTypes.Type(value = GameNotification.PlayerAnsweredNotification.class, name = "PLAYER_ANSWERED"),
+        @JsonSubTypes.Type(value = GameNotification.RoundClosedNotification.class, name = "ROUND_CLOSED"),
+        @JsonSubTypes.Type(value = GameNotification.GameEndedNotification.class, name = "GAME_ENDED"),
+        @JsonSubTypes.Type(value = GameNotification.GameRunRecordedNotification.class, name = "GAME_RUN_RECORDED"),
+        @JsonSubTypes.Type(value = GameNotification.GameCancelledNotification.class, name = "GAME_CANCELLED")
+})
 public interface GameNotification {
 
     @JsonProperty("type")
