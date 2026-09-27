@@ -1,3 +1,9 @@
+## [2.1.0](https://github.com/quizup-organization/quizup-bff/compare/v2.0.0...v2.1.0) (2026-09-27)
+
+### Features
+
+* **bff:** hybrid REST/WS surface, dedicated views and resilient presence ([448f918](https://github.com/quizup-organization/quizup-bff/commit/448f918beb7d92967604d949319ed92a1106d881))
+
 ## [2.0.0](https://github.com/quizup-organization/quizup-bff/compare/v1.2.4...v2.0.0) (2026-09-25)
 
 ### ⚠ BREAKING CHANGES
