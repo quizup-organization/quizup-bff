@@ -56,6 +56,10 @@ Le `quizup-mobile` n'est **pas** branché sur cette surface (migration dédiée 
   requêtes dédiées (`GetProfilesByIdsQuery`, `GetProgressionsByIdsQuery`,
   `GetPresencesByIdsQuery`…).
 - **Actor** : le `userId` provient du JWT (`SecurityHelper`) ; jamais dans le body.
+- **Session périmée** : un JWT encore valide dont le `user_id` n'existe plus dans identity (base
+  purgée, compte supprimé) est rejeté en `401` par `CurrentUserExistsFilter` sur `/api/**` —
+  le client purge sa session et repasse par le login. Existence résolue via
+  `UserExistsByIdQuery` (cache court 30 s) ; identity injoignable ⇒ fail-open.
 - **Entrées** : `@Valid`, enums stricts, `ProblemDetail` en erreur. Aucun parsing permissif,
   aucune valeur par défaut inventée (`level=1`, `OFFLINE` fabriqué…).
 - **Composition asynchrone** : combiner les `QueryGateway.query()` (pas de `.join()` bloquant
