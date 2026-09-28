@@ -1,3 +1,9 @@
+## [2.2.1](https://github.com/quizup-organization/quizup-bff/compare/v2.2.0...v2.2.1) (2026-09-28)
+
+### Bug Fixes
+
+* **bff:** reject stale sessions with 401 ([67429c1](https://github.com/quizup-organization/quizup-bff/commit/67429c1e2b47291276c11e452820141feec31373))
+
 ## [2.2.0](https://github.com/quizup-organization/quizup-bff/compare/v2.1.0...v2.2.0) (2026-09-27)
 
 ### Features
