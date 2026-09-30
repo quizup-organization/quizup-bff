@@ -1,3 +1,13 @@
+## [3.0.0](https://github.com/quizup-organization/quizup-bff/compare/v2.2.1...v3.0.0) (2026-09-30)
+
+### ⚠ BREAKING CHANGES
+
+* **bff:** profile updates are per-field endpoints (/pseudonym, /bio, /country, /avatar-options, /language); displayName renamed to pseudonym; MeView exposes language; RoundStartedNotification exposes translations; game creation passes the creator language (pins SDK 4.1.0, profile 3.0.0, theme 4.0.0, game 4.0.0, social 3.0.0, matchmaking 3.0.0, leaderboard 3.0.0).
+
+### Features
+
+* **bff:** per-field profile endpoints, pseudonym rename and language-aware games ([2dfea1c](https://github.com/quizup-organization/quizup-bff/commit/2dfea1c51cc084a15f49f04d869254542d5aaeac))
+
 ## [2.2.1](https://github.com/quizup-organization/quizup-bff/compare/v2.2.0...v2.2.1) (2026-09-28)
 
 ### Bug Fixes
