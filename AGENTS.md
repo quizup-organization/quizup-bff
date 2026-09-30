@@ -43,7 +43,9 @@ Le `quizup-mobile` n'est **pas** branché sur cette surface (migration dédiée 
 - **Notifications web** : DTOs d'infrastructure BFF (`GameNotification`, `TicketNotification`,
   `SocialNotification`) enveloppés dans `EventEnvelopeResponse` (ossature Jackson du web). Les
   événements reçus du bus sont des `EventEnvelope` SDK au payload typé (`eventType`) ; un
-  `*-domain` ne porte **ni notification ni annotation framework**.
+  `*-domain` ne porte **ni notification ni annotation framework**. `RoundStartedNotification`
+  expose `questionText`/`answers` (langue source) **et** `translations` (toutes les langues du
+  snapshot, clé = code ISO 639-1) : le client choisit sa langue, avec repli sur la source.
 - **Pagination** : `?page=&size=` → `PageResponse<T> { content, page, size, totalElements,
   totalPages, first, last }`. **Tris par enum documenté** (phrase d'URL/valeurs fermées), jamais
   de nom de propriété arbitraire.
@@ -75,7 +77,7 @@ Le `quizup-mobile` n'est **pas** branché sur cette surface (migration dédiée 
 
 | Endpoint | Réponse | Notes |
 |---|---|---|
-| `GET /api/me` | `MeView` | Profil + progression + stats de duel + `followingCount` + `followersCount` + `pendingChallengesCount` |
+| `GET /api/me` | `MeView` | Profil (+ `language` fr/en) + progression + stats de duel + `followingCount` + `followersCount` + `pendingChallengesCount` |
 | `GET /api/suggestions?q=&limit=` | `List<SuggestionView>` | Palette ⌘K : sujets + joueurs (`type`, `id`, libellé, visuel) |
 | `GET /api/clock` | `ServerTimeView` | `serverTime`, `epochMillis` |
 
@@ -109,7 +111,11 @@ Le `quizup-mobile` n'est **pas** branché sur cette surface (migration dédiée 
 | `GET /api/profiles/{userId}/games?topicId=&opponentId=&page=&size=` | `PageResponse<GameHistoryItemView>` | Historique enrichi (adversaire, sujet, résultat, XP) |
 | `GET /api/profiles/{userId}/head-to-head?against=` | `HeadToHeadView` | V/N/D entre deux joueurs |
 | `GET /api/profiles/{userId}/activity?from=&to=` | `ActivityView` | Streak + graphe |
-| `PUT /api/profiles/{userId}` | `200` | `displayName`, `bio`, `country`, `avatarOptions` |
+| `PUT /api/profiles/{userId}/pseudonym` | `204` | `{ pseudonym }` |
+| `PUT /api/profiles/{userId}/bio` | `204` | `{ bio }` (`null` efface) |
+| `PUT /api/profiles/{userId}/country` | `204` | `{ country }` (`null` efface) |
+| `PUT /api/profiles/{userId}/avatar-options` | `204` | `{ avatarOptions }` (`null` efface) |
+| `PUT /api/profiles/{userId}/language` | `204` | `{ language }` ∈ `fr\|en` (enum strict) |
 | `GET /api/presence/{userId}` | `PresenceView` | `404` si le joueur ne s'est jamais connecté (l'absence vaut hors ligne) ; poussé aussi en WS |
 
 ### Défis (social)

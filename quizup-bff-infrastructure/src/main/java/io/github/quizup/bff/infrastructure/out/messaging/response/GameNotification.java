@@ -83,6 +83,13 @@ public interface GameNotification {
         }
     }
 
+    /** Contenu d'une question dans une langue (clé = code ISO 639-1 : fr, en). */
+    record RoundQuestionContent(
+            String text,
+            Map<String, String> answers
+    ) {
+    }
+
     record RoundStartedNotification(
             String gameId,
             String round,
@@ -91,6 +98,7 @@ public interface GameNotification {
             String imageUrl,
             String difficulty,
             Map<String, String> answers,
+            Map<String, RoundQuestionContent> translations,
             boolean bonus,
             Instant shownAt,
             Instant revealAt

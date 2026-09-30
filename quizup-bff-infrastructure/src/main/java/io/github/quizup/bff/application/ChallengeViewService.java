@@ -167,7 +167,7 @@ public class ChallengeViewService {
         Profile profile = profileById.get(userId);
         return profile == null
                 ? new UserRefView(userId, null, null)
-                : new UserRefView(profile.userId(), profile.displayName(), profile.avatarOptions());
+                : new UserRefView(profile.userId(), profile.pseudonym(), profile.avatarOptions());
     }
 
     private static Map<String, Profile> byId(List<Profile> profiles) {

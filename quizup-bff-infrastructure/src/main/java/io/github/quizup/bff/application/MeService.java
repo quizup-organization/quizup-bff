@@ -45,10 +45,11 @@ public class MeService {
                     return new MeView(
                             profile.userId(),
                             profile.email(),
-                            profile.displayName(),
+                            profile.pseudonym(),
                             profile.bio(),
                             profile.country(),
                             profile.avatarOptions(),
+                            profile.language(),
                             ProgressionViews.toView(progressFuture.join()),
                             ProgressionViews.toStats(progressFuture.join()),
                             counts.following(),

@@ -4,6 +4,7 @@ import io.github.quizup.bff.application.MeService;
 import io.github.quizup.bff.infrastructure.in.api.response.DuelStatsView;
 import io.github.quizup.bff.infrastructure.in.api.response.MeView;
 import io.github.quizup.bff.infrastructure.in.api.response.ProgressionView;
+import io.github.quizup.microservice.core.domain.model.i18n.Language;
 import io.github.quizup.microservice.core.domain.model.security.QuizUpPrincipal;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -56,7 +57,7 @@ class MeControllerTest {
 
     @Test
     void me_returns_current_player_view() throws Exception {
-        MeView view = new MeView(USER_ID, "user@quizup.io", "Alpha", null, "FR", null,
+        MeView view = new MeView(USER_ID, "user@quizup.io", "Alpha", null, "FR", null, Language.FR,
                 new ProgressionView(120, 2, "Apprenti", 400, 6, List.of()),
                 new DuelStatsView(4, 3, 1, 0, 75, 160, 2, 3), 3, 5, 1);
         when(meService.me(USER_ID)).thenReturn(CompletableFuture.completedFuture(view));
@@ -68,6 +69,7 @@ class MeControllerTest {
         mockMvc.perform(asyncDispatch(result))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.userId").value(USER_ID))
+                .andExpect(jsonPath("$.language").value("fr"))
                 .andExpect(jsonPath("$.progression.level").value(2))
                 .andExpect(jsonPath("$.pendingChallengesCount").value(1));
     }

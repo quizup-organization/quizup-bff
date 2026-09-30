@@ -23,7 +23,7 @@ class ProfileLookupTest {
     private final ProfileLookup lookup = new ProfileLookup(queryGateway);
 
     private static Profile profile(String userId) {
-        return Profile.builder().userId(userId).displayName("P-" + userId).build();
+        return Profile.builder().userId(userId).pseudonym("P-" + userId).build();
     }
 
     @Test
@@ -36,7 +36,7 @@ class ProfileLookupTest {
         Profile first = lookup.get("u1").join();
         Profile second = lookup.get("u1").join();
 
-        assertThat(first.displayName()).isEqualTo("P-u1");
+        assertThat(first.pseudonym()).isEqualTo("P-u1");
         assertThat(second).isSameAs(first);
         verify(queryGateway, times(1)).query(
                 ArgumentMatchers.<ProfileQuery.GetProfileQuery>any(),

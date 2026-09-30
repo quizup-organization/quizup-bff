@@ -198,7 +198,7 @@ public class TopicViewService {
         return new TopicLeaderboardView.EntryView(
                 rank,
                 entry.userId(),
-                entry.displayName(),
+                entry.pseudonym(),
                 entry.avatarOptions(),
                 entry.country(),
                 entry.level(),

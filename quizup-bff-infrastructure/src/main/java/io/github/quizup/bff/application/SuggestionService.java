@@ -67,7 +67,7 @@ public class SuggestionService {
                 players.forEach(profile -> suggestions.add(new SuggestionView(
                         SuggestionView.Type.PLAYER,
                         profile.userId(),
-                        profile.displayName(),
+                        profile.pseudonym(),
                         "Niveau " + ProgressionViews.toView(
                                 progressById.getOrDefault(profile.userId(),
                                         PlayerProgress.empty(profile.userId()))).level(),

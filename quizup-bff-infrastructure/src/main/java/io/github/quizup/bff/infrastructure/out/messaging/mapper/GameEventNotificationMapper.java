@@ -2,6 +2,9 @@ package io.github.quizup.bff.infrastructure.out.messaging.mapper;
 
 import io.github.quizup.bff.infrastructure.out.messaging.response.GameNotification;
 import io.github.quizup.game.domain.event.GameEvent;
+import io.github.quizup.game.domain.model.GameQuestionChoice;
+import io.github.quizup.game.domain.model.GameQuestionContent;
+import io.github.quizup.microservice.core.domain.model.i18n.Language;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -54,20 +57,27 @@ public final class GameEventNotificationMapper {
             );
 
             case GameEvent.RoundStartedEvent roundStartedEvent -> {
-                Map<String, String> answers = new LinkedHashMap<>();
-                roundStartedEvent
-                        .question()
-                        .answers()
-                        .forEach((choice, text) -> answers.put(choice.name(), text));
+                var question = roundStartedEvent.question();
+                Map<String, String> answers = toAnswerMap(question.answers());
+                Map<String, GameNotification.RoundQuestionContent> translations = new LinkedHashMap<>();
+                if (question.translations() != null) {
+                    for (Map.Entry<Language, GameQuestionContent> translation : question.translations().entrySet()) {
+                        translations.put(translation.getKey().code(),
+                                new GameNotification.RoundQuestionContent(
+                                        translation.getValue().text(),
+                                        toAnswerMap(translation.getValue().answers())));
+                    }
+                }
                 yield Optional.of(
                         new GameNotification.RoundStartedNotification(
                                 roundStartedEvent.gameId(),
                                 roundStartedEvent.round().name(),
-                                roundStartedEvent.question().questionId(),
-                                roundStartedEvent.question().text(),
-                                roundStartedEvent.question().imageUrl(),
-                                roundStartedEvent.question().difficulty(),
+                                question.questionId(),
+                                question.text(),
+                                question.imageUrl(),
+                                question.difficulty(),
                                 answers,
+                                translations,
                                 roundStartedEvent.round().isBonus(),
                                 roundStartedEvent.shownAt(),
                                 roundStartedEvent.revealAt()
@@ -133,5 +143,13 @@ public final class GameEventNotificationMapper {
 
             default -> Optional.empty();
         };
+    }
+
+    private static Map<String, String> toAnswerMap(Map<GameQuestionChoice, String> answers) {
+        Map<String, String> mapped = new LinkedHashMap<>();
+        if (answers != null) {
+            answers.forEach((choice, text) -> mapped.put(choice.name(), text));
+        }
+        return mapped;
     }
 }

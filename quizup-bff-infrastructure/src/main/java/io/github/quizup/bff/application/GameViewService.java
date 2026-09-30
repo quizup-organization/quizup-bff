@@ -18,6 +18,7 @@ import org.axonframework.queryhandling.QueryGateway;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
@@ -87,10 +88,11 @@ public class GameViewService {
                 gameId,
                 request.topicId(),
                 player.userId(),
-                player.displayName(),
+                player.pseudonym(),
                 QuizUpConstants.SYSTEM_USER_ID,
                 QuizUpConstants.SYSTEM_USER_NAME,
                 GameMode.SYNC,
+                Set.of(player.language()),
                 GamePlayerType.BOT,
                 BotDifficulty.fromOrDefault(request.difficulty()),
                 null);
@@ -111,10 +113,11 @@ public class GameViewService {
                     gameId,
                     request.topicId(),
                     player.userId(),
-                    player.displayName(),
+                    player.pseudonym(),
                     null,
                     null,
                     GameMode.ASYNC,
+                    Set.of(player.language()),
                     GamePlayerType.HUMAN,
                     null,
                     null);
@@ -126,10 +129,11 @@ public class GameViewService {
                     gameId,
                     request.topicId(),
                     player.userId(),
-                    player.displayName(),
+                    player.pseudonym(),
                     opponent.userId(),
-                    opponent.displayName(),
+                    opponent.pseudonym(),
                     GameMode.ASYNC,
+                    Set.of(player.language()),
                     GamePlayerType.GHOST,
                     null,
                     request.ghostGameId());

@@ -11,7 +11,7 @@ public record TopicLeaderboardView(
     public record EntryView(
             int rank,
             String userId,
-            String displayName,
+            String pseudonym,
             String avatarOptions,
             String country,
             int level,

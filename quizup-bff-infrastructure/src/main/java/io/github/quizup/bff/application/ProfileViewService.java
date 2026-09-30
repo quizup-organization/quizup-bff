@@ -88,7 +88,7 @@ public class ProfileViewService {
                     PlayerPresence presence = presenceFuture.join().stream().findFirst().orElse(null);
                     return new PlayerProfileView(
                             profile.userId(),
-                            profile.displayName(),
+                            profile.pseudonym(),
                             profile.bio(),
                             profile.country(),
                             profile.avatarOptions(),
@@ -155,7 +155,7 @@ public class ProfileViewService {
                                 .filter(Optional::isPresent)
                                 .map(Optional::get)
                                 .filter(card -> normalizedQuery == null
-                                        || normalize(card.displayName()).contains(normalizedQuery))
+                                        || normalize(card.pseudonym()).contains(normalizedQuery))
                                 .sorted(peopleComparator(sort))
                                 .toList();
 
@@ -277,7 +277,7 @@ public class ProfileViewService {
         PlayerPresence presence = presenceById.get(userId);
         return Optional.of(new PlayerCardView(
                 profile.userId(),
-                profile.displayName(),
+                profile.pseudonym(),
                 profile.avatarOptions(),
                 progression.level(),
                 progression.title(),
@@ -288,10 +288,10 @@ public class ProfileViewService {
     private static Comparator<PlayerCardView> peopleComparator(PeopleSort sort) {
         if (sort == PeopleSort.LEVEL) {
             return Comparator.comparingInt(PlayerCardView::level).reversed()
-                    .thenComparing(PlayerCardView::displayName, String.CASE_INSENSITIVE_ORDER);
+                    .thenComparing(PlayerCardView::pseudonym, String.CASE_INSENSITIVE_ORDER);
         }
         if (sort == PeopleSort.ALPHA) {
-            return Comparator.comparing(PlayerCardView::displayName, String.CASE_INSENSITIVE_ORDER);
+            return Comparator.comparing(PlayerCardView::pseudonym, String.CASE_INSENSITIVE_ORDER);
         }
         return (first, second) -> 0;
     }
@@ -309,7 +309,7 @@ public class ProfileViewService {
         return new GameHistoryItemView(
                 game.gameId(),
                 TopicViews.toRef(game.topicId(), topic),
-                opponent == null ? null : new UserRefView(opponent.userId(), opponent.displayName(), opponent.avatarOptions()),
+                opponent == null ? null : new UserRefView(opponent.userId(), opponent.pseudonym(), opponent.avatarOptions()),
                 game.opponent() == null ? null : game.opponent().name(),
                 game.mode(),
                 outcomeOf(game, userId),

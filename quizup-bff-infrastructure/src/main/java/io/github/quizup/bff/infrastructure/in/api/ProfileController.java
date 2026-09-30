@@ -3,7 +3,11 @@ package io.github.quizup.bff.infrastructure.in.api;
 import io.github.quizup.bff.application.ProfileViewService;
 import io.github.quizup.bff.infrastructure.in.api.request.PageParams;
 import io.github.quizup.bff.infrastructure.in.api.request.PeopleSort;
-import io.github.quizup.bff.infrastructure.in.api.request.UpdateProfileRequest;
+import io.github.quizup.bff.infrastructure.in.api.request.UpdateAvatarOptionsRequest;
+import io.github.quizup.bff.infrastructure.in.api.request.UpdateBioRequest;
+import io.github.quizup.bff.infrastructure.in.api.request.UpdateCountryRequest;
+import io.github.quizup.bff.infrastructure.in.api.request.UpdateLanguageRequest;
+import io.github.quizup.bff.infrastructure.in.api.request.UpdatePseudonymRequest;
 import io.github.quizup.bff.infrastructure.in.api.response.ActivityViewResponse;
 import io.github.quizup.bff.infrastructure.in.api.response.GameHistoryItemView;
 import io.github.quizup.bff.infrastructure.in.api.response.HeadToHeadView;
@@ -55,18 +59,64 @@ public class ProfileController {
                 .thenApply(ResponseEntity::ok);
     }
 
-    @PutMapping("/{userId}")
-    public CompletableFuture<ResponseEntity<Void>> update(@PathVariable String userId,
-                                                          @Valid @RequestBody UpdateProfileRequest request) {
+    @PutMapping("/{userId}/pseudonym")
+    public CompletableFuture<ResponseEntity<Void>> updatePseudonym(
+            @PathVariable String userId,
+            @Valid @RequestBody UpdatePseudonymRequest request) {
         return commandGateway
-                .send(new ProfileCommand.UpdateProfileCommand(
+                .send(new ProfileCommand.UpdateProfilePseudonymCommand(
                         userId,
                         SecurityHelper.getUserId(),
-                        request.displayName(),
-                        request.bio(),
-                        request.country(),
+                        request.pseudonym()))
+                .thenApply(_ -> ResponseEntity.noContent().build());
+    }
+
+    @PutMapping("/{userId}/bio")
+    public CompletableFuture<ResponseEntity<Void>> updateBio(
+            @PathVariable String userId,
+            @Valid @RequestBody UpdateBioRequest request) {
+        return commandGateway
+                .send(new ProfileCommand.UpdateProfileBioCommand(
+                        userId,
+                        SecurityHelper.getUserId(),
+                        request.bio()))
+                .thenApply(_ -> ResponseEntity.noContent().build());
+    }
+
+    @PutMapping("/{userId}/country")
+    public CompletableFuture<ResponseEntity<Void>> updateCountry(
+            @PathVariable String userId,
+            @Valid @RequestBody UpdateCountryRequest request) {
+        return commandGateway
+                .send(new ProfileCommand.UpdateProfileCountryCommand(
+                        userId,
+                        SecurityHelper.getUserId(),
+                        request.country()))
+                .thenApply(_ -> ResponseEntity.noContent().build());
+    }
+
+    @PutMapping("/{userId}/avatar-options")
+    public CompletableFuture<ResponseEntity<Void>> updateAvatarOptions(
+            @PathVariable String userId,
+            @Valid @RequestBody UpdateAvatarOptionsRequest request) {
+        return commandGateway
+                .send(new ProfileCommand.UpdateProfileAvatarCommand(
+                        userId,
+                        SecurityHelper.getUserId(),
                         request.avatarOptions()))
-                .thenApply(_ -> ResponseEntity.ok().build());
+                .thenApply(_ -> ResponseEntity.noContent().build());
+    }
+
+    @PutMapping("/{userId}/language")
+    public CompletableFuture<ResponseEntity<Void>> updateLanguage(
+            @PathVariable String userId,
+            @Valid @RequestBody UpdateLanguageRequest request) {
+        return commandGateway
+                .send(new ProfileCommand.UpdateProfileLanguageCommand(
+                        userId,
+                        SecurityHelper.getUserId(),
+                        request.language()))
+                .thenApply(_ -> ResponseEntity.noContent().build());
     }
 
     @GetMapping("/{userId}/following")

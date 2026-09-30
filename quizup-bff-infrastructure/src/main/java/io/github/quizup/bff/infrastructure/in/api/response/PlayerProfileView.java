@@ -5,7 +5,7 @@ package io.github.quizup.bff.infrastructure.in.api.response;
  */
 public record PlayerProfileView(
         String userId,
-        String displayName,
+        String pseudonym,
         String bio,
         String country,
         String avatarOptions,
