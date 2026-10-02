@@ -1,3 +1,13 @@
+## [4.0.0](https://github.com/quizup-organization/quizup-bff/compare/v3.0.0...v4.0.0) (2026-10-02)
+
+### ⚠ BREAKING CHANGES
+
+* **bff:** matchmaking tickets + private lobbies surface
+
+### Code Refactoring
+
+* **bff:** matchmaking tickets + private lobbies surface ([c4f2d55](https://github.com/quizup-organization/quizup-bff/commit/c4f2d552c23ede7c614bcbf5f3051df166257372))
+
 ## [3.0.0](https://github.com/quizup-organization/quizup-bff/compare/v2.2.1...v3.0.0) (2026-09-30)
 
 ### ⚠ BREAKING CHANGES
