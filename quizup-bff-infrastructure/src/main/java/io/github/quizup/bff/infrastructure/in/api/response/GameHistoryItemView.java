@@ -1,7 +1,5 @@
 package io.github.quizup.bff.infrastructure.in.api.response;
 
-import io.github.quizup.game.domain.model.GameMode;
-
 import java.time.Instant;
 
 /**
@@ -12,7 +10,6 @@ public record GameHistoryItemView(
         TopicRefView topic,
         UserRefView opponent,
         String opponentType,
-        GameMode mode,
         Outcome outcome,
         int myScore,
         int opponentScore,

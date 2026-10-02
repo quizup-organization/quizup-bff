@@ -36,7 +36,6 @@ public final class GameEventNotificationMapper {
                             gameCreatedEvent.player2Id(),
                             gameCreatedEvent.player2Name(),
                             gameCreatedEvent.player2Type() != null ? gameCreatedEvent.player2Type().name() : null,
-                            gameCreatedEvent.mode() != null ? gameCreatedEvent.mode().name() : null,
                             gameCreatedEvent.botDifficulty() != null ? gameCreatedEvent.botDifficulty().name() : null
                     )
             );
@@ -48,10 +47,16 @@ public final class GameEventNotificationMapper {
                     )
             );
 
+            case GameEvent.GameLeftEvent gameLeftEvent -> Optional.of(
+                    new GameNotification.PlayerLeftNotification(
+                            gameLeftEvent.gameId(),
+                            gameLeftEvent.playerId()
+                    )
+            );
+
             case GameEvent.GameStartedEvent gameStartedEvent -> Optional.of(
                     new GameNotification.GameStartedNotification(
                             gameStartedEvent.gameId(),
-                            gameStartedEvent.mode().name(),
                             gameStartedEvent.firstRoundAt()
                     )
             );
@@ -133,11 +138,10 @@ public final class GameEventNotificationMapper {
                     )
             );
 
-            case GameEvent.GameRunRecordedEvent gameRunRecordedEvent -> Optional.of(
-                    new GameNotification.GameRunRecordedNotification(
-                            gameRunRecordedEvent.gameId(),
-                            gameRunRecordedEvent.playerId(),
-                            gameRunRecordedEvent.score()
+            case GameEvent.GameForfeitedEvent gameForfeitedEvent -> Optional.of(
+                    new GameNotification.GameForfeitedNotification(
+                            gameForfeitedEvent.gameId(),
+                            gameForfeitedEvent.forfeiterId()
                     )
             );
 

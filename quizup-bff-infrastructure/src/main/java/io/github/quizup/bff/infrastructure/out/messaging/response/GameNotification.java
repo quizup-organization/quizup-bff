@@ -16,13 +16,14 @@ import java.util.Map;
 @JsonSubTypes({
         @JsonSubTypes.Type(value = GameNotification.GameCreatedNotification.class, name = "GAME_CREATED"),
         @JsonSubTypes.Type(value = GameNotification.PlayerJoinedNotification.class, name = "PLAYER_JOINED"),
+        @JsonSubTypes.Type(value = GameNotification.PlayerLeftNotification.class, name = "PLAYER_LEFT"),
         @JsonSubTypes.Type(value = GameNotification.GameStartedNotification.class, name = "GAME_STARTED"),
         @JsonSubTypes.Type(value = GameNotification.RoundStartedNotification.class, name = "ROUND_STARTED"),
         @JsonSubTypes.Type(value = GameNotification.QuestionRevealedNotification.class, name = "QUESTION_REVEALED"),
         @JsonSubTypes.Type(value = GameNotification.PlayerAnsweredNotification.class, name = "PLAYER_ANSWERED"),
         @JsonSubTypes.Type(value = GameNotification.RoundClosedNotification.class, name = "ROUND_CLOSED"),
+        @JsonSubTypes.Type(value = GameNotification.GameForfeitedNotification.class, name = "GAME_FORFEITED"),
         @JsonSubTypes.Type(value = GameNotification.GameEndedNotification.class, name = "GAME_ENDED"),
-        @JsonSubTypes.Type(value = GameNotification.GameRunRecordedNotification.class, name = "GAME_RUN_RECORDED"),
         @JsonSubTypes.Type(value = GameNotification.GameCancelledNotification.class, name = "GAME_CANCELLED")
 })
 public interface GameNotification {
@@ -35,13 +36,14 @@ public interface GameNotification {
     enum GameNotificationType {
         GAME_CREATED,
         PLAYER_JOINED,
+        PLAYER_LEFT,
         GAME_STARTED,
         ROUND_STARTED,
         QUESTION_REVEALED,
         PLAYER_ANSWERED,
         ROUND_CLOSED,
+        GAME_FORFEITED,
         GAME_ENDED,
-        GAME_RUN_RECORDED,
         GAME_CANCELLED
     }
 
@@ -53,7 +55,6 @@ public interface GameNotification {
             String player2Id,
             String player2Name,
             String player2Type,
-            String mode,
             String botDifficulty
     ) implements GameNotification {
         @Override
@@ -72,9 +73,18 @@ public interface GameNotification {
         }
     }
 
+    record PlayerLeftNotification(
+            String gameId,
+            String playerId
+    ) implements GameNotification {
+        @Override
+        public GameNotificationType type() {
+            return GameNotificationType.PLAYER_LEFT;
+        }
+    }
+
     record GameStartedNotification(
             String gameId,
-            String mode,
             Instant firstRoundAt
     ) implements GameNotification {
         @Override
@@ -151,6 +161,16 @@ public interface GameNotification {
         }
     }
 
+    record GameForfeitedNotification(
+            String gameId,
+            String forfeiterId
+    ) implements GameNotification {
+        @Override
+        public GameNotificationType type() {
+            return GameNotificationType.GAME_FORFEITED;
+        }
+    }
+
     record GameEndedNotification(
             String gameId,
             String winnerId,
@@ -160,17 +180,6 @@ public interface GameNotification {
         @Override
         public GameNotificationType type() {
             return GameNotificationType.GAME_ENDED;
-        }
-    }
-
-    record GameRunRecordedNotification(
-            String gameId,
-            String playerId,
-            int score
-    ) implements GameNotification {
-        @Override
-        public GameNotificationType type() {
-            return GameNotificationType.GAME_RUN_RECORDED;
         }
     }
 

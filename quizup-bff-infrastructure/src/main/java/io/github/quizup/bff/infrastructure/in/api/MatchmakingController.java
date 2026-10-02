@@ -1,13 +1,12 @@
 package io.github.quizup.bff.infrastructure.in.api;
 
-import io.github.quizup.bff.application.MatchmakingTicketService;
-import io.github.quizup.bff.infrastructure.in.api.request.EnqueueMatchmakingRequest;
+import io.github.quizup.bff.application.MatchmakingViewService;
+import io.github.quizup.bff.infrastructure.in.api.request.CreateMatchmakingRequest;
 import io.github.quizup.bff.infrastructure.in.api.response.EventEnvelopeResponse;
 import io.github.quizup.bff.infrastructure.in.api.response.MatchmakingTicketView;
-import io.github.quizup.bff.infrastructure.out.messaging.mapper.TicketEventNotificationMapper;
-import io.github.quizup.bff.infrastructure.out.messaging.response.TicketNotification;
-import io.github.quizup.matchmaking.domain.event.LobbyEvent;
-import io.github.quizup.matchmaking.domain.query.LobbyQuery;
+import io.github.quizup.bff.infrastructure.out.messaging.mapper.MatchmakingEventNotificationMapper;
+import io.github.quizup.matchmaking.domain.event.MatchmakingEvent;
+import io.github.quizup.matchmaking.domain.query.MatchmakingQuery;
 import io.github.quizup.microservice.core.domain.model.notification.EventEnvelope;
 import io.github.quizup.microservice.core.infrastructure.axon.QueryResponseTypes;
 import io.github.quizup.microservice.security.SecurityHelper;
@@ -23,81 +22,70 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.net.URI;
 import java.util.List;
-import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * {@code /api/matchmaking/tickets} — recherche d'adversaire : ticket, annulation, notifications.
+ * {@code /api/matchmaking/tickets} — appariement public (« Défier le monde »).
  */
 @RestController
 @RequestMapping("/api/matchmaking/tickets")
 public class MatchmakingController {
 
-    private final MatchmakingTicketService matchmakingTicketService;
+    private static final String ENDPOINT = "/api/matchmaking/tickets";
+
+    private final MatchmakingViewService matchmakingViewService;
     private final QueryGateway queryGateway;
 
-    public MatchmakingController(MatchmakingTicketService matchmakingTicketService, QueryGateway queryGateway) {
-        this.matchmakingTicketService = matchmakingTicketService;
+    public MatchmakingController(MatchmakingViewService matchmakingViewService, QueryGateway queryGateway) {
+        this.matchmakingViewService = matchmakingViewService;
         this.queryGateway = queryGateway;
     }
 
     @PostMapping
     public CompletableFuture<ResponseEntity<MatchmakingTicketView>> enqueue(
-            @Valid @RequestBody EnqueueMatchmakingRequest request) {
-        return matchmakingTicketService
+            @Valid @RequestBody CreateMatchmakingRequest request) {
+        return matchmakingViewService
                 .enqueue(SecurityHelper.getUserId(), request.topicId())
                 .thenApply(ticket -> ResponseEntity
-                        .created(URI.create("/api/matchmaking/tickets/" + ticket.ticketId()))
+                        .created(URI.create(ENDPOINT + "/" + ticket.ticketId()))
                         .body(ticket));
     }
 
     @GetMapping("/{ticketId}")
-    public CompletableFuture<ResponseEntity<MatchmakingTicketView>> ticket(@PathVariable String ticketId) {
-        return matchmakingTicketService
-                .get(ticketId, SecurityHelper.getUserId())
-                .thenApply(ticket -> ticket
-                        .map(ResponseEntity::ok)
-                        .orElseGet(() -> ResponseEntity.notFound().build()));
+    public CompletableFuture<ResponseEntity<MatchmakingTicketView>> get(@PathVariable String ticketId) {
+        return matchmakingViewService.get(ticketId).thenApply(ResponseEntity::ok);
     }
 
     @PostMapping("/{ticketId}/cancel")
     public CompletableFuture<ResponseEntity<Void>> cancel(@PathVariable String ticketId) {
-        return matchmakingTicketService
+        return matchmakingViewService
                 .cancel(SecurityHelper.getUserId(), ticketId)
                 .thenApply(_ -> ResponseEntity.ok().build());
     }
 
-    /**
-     * Historique des notifications du ticket (même contrat que le push WebSocket) : le service
-     * matchmaking expose son event store en {@code EventEnvelope} typés, le BFF produit le contrat
-     * web ({@link EventEnvelopeResponse}).
-     */
     @GetMapping("/{ticketId}/notifications")
-    public CompletableFuture<ResponseEntity<List<EventEnvelopeResponse>>> notifications(
-            @PathVariable String ticketId) {
+    public CompletableFuture<ResponseEntity<List<EventEnvelopeResponse>>> notifications(@PathVariable String ticketId) {
         return queryGateway
-                .query(new LobbyQuery.GetLobbyEventsQuery(ticketId),
+                .query(new MatchmakingQuery.GetMatchmakingEventsQuery(ticketId),
                         QueryResponseTypes.multipleInstancesOf(EventEnvelope.class))
                 .thenApply(envelopes -> envelopes.stream()
                         .map(MatchmakingController::toResponse)
-                        .filter(Objects::nonNull)
+                        .flatMap(Optional::stream)
                         .toList())
                 .thenApply(ResponseEntity::ok);
     }
 
-    private static EventEnvelopeResponse toResponse(EventEnvelope envelope) {
-        if (!(envelope.payload() instanceof LobbyEvent event)) {
-            return null;
+    private static Optional<EventEnvelopeResponse> toResponse(EventEnvelope envelope) {
+        if (!(envelope.payload() instanceof MatchmakingEvent event)) {
+            return Optional.empty();
         }
-        TicketNotification notification = TicketEventNotificationMapper.toNotification(event);
-        if (notification == null) {
-            return null;
-        }
-        return EventEnvelopeResponse.of(
-                envelope.aggregateId(),
-                envelope.sequenceNumber(),
-                envelope.timestamp(),
-                notification.type().name(),
-                notification);
+        return MatchmakingEventNotificationMapper.toNotification(event)
+                .map(notification -> EventEnvelopeResponse.of(
+                        envelope.aggregateId(),
+                        envelope.sequenceNumber(),
+                        envelope.timestamp(),
+                        notification.type().name(),
+                        notification));
     }
 }

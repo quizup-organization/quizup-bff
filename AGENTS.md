@@ -14,7 +14,7 @@
 - Compose les lectures via le **query bus** Axon (`QueryGateway`) et les écritures via le
   **command bus** (`CommandGateway`).
 - Consomme le **flux d'événements Kafka** (`@ProcessingGroup`) et **fan-out** les notifications
-  vers un socket client unique (`/topic/games/{id}`, `/topic/matchmaking/tickets/{id}`,
+  vers un socket client unique (`/topic/games/{id}`, `/topic/lobbies/{id}`,
   `/topic/social/{userId}`, `/topic/presence/{userId}`).
 - Porte la **présence joueur** (sessions STOMP client → `quizup-profile`) : chaque instance BFF a
   un identifiant stable (`application:host`), purge au démarrage ses sessions antérieures et
@@ -40,10 +40,10 @@ Le `quizup-mobile` n'est **pas** branché sur cette surface (migration dédiée 
 - **DTOs de façade uniquement** : `*View` (lecture) et `*Request` (écriture). Jamais de read
   model interne exposé (`Challenge`, `Game`, `Lobby`, `Profile`, `Topic`…), jamais de `Map`,
   `Object` ou cast non typé.
-- **Notifications web** : DTOs d'infrastructure BFF (`GameNotification`, `TicketNotification`,
-  `SocialNotification`) enveloppés dans `EventEnvelopeResponse` (ossature Jackson du web). Les
-  événements reçus du bus sont des `EventEnvelope` SDK au payload typé (`eventType`) ; un
-  `*-domain` ne porte **ni notification ni annotation framework**. `RoundStartedNotification`
+- **Notifications web** : DTOs d'infrastructure BFF (`GameNotification`, `LobbyNotification`,
+  `SocialNotification` pour les follows) enveloppés dans `EventEnvelopeResponse` (ossature Jackson
+  du web). Les événements reçus du bus sont des `EventEnvelope` SDK au payload typé (`eventType`) ;
+  un `*-domain` ne porte **ni notification ni annotation framework**. `RoundStartedNotification`
   expose `questionText`/`answers` (langue source) **et** `translations` (toutes les langues du
   snapshot, clé = code ISO 639-1) : le client choisit sa langue, avec repli sur la source.
 - **Pagination** : `?page=&size=` → `PageResponse<T> { content, page, size, totalElements,
@@ -118,35 +118,42 @@ Le `quizup-mobile` n'est **pas** branché sur cette surface (migration dédiée 
 | `PUT /api/profiles/{userId}/language` | `204` | `{ language }` ∈ `fr\|en` (enum strict) |
 | `GET /api/presence/{userId}` | `PresenceView` | `404` si le joueur ne s'est jamais connecté (l'absence vaut hors ligne) ; poussé aussi en WS |
 
-### Défis (social)
+### Appariement public (matchmaking)
 
 | Endpoint | Réponse | Notes |
 |---|---|---|
-| `GET /api/challenges?box=&status=&page=&size=` | `PageResponse<ChallengeCardView>` | `box` ∈ `RECEIVED\|SENT\|ALL` ; enrichi adversaire + sujet + actions |
-| `GET /api/challenges/pending-count` | `PendingCountView` | Badge de navigation |
-| `GET /api/challenges/{challengeId}` | `ChallengeDetailView` | Participants + sujet + runs + `gameId` + scores + `winnerId` + `completedAt` |
-| `POST /api/challenges` | `201 + Location` | Body `{ challengedId, topicId }` |
-| `POST /api/challenges/{challengeId}/accept\|decline\|cancel` | `200` | |
-| `POST /api/challenges/{challengeId}/runs` | `200` | Body `{ gameId }` |
+| `POST /api/matchmaking/tickets` | `201 + Location` | Body `{ topicId }` — lance la recherche ; 5 s sans adversaire → partie bot |
+| `GET /api/matchmaking/tickets/{ticketId}` | `MatchmakingTicketView` | Statut `SEARCHING\|MATCHED\|CANCELLED\|FAILED`, `gameId`, `opponentId`, `vsBot` |
+| `POST /api/matchmaking/tickets/{ticketId}/cancel` | `200` | Annule la recherche |
+| `GET /api/matchmaking/tickets/{ticketId}/notifications` | `List<EventEnvelopeResponse>` (payload `MatchmakingNotification`) | Même contrat que le push WS |
+
+### Salons privés (matchmaking)
+
+| Endpoint | Réponse | Notes |
+|---|---|---|
+| `POST /api/lobbies` | `201 + Location` | Body `{ topicId }` — salon privé ; lien de partage `/join/{lobbyId}` |
+| `GET /api/lobbies/mine` | `List<LobbyView>` | Salons ouverts créés par le joueur (reprise) |
+| `GET /api/lobbies/{lobbyId}` | `LobbyView` | Sujet, statut (`OPEN\|CANCELLED\|EXPIRED\|FAILED`), adversaire, `gameId` |
+| `POST /api/lobbies/{lobbyId}/join` | `200` | Rejoint le salon (idempotent) ; 2ᵉ participant → partie créée |
+| `POST /api/lobbies/{lobbyId}/leave` | `200` | Sortie avant partie → annule le salon |
+| `POST /api/lobbies/{lobbyId}/cancel` | `200` | Annulation par l'initiateur |
+| `GET /api/lobbies/{lobbyId}/notifications` | `List<EventEnvelopeResponse>` (payload `LobbyNotification`) | Même contrat que le push WS |
+
+> Le défi nominatif n'existe plus : un défi est un **salon privé** partagé par lien
+> (`/join/{lobbyId}`, QR). Le bot n'est jamais un participant du salon ; c'est le matchmaking
+> public qui crée la partie bot à l'échéance.
 
 ### Duel (game)
 
 | Endpoint | Réponse | Notes |
 |---|---|---|
-| `POST /api/games` | `201 + Location` | Body `{ topicId, mode: BOT\|ASYNC, difficulty?, opponentId?, ghostGameId? }` |
+| `POST /api/games` | `201 + Location` | Body `{ topicId, difficulty? }` — duel contre un bot uniquement |
+| `POST /api/games/{gameId}/join` | `200` | Entrée dans la salle d'attente de l'arène (idempotent) |
+| `POST /api/games/{gameId}/leave` | `200` | Quitte la salle d'attente avant démarrage (annule la partie) |
 | `POST /api/games/{gameId}/answer` | `200` | Body `{ choice }` |
-| `POST /api/games/{gameId}/abandon` | `200` | **Toujours valide** : le BFF route `cancel` si la partie n'a pas démarré |
-| `POST /api/games/{gameId}/cancel` | `200` | Avant démarrage |
+| `POST /api/games/{gameId}/abandon` | `200` | Forfait en cours (`ForfeitGameCommand`) — l'adversaire gagne |
+| `POST /api/games/{gameId}/cancel` | `200` | Annulation avant démarrage |
 | `GET /api/games/{gameId}/notifications` | `List<EventEnvelopeResponse>` (payload `GameNotification`) | Même contrat que le push WS |
-
-### Matchmaking (matchmaking)
-
-| Endpoint | Réponse | Notes |
-|---|---|---|
-| `POST /api/matchmaking/tickets` | `201 + Location` + `MatchmakingTicketView` | Body `{ topicId }` |
-| `GET /api/matchmaking/tickets/{ticketId}` | `MatchmakingTicketView` | Lit le **read model ticket** du service (statuts `SEARCHING\|MATCHED\|CANCELLED`, `gameId`, `opponentId`, `vsBot`) |
-| `POST /api/matchmaking/tickets/{ticketId}/cancel` | `200` | |
-| `GET /api/matchmaking/tickets/{ticketId}/notifications` | `List<EventEnvelopeResponse>` (payload `TicketNotification`) | Même contrat que le push WS |
 
 ---
 
@@ -157,7 +164,8 @@ Endpoint `/ws` (SockJS) ; broker `/topic`. Une connexion par client, JWT en `CON
 | Destination | Payload |
 |---|---|
 | `/topic/games/{gameId}` | `EventEnvelopeResponse` (payload `GameNotification`) |
-| `/topic/matchmaking/tickets/{ticketId}` | `EventEnvelopeResponse` (payload `TicketNotification`) (`SEARCHING`, `MATCHED`, `CANCELLED`) |
+| `/topic/lobbies/{lobbyId}` | `EventEnvelopeResponse` (payload `LobbyNotification`) (`CREATED`, `JOINED`, `COMPLETED`, `CANCELLED`, `EXPIRED`, `FAILED`) |
+| `/topic/matchmaking/tickets/{ticketId}` | `EventEnvelopeResponse` (payload `MatchmakingNotification`) (`SEARCHING`, `MATCHED`, `CANCELLED`, `FAILED`) |
 | `/topic/social/{userId}` | `EventEnvelopeResponse` (payload `SocialNotification`) |
 | `/topic/presence/{userId}` | `PresenceView` — **exception assumée** : événements de session non séquencés, pas d'enveloppe |
 

@@ -3,7 +3,7 @@ package io.github.quizup.bff.infrastructure.in.api.response;
 import io.github.quizup.microservice.core.domain.model.i18n.Language;
 
 /**
- * Joueur courant (coquille, badge de défis, écrans profil) : profil + progression + compteurs.
+ * Joueur courant (coquille, écrans profil) : profil + progression + compteurs d'abonnements.
  */
 public record MeView(
         String userId,
@@ -16,7 +16,6 @@ public record MeView(
         ProgressionView progression,
         DuelStatsView stats,
         long followingCount,
-        long followersCount,
-        long pendingChallengesCount
+        long followersCount
 ) {
 }

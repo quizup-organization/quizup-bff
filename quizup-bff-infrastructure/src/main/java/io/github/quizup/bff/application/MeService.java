@@ -6,7 +6,6 @@ import io.github.quizup.profile.domain.model.PlayerProgress;
 import io.github.quizup.profile.domain.model.Profile;
 import io.github.quizup.profile.domain.query.ProgressionQuery;
 import io.github.quizup.social.domain.model.UserFollowCounts;
-import io.github.quizup.social.domain.query.ChallengeQuery;
 import org.axonframework.queryhandling.QueryGateway;
 import org.springframework.stereotype.Service;
 
@@ -34,11 +33,8 @@ public class MeService {
                 new ProgressionQuery.GetProgressionQuery(userId),
                 QueryResponseTypes.instanceOf(PlayerProgress.class));
         CompletableFuture<UserFollowCounts> countsFuture = followLookup.userCounts(userId);
-        CompletableFuture<Long> pendingFuture = queryGateway.query(
-                new ChallengeQuery.CountPendingChallengesQuery(userId),
-                QueryResponseTypes.instanceOf(Long.class));
 
-        return CompletableFuture.allOf(profileFuture, progressFuture, countsFuture, pendingFuture)
+        return CompletableFuture.allOf(profileFuture, progressFuture, countsFuture)
                 .thenApply(_ -> {
                     Profile profile = profileFuture.join();
                     UserFollowCounts counts = countsFuture.join();
@@ -53,8 +49,7 @@ public class MeService {
                             ProgressionViews.toView(progressFuture.join()),
                             ProgressionViews.toStats(progressFuture.join()),
                             counts.following(),
-                            counts.followers(),
-                            pendingFuture.join());
+                            counts.followers());
                 });
     }
 }

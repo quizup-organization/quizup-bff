@@ -1,26 +1,20 @@
 package io.github.quizup.bff.infrastructure.in.api.response;
 
+import io.github.quizup.matchmaking.domain.model.MatchmakingStatus;
+
 import java.time.Instant;
 
 /**
- * Ticket de matchmaking : état de la recherche d'adversaire, du point de vue du joueur courant.
- * Le statut expose le langage produit ({@code SEARCHING} / {@code MATCHED} / {@code CANCELLED}),
- * pas le statut interne du lobby.
+ * Vue d'une recherche d'appariement public (« Défier le monde »).
  */
 public record MatchmakingTicketView(
         String ticketId,
         String topicId,
-        Status status,
-        Instant createdAt,
-        Instant updatedAt,
+        MatchmakingStatus status,
         String gameId,
         String opponentId,
-        boolean vsBot
+        boolean vsBot,
+        Instant createdAt,
+        Instant updatedAt
 ) {
-
-    public enum Status {
-        SEARCHING,
-        MATCHED,
-        CANCELLED
-    }
 }

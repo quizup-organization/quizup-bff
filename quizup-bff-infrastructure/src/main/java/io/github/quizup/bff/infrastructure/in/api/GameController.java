@@ -46,8 +46,22 @@ public class GameController {
     @PostMapping
     public CompletableFuture<ResponseEntity<IdResponse>> create(@Valid @RequestBody CreateGameRequest request) {
         return gameViewService
-                .create(SecurityHelper.getUserId(), request)
+                .createBotGame(SecurityHelper.getUserId(), request)
                 .thenApply(gameId -> ResponseEntityBuilder.creation(ENDPOINT, gameId));
+    }
+
+    @PostMapping("/{gameId}/join")
+    public CompletableFuture<ResponseEntity<Void>> join(@PathVariable String gameId) {
+        return gameViewService
+                .join(gameId, SecurityHelper.getUserId())
+                .thenApply(_ -> ResponseEntity.ok().build());
+    }
+
+    @PostMapping("/{gameId}/leave")
+    public CompletableFuture<ResponseEntity<Void>> leave(@PathVariable String gameId) {
+        return gameViewService
+                .leave(gameId, SecurityHelper.getUserId())
+                .thenApply(_ -> ResponseEntity.ok().build());
     }
 
     @PostMapping("/{gameId}/answer")

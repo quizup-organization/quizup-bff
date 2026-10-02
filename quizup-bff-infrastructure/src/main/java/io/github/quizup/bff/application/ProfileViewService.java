@@ -311,7 +311,6 @@ public class ProfileViewService {
                 TopicViews.toRef(game.topicId(), topic),
                 opponent == null ? null : new UserRefView(opponent.userId(), opponent.pseudonym(), opponent.avatarOptions()),
                 game.opponent() == null ? null : game.opponent().name(),
-                game.mode(),
                 outcomeOf(game, userId),
                 isPlayer1 ? game.player1Score() : game.player2Score(),
                 isPlayer1 ? game.player2Score() : game.player1Score(),

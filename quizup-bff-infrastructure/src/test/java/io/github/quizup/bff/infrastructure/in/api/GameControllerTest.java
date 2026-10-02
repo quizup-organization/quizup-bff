@@ -44,14 +44,14 @@ class GameControllerTest {
 
     @Test
     void create_bot_game_returns_created_with_location() throws Exception {
-        when(gameViewService.create(org.mockito.ArgumentMatchers.eq(USER_ID),
+        when(gameViewService.createBotGame(org.mockito.ArgumentMatchers.eq(USER_ID),
                 org.mockito.ArgumentMatchers.any(CreateGameRequest.class)))
                 .thenReturn(CompletableFuture.completedFuture("game-1"));
 
         MvcResult result = mockMvc.perform(post("/api/games")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"topicId":"topic-1","mode":"BOT"}
+                                {"topicId":"topic-1"}
                                 """))
                 .andExpect(request().asyncStarted())
                 .andReturn();
@@ -89,5 +89,23 @@ class GameControllerTest {
 
         mockMvc.perform(asyncDispatch(result)).andExpect(status().isOk());
         verify(gameViewService).abandon("game-1", USER_ID);
+    }
+
+    @Test
+    void join_and_leave_delegate_to_service() throws Exception {
+        when(gameViewService.join("game-1", USER_ID)).thenReturn(CompletableFuture.completedFuture(null));
+        when(gameViewService.leave("game-1", USER_ID)).thenReturn(CompletableFuture.completedFuture(null));
+
+        MvcResult joinResult = mockMvc.perform(post("/api/games/game-1/join"))
+                .andExpect(request().asyncStarted())
+                .andReturn();
+        mockMvc.perform(asyncDispatch(joinResult)).andExpect(status().isOk());
+        verify(gameViewService).join("game-1", USER_ID);
+
+        MvcResult leaveResult = mockMvc.perform(post("/api/games/game-1/leave"))
+                .andExpect(request().asyncStarted())
+                .andReturn();
+        mockMvc.perform(asyncDispatch(leaveResult)).andExpect(status().isOk());
+        verify(gameViewService).leave("game-1", USER_ID);
     }
 }

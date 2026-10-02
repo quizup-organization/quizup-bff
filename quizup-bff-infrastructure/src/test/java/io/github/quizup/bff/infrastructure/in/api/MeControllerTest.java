@@ -59,7 +59,7 @@ class MeControllerTest {
     void me_returns_current_player_view() throws Exception {
         MeView view = new MeView(USER_ID, "user@quizup.io", "Alpha", null, "FR", null, Language.FR,
                 new ProgressionView(120, 2, "Apprenti", 400, 6, List.of()),
-                new DuelStatsView(4, 3, 1, 0, 75, 160, 2, 3), 3, 5, 1);
+                new DuelStatsView(4, 3, 1, 0, 75, 160, 2, 3), 3, 5);
         when(meService.me(USER_ID)).thenReturn(CompletableFuture.completedFuture(view));
 
         MvcResult result = mockMvc.perform(get("/api/me"))
@@ -70,7 +70,6 @@ class MeControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.userId").value(USER_ID))
                 .andExpect(jsonPath("$.language").value("fr"))
-                .andExpect(jsonPath("$.progression.level").value(2))
-                .andExpect(jsonPath("$.pendingChallengesCount").value(1));
+                .andExpect(jsonPath("$.progression.level").value(2));
     }
 }
