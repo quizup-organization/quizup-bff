@@ -28,7 +28,8 @@ final class TopicViews {
                 topic.imageUrl(),
                 topic.followersCounter() == null ? 0 : topic.followersCounter(),
                 questionsCount,
-                followed);
+                followed,
+                topic.status());
     }
 
     static TopicRefView toRef(String topicId, Topic topic) {

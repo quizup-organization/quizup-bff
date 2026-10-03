@@ -1,9 +1,10 @@
 package io.github.quizup.bff.infrastructure.in.api.response;
 
 import io.github.quizup.theme.domain.model.TopicCategory;
+import io.github.quizup.theme.domain.model.TopicStatus;
 
 /**
- * Carte de sujet (catalogue, accueil, sujets suivis).
+ * Carte de sujet (catalogue, accueil, sujets suivis, mes sujets).
  */
 public record TopicCardView(
         String topicId,
@@ -16,6 +17,7 @@ public record TopicCardView(
         String imageUrl,
         int followersCount,
         int questionsCount,
-        boolean followed
+        boolean followed,
+        TopicStatus status
 ) {
 }

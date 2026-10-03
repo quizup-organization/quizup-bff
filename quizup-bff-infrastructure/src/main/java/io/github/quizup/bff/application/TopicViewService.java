@@ -2,6 +2,7 @@ package io.github.quizup.bff.application;
 
 import io.github.quizup.bff.infrastructure.in.api.request.LeaderboardPeriod;
 import io.github.quizup.bff.infrastructure.in.api.request.LeaderboardScope;
+import io.github.quizup.bff.infrastructure.in.api.problem.BffProblems;
 import io.github.quizup.bff.infrastructure.in.api.response.PageResponse;
 import io.github.quizup.bff.infrastructure.in.api.response.TopicCardView;
 import io.github.quizup.bff.infrastructure.in.api.response.TopicCategoryView;
@@ -32,6 +33,7 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -65,9 +67,17 @@ public class TopicViewService {
                                                                String query,
                                                                TopicCategory category,
                                                                boolean followedOnly,
+                                                               boolean mine,
                                                                TopicSort sort,
                                                                int page,
                                                                int size) {
+        if (mine) {
+            if (followedOnly || (query != null && !query.isBlank()) || category != null || sort != null) {
+                throw new BffProblems.InvalidTopicListRequestProblem(
+                        "mine=true est exclusif de followed, q, category et sort");
+            }
+            return myTopics(viewerId, page, size);
+        }
         if (!followedOnly) {
             CompletableFuture<TopicPage> pageFuture = queryGateway.query(
                     new TopicQuery.GetTopicPageQuery(query, category, sort, page, size),
@@ -99,6 +109,23 @@ public class TopicViewService {
                                     .toList();
                             return PageResponse.of(slice(cards, page, size), page, size, cards.size());
                         }));
+    }
+
+    private CompletableFuture<PageResponse<TopicCardView>> myTopics(String viewerId, int page, int size) {
+        CompletableFuture<TopicPage> pageFuture = queryGateway.query(
+                new TopicQuery.GetTopicsByCreatorQuery(viewerId, page, size),
+                QueryResponseTypes.instanceOf(TopicPage.class));
+        CompletableFuture<List<String>> followedFuture =
+                followLookup.followedTopicIds(viewerId, FollowLookup.MAX_LIST_SIZE);
+
+        return CompletableFuture.allOf(pageFuture, followedFuture).thenApply(_ -> {
+            Set<String> followed = Set.copyOf(followedFuture.join());
+            TopicPage result = pageFuture.join();
+            List<TopicCardView> cards = result.topics().stream()
+                    .map(topic -> TopicViews.toCard(topic, followed.contains(topic.topicId())))
+                    .toList();
+            return PageResponse.of(cards, result.page(), result.size(), result.totalElements());
+        });
     }
 
     public CompletableFuture<TopicFacetsView> facets(String viewerId, String query, boolean followedOnly) {
@@ -151,7 +178,8 @@ public class TopicViewService {
                     return new TopicOverviewView(
                             TopicViews.toCard(topic, followedFuture.join()),
                             rankFuture.join().map(LeaderboardRank::rank).orElse(null),
-                            progress);
+                            progress,
+                            Objects.equals(topic.creatorId(), viewerId));
                 });
     }
 

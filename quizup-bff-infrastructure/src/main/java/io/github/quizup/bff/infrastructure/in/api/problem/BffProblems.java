@@ -22,4 +22,34 @@ public final class BffProblems {
                     Map.of());
         }
     }
+
+    public static class InvalidTopicListRequestProblem extends BaseProblem {
+        public InvalidTopicListRequestProblem(String detail) {
+            super("urn:quizup:bff:topic:invalidListRequest",
+                    ProblemCategory.VALIDATION,
+                    "Invalid topic list request",
+                    detail,
+                    Map.of());
+        }
+    }
+
+    public static class InvalidQuestionRequestProblem extends BaseProblem {
+        public InvalidQuestionRequestProblem(String detail) {
+            super("urn:quizup:bff:question:invalidRequest",
+                    ProblemCategory.VALIDATION,
+                    "Invalid question request",
+                    detail,
+                    Map.of());
+        }
+    }
+
+    public static class NotTopicOwnerProblem extends BaseProblem {
+        public NotTopicOwnerProblem(String topicId) {
+            super("urn:quizup:bff:topic:notOwner",
+                    ProblemCategory.PERMISSION,
+                    "Topic management not allowed",
+                    "Only the creator of the topic can manage it",
+                    Map.of("topicId", topicId));
+        }
+    }
 }

@@ -1,6 +1,9 @@
 package io.github.quizup.bff.infrastructure.in.api;
 
+import io.github.quizup.bff.application.TopicAuthoringService;
 import io.github.quizup.bff.application.TopicViewService;
+import io.github.quizup.bff.infrastructure.in.api.problem.BffProblemExceptionHandler;
+import io.github.quizup.bff.infrastructure.in.api.problem.BffProblems;
 import io.github.quizup.bff.infrastructure.in.api.request.LeaderboardPeriod;
 import io.github.quizup.bff.infrastructure.in.api.request.LeaderboardScope;
 import io.github.quizup.bff.infrastructure.in.api.response.PageResponse;
@@ -10,6 +13,7 @@ import org.axonframework.commandhandling.gateway.CommandGateway;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -25,7 +29,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.asyncDispatch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -35,12 +41,16 @@ class TopicControllerTest {
     private static final String USER_ID = "user-1";
 
     private final TopicViewService topicViewService = mock(TopicViewService.class);
+    private final TopicAuthoringService topicAuthoringService = mock(TopicAuthoringService.class);
     private final CommandGateway commandGateway = mock(CommandGateway.class);
     private MockMvc mockMvc;
 
     @BeforeEach
     void setUp() {
-        mockMvc = MockMvcBuilders.standaloneSetup(new TopicController(topicViewService, commandGateway)).build();
+        mockMvc = MockMvcBuilders
+                .standaloneSetup(new TopicController(topicViewService, topicAuthoringService, commandGateway))
+                .setControllerAdvice(new BffProblemExceptionHandler())
+                .build();
         TestSecurity.authenticate(USER_ID);
     }
 
@@ -50,8 +60,8 @@ class TopicControllerTest {
     }
 
     @Test
-    void list_uses_default_sort_and_pagination() throws Exception {
-        when(topicViewService.list(eq(USER_ID), isNull(), isNull(), eq(false), eq(TopicSort.POPULAR), eq(0), eq(24)))
+    void list_uses_default_pagination() throws Exception {
+        when(topicViewService.list(eq(USER_ID), isNull(), isNull(), eq(false), eq(false), isNull(), eq(0), eq(24)))
                 .thenReturn(CompletableFuture.completedFuture(PageResponse.of(List.of(), 0, 24, 0)));
 
         MvcResult result = mockMvc.perform(get("/api/topics"))
@@ -61,6 +71,110 @@ class TopicControllerTest {
         mockMvc.perform(asyncDispatch(result))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.totalElements").value(0));
+    }
+
+    @Test
+    void list_forwards_mine_filter() throws Exception {
+        when(topicViewService.list(eq(USER_ID), isNull(), isNull(), eq(false), eq(true), isNull(), eq(0), eq(24)))
+                .thenReturn(CompletableFuture.completedFuture(PageResponse.of(List.of(), 0, 24, 0)));
+
+        MvcResult result = mockMvc.perform(get("/api/topics").param("mine", "true"))
+                .andExpect(request().asyncStarted())
+                .andReturn();
+
+        mockMvc.perform(asyncDispatch(result)).andExpect(status().isOk());
+    }
+
+    @Test
+    void create_returns_created_location() throws Exception {
+        when(topicAuthoringService.create(eq(USER_ID), any()))
+                .thenReturn(CompletableFuture.completedFuture("topic-1"));
+
+        MvcResult result = mockMvc.perform(post("/api/topics")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "name": "Cinéma",
+                                  "description": "Tout le cinéma",
+                                  "category": "MOVIES"
+                                }
+                                """))
+                .andExpect(request().asyncStarted())
+                .andReturn();
+
+        mockMvc.perform(asyncDispatch(result))
+                .andExpect(status().isCreated())
+                .andExpect(header().string("Location", "/api/topics/topic-1"));
+    }
+
+    @Test
+    void create_with_too_long_name_is_rejected() throws Exception {
+        mockMvc.perform(post("/api/topics")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"" + "a".repeat(26) + "\",\"category\":\"MOVIES\"}"))
+                .andExpect(status().is4xxClientError());
+    }
+
+    @Test
+    void update_name_sends_command_and_returns_204() throws Exception {
+        when(topicAuthoringService.updateName(eq("topic-1"), eq(USER_ID), any()))
+                .thenReturn(CompletableFuture.completedFuture(null));
+
+        MvcResult result = mockMvc.perform(put("/api/topics/topic-1/name")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Séries\"}"))
+                .andExpect(request().asyncStarted())
+                .andReturn();
+
+        mockMvc.perform(asyncDispatch(result)).andExpect(status().isNoContent());
+    }
+
+    @Test
+    void update_name_by_non_owner_returns_403() throws Exception {
+        when(topicAuthoringService.updateName(eq("topic-1"), eq(USER_ID), any()))
+                .thenReturn(CompletableFuture.failedFuture(new BffProblems.NotTopicOwnerProblem("topic-1")));
+
+        MvcResult result = mockMvc.perform(put("/api/topics/topic-1/name")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Séries\"}"))
+                .andExpect(request().asyncStarted())
+                .andReturn();
+
+        mockMvc.perform(asyncDispatch(result))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.type").value("urn:quizup:bff:topic:notOwner"));
+    }
+
+    @Test
+    void create_question_returns_created_location() throws Exception {
+        when(topicAuthoringService.createQuestion(eq("topic-1"), eq(USER_ID), any()))
+                .thenReturn(CompletableFuture.completedFuture("question-1"));
+
+        MvcResult result = mockMvc.perform(post("/api/topics/topic-1/questions")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "contents": [
+                                    {
+                                      "language": "fr",
+                                      "text": "Capitale de la France ?",
+                                      "answers": [
+                                        {"choice": "A", "text": "Paris"},
+                                        {"choice": "B", "text": "Lyon"},
+                                        {"choice": "C", "text": "Marseille"},
+                                        {"choice": "D", "text": "Lille"}
+                                      ]
+                                    }
+                                  ],
+                                  "correctAnswer": "A"
+                                }
+                                """))
+                .andExpect(request().asyncStarted())
+                .andReturn();
+
+        mockMvc.perform(asyncDispatch(result))
+                .andExpect(status().isCreated())
+                .andExpect(header().string("Location", "/api/topics/topic-1/questions/question-1"));
     }
 
     @Test

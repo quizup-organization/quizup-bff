@@ -1,0 +1,14 @@
+package io.github.quizup.bff.infrastructure.in.api.request;
+
+import io.github.quizup.microservice.core.domain.model.i18n.Language;
+import io.github.quizup.theme.domain.model.QuestionRules;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
+
+/** Mise à jour du texte d'un contenu localisé existant. */
+public record UpdateQuestionTextRequest(
+        @NotNull Language language,
+        @NotBlank @Size(max = QuestionRules.MAX_TEXT_LENGTH) String text
+) {
+}

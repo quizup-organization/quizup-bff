@@ -98,13 +98,33 @@ Le `quizup-mobile` n'est **pas** branché sur cette surface (migration dédiée 
 
 | Endpoint | Réponse | Notes |
 |---|---|---|
-| `GET /api/topics?q=&category=&followed=&sort=&page=&size=` | `PageResponse<TopicCardView>` | `sort` ∈ `POPULAR\|ALPHA` ; `followed=true` filtre côté serveur |
+| `GET /api/topics?q=&category=&followed=&mine=&sort=&page=&size=` | `PageResponse<TopicCardView>` | `sort` ∈ `POPULAR\|ALPHA` (défaut `POPULAR`) ; `followed=true` filtre côté serveur ; `mine=true` = sujets créés par le joueur courant (brouillons + publiés, tri `updatedAt desc`), exclusif de `followed`/`q`/`category`/`sort` (400 sinon). `TopicCardView.status` expose le statut |
 | `GET /api/topics/facets?q=&followed=` | `TopicFacetsView` | `total` + `categories[{ category, label, count }]` |
 | `GET /api/topic-categories` | `List<TopicCategoryView>` | `category`, `label` |
-| `GET /api/topics/{topicId}/overview` | `TopicOverviewView` | `topic`, `follow`, `followersCount`, `myRank`, `myProgress`, `questionsCount` |
+| `GET /api/topics/{topicId}/overview` | `TopicOverviewView` | `topic`, `follow`, `followersCount`, `myRank`, `myProgress`, `canManage` (créateur) |
 | `PUT /api/topics/{topicId}/follow` | `204` | Idempotent |
 | `DELETE /api/topics/{topicId}/follow` | `204` | |
 | `GET /api/topics/{topicId}/leaderboard?period=&month=&scope=&page=&size=` | `TopicLeaderboardView` | `entries` paginées + `me` ; `period` ∈ `ALL_TIME\|MONTHLY`, `month` (`YYYY-MM`, mensuel uniquement, défaut = mois courant), `scope` ∈ `WORLD\|FOLLOWING\|COUNTRY` |
+
+### Auteur (sujets + questions)
+
+Surface d'écriture **propriétaire uniquement** : le créateur du sujet gère son brouillon, ses
+questions et la publication. Les commandes du sujet portent la vérification dans
+`TopicAggregate` (`requestedBy == creatorId`) ; les questions sont vérifiées côté BFF (l'agrégat
+question ne connaît pas le créateur du sujet) et répondent `403` `PERMISSION` sinon.
+
+| Endpoint | Réponse | Notes |
+|---|---|---|
+| `POST /api/topics` | `201 + Location` | `{ name ≤25, description ≤500, category, emoji?, color?, imageUrl? }` → DRAFT |
+| `PUT /api/topics/{topicId}/name\|description\|category\|emoji\|color\|image-url` | `204` | un champ par route (description/image/emoji/color `null` efface) |
+| `POST /api/topics/{topicId}/publish` | `200` | garde ≥ 7 questions approuvées |
+| `GET /api/topics/{topicId}/questions?page=&size=` | `PageResponse<QuestionEditorView>` | tous statuts, contenus FR/EN + statut + difficulté |
+| `POST /api/topics/{topicId}/questions` | `201 + Location` | contenus localisés `[{ language, text, answers[A-D] }]` + `correctAnswer` + `imageUrl?` → PENDING |
+| `POST /api/questions/{questionId}/translations` | `200` | ajout d'une langue absente (contenu complet) |
+| `PUT /api/questions/{questionId}/text\|answers\|correct-answer\|image-url` | `204` | `language` dans le body pour text/answers |
+| `POST /api/questions/{questionId}/approve` | `200` | |
+| `POST /api/questions/{questionId}/reject` | `200` | `{ reason ≤500 }` optionnel |
+
 
 ### Joueurs / personnes (profile + social + leaderboard + game)
 
@@ -202,7 +222,11 @@ l'`EventEnvelope` du SDK (payload typé via `eventType`, sans annotation), mapp�
 
 - Aucune logique métier d'agrégat (elle reste dans les services headless).
 - Pas d'event store propre (seul le token store Axon, fourni par le SDK).
-- Pas de surface d'administration (les use cases de recherche restent dans les services).
+- Pas de back-office global : la surface d'**auteur** (`/api/topics` écriture, `/api/questions`)
+  est ouverte à tout joueur pour **ses propres** sujets ; les use cases de recherche génériques
+  restent réservés aux futures surfaces d'administration.
+- Erreurs de façade : les `BaseProblem` levés hors handlers Axon (gardes propriétaire, chaînage
+  asynchrone) sont mappés par `BffProblemExceptionHandler` (RFC 7807, `PERMISSION` → 403).
 
 ---
 
