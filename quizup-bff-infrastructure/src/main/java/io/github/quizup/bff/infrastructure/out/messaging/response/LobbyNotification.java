@@ -13,6 +13,7 @@ import java.time.Instant;
 @JsonSubTypes({
         @JsonSubTypes.Type(value = LobbyNotification.LobbyCreatedNotification.class, name = "LOBBY_CREATED"),
         @JsonSubTypes.Type(value = LobbyNotification.LobbyJoinedNotification.class, name = "LOBBY_JOINED"),
+        @JsonSubTypes.Type(value = LobbyNotification.LobbyDeclinedNotification.class, name = "LOBBY_DECLINED"),
         @JsonSubTypes.Type(value = LobbyNotification.LobbyCompletedNotification.class, name = "LOBBY_COMPLETED"),
         @JsonSubTypes.Type(value = LobbyNotification.LobbyCancelledNotification.class, name = "LOBBY_CANCELLED"),
         @JsonSubTypes.Type(value = LobbyNotification.LobbyExpiredNotification.class, name = "LOBBY_EXPIRED"),
@@ -28,6 +29,7 @@ public interface LobbyNotification {
     enum LobbyNotificationType {
         LOBBY_CREATED,
         LOBBY_JOINED,
+        LOBBY_DECLINED,
         LOBBY_COMPLETED,
         LOBBY_CANCELLED,
         LOBBY_EXPIRED,
@@ -38,6 +40,7 @@ public interface LobbyNotification {
             String lobbyId,
             String topicId,
             String initiatorId,
+            String opponentId,
             Instant expiresAt
     ) implements LobbyNotification {
         @Override
@@ -53,6 +56,16 @@ public interface LobbyNotification {
         @Override
         public LobbyNotificationType type() {
             return LobbyNotificationType.LOBBY_JOINED;
+        }
+    }
+
+    record LobbyDeclinedNotification(
+            String lobbyId,
+            String opponentId
+    ) implements LobbyNotification {
+        @Override
+        public LobbyNotificationType type() {
+            return LobbyNotificationType.LOBBY_DECLINED;
         }
     }
 

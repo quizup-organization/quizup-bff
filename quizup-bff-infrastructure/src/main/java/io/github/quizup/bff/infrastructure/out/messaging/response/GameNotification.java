@@ -6,6 +6,7 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import io.github.quizup.game.domain.model.GameQuestionChoice;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -47,6 +48,11 @@ public interface GameNotification {
         GAME_CANCELLED
     }
 
+    /**
+     * Les URLs d'images des questions de la partie (une par question illustrée, dans l'ordre des
+     * rounds) : le client les précharge dès la création pour ne pas être pénalisé sur une
+     * connexion faible. Questions sans image exclues.
+     */
     record GameCreatedNotification(
             String gameId,
             String topicId,
@@ -55,7 +61,8 @@ public interface GameNotification {
             String player2Id,
             String player2Name,
             String player2Type,
-            String botDifficulty
+            String botDifficulty,
+            List<String> questionImageUrls
     ) implements GameNotification {
         @Override
         public GameNotificationType type() {

@@ -23,9 +23,11 @@ public final class LobbyEventNotificationMapper {
         return switch (event) {
             case LobbyEvent.LobbyCreatedEvent e -> Optional.of(
                     new LobbyNotification.LobbyCreatedNotification(
-                            e.lobbyId(), e.topicId(), e.initiatorId(), e.expiresAt()));
+                            e.lobbyId(), e.topicId(), e.initiatorId(), e.opponentId(), e.expiresAt()));
             case LobbyEvent.LobbyJoinedEvent e -> Optional.of(
                     new LobbyNotification.LobbyJoinedNotification(e.lobbyId(), e.participantId()));
+            case LobbyEvent.LobbyDeclinedEvent e -> Optional.of(
+                    new LobbyNotification.LobbyDeclinedNotification(e.lobbyId(), e.opponentId()));
             case LobbyEvent.LobbyCompletedEvent e -> Optional.of(
                     new LobbyNotification.LobbyCompletedNotification(e.lobbyId(), e.gameId()));
             case LobbyEvent.LobbyCancelledEvent e -> Optional.of(

@@ -62,10 +62,11 @@ class LobbyControllerTest {
     }
 
     @Test
-    void join_leave_cancel_delegate_to_service() throws Exception {
+    void join_leave_cancel_decline_delegate_to_service() throws Exception {
         when(lobbyViewService.join("lobby-1", USER_ID)).thenReturn(CompletableFuture.completedFuture(null));
         when(lobbyViewService.leave("lobby-1", USER_ID)).thenReturn(CompletableFuture.completedFuture(null));
         when(lobbyViewService.cancel("lobby-1", USER_ID)).thenReturn(CompletableFuture.completedFuture(null));
+        when(lobbyViewService.decline("lobby-1", USER_ID)).thenReturn(CompletableFuture.completedFuture(null));
 
         MvcResult join = mockMvc.perform(post("/api/lobbies/lobby-1/join"))
                 .andExpect(request().asyncStarted()).andReturn();
@@ -79,8 +80,13 @@ class LobbyControllerTest {
                 .andExpect(request().asyncStarted()).andReturn();
         mockMvc.perform(asyncDispatch(cancel)).andExpect(status().isOk());
 
+        MvcResult decline = mockMvc.perform(post("/api/lobbies/lobby-1/decline"))
+                .andExpect(request().asyncStarted()).andReturn();
+        mockMvc.perform(asyncDispatch(decline)).andExpect(status().isOk());
+
         verify(lobbyViewService).join("lobby-1", USER_ID);
         verify(lobbyViewService).leave("lobby-1", USER_ID);
         verify(lobbyViewService).cancel("lobby-1", USER_ID);
+        verify(lobbyViewService).decline("lobby-1", USER_ID);
     }
 }

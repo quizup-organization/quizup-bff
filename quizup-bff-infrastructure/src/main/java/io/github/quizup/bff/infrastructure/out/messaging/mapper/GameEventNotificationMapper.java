@@ -2,12 +2,14 @@ package io.github.quizup.bff.infrastructure.out.messaging.mapper;
 
 import io.github.quizup.bff.infrastructure.out.messaging.response.GameNotification;
 import io.github.quizup.game.domain.event.GameEvent;
+import io.github.quizup.game.domain.model.GameQuestion;
 import io.github.quizup.game.domain.model.GameQuestionChoice;
 import io.github.quizup.game.domain.model.GameQuestionContent;
 import io.github.quizup.microservice.core.domain.model.i18n.Language;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 
 import static java.util.Objects.isNull;
@@ -36,7 +38,11 @@ public final class GameEventNotificationMapper {
                             gameCreatedEvent.player2Id(),
                             gameCreatedEvent.player2Name(),
                             gameCreatedEvent.player2Type() != null ? gameCreatedEvent.player2Type().name() : null,
-                            gameCreatedEvent.botDifficulty() != null ? gameCreatedEvent.botDifficulty().name() : null
+                            gameCreatedEvent.botDifficulty() != null ? gameCreatedEvent.botDifficulty().name() : null,
+                            gameCreatedEvent.questions().stream()
+                                    .map(GameQuestion::imageUrl)
+                                    .filter(Objects::nonNull)
+                                    .toList()
                     )
             );
 

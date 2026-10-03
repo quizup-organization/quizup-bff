@@ -20,8 +20,9 @@
         <quizup.social-domain.version>4.0.0</quizup.social-domain.version>
         <quizup.game-domain.version>5.0.0</quizup.game-domain.version>
         <quizup.profile-domain.version>3.0.0</quizup.profile-domain.version>
-        <quizup.matchmaking-domain.version>4.0.0</quizup.matchmaking-domain.version>
+        <quizup.matchmaking-domain.version>4.1.0</quizup.matchmaking-domain.version>
         <quizup.leaderboard-domain.version>3.0.0</quizup.leaderboard-domain.version>
+        <quizup.notification-domain.version>1.0.1</quizup.notification-domain.version>
     </properties>
 
     <dependencies>
@@ -65,6 +66,11 @@
             <groupId>io.github.quizup</groupId>
             <artifactId>quizup-leaderboard-domain</artifactId>
             <version>${quizup.leaderboard-domain.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.github.quizup</groupId>
+            <artifactId>quizup-notification-domain</artifactId>
+            <version>${quizup.notification-domain.version}</version>
         </dependency>
 
         <dependency>

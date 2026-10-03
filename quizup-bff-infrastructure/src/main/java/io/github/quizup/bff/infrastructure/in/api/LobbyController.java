@@ -82,6 +82,13 @@ public class LobbyController {
                 .thenApply(_ -> ResponseEntity.ok().build());
     }
 
+    @PostMapping("/{lobbyId}/decline")
+    public CompletableFuture<ResponseEntity<Void>> decline(@PathVariable String lobbyId) {
+        return lobbyViewService
+                .decline(lobbyId, SecurityHelper.getUserId())
+                .thenApply(_ -> ResponseEntity.ok().build());
+    }
+
     @GetMapping("/{lobbyId}/notifications")
     public CompletableFuture<ResponseEntity<List<EventEnvelopeResponse>>> notifications(@PathVariable String lobbyId) {
         return queryGateway

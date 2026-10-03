@@ -11,3 +11,13 @@ spring:
     url: jdbc:postgresql://localhost:5432/quizup_bff
     username: postgres
     password: postgres
+
+  cloud:
+    discovery:
+      client:
+        simple:
+          instances:
+            # Ajout local (le SDK ne connaît pas encore le service notification : pas de release
+            # train nécessaire tant qu'il n'est pas dans quizup-local.yml).
+            quizup-notification:
+              - uri: http://localhost:8093

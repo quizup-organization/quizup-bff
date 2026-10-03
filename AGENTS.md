@@ -15,7 +15,7 @@
   **command bus** (`CommandGateway`).
 - Consomme le **flux d'événements Kafka** (`@ProcessingGroup`) et **fan-out** les notifications
   vers un socket client unique (`/topic/games/{id}`, `/topic/lobbies/{id}`,
-  `/topic/social/{userId}`, `/topic/presence/{userId}`).
+  `/topic/notifications/{userId}`, `/topic/presence/{userId}`).
 - Porte la **présence joueur** (sessions STOMP client → `quizup-profile`) : chaque instance BFF a
   un identifiant stable (`application:host`), purge au démarrage ses sessions antérieures et
   retente les commandes de présence tant que le routage distribué n'est pas prêt.
@@ -41,11 +41,14 @@ Le `quizup-mobile` n'est **pas** branché sur cette surface (migration dédiée 
   model interne exposé (`Challenge`, `Game`, `Lobby`, `Profile`, `Topic`…), jamais de `Map`,
   `Object` ou cast non typé.
 - **Notifications web** : DTOs d'infrastructure BFF (`GameNotification`, `LobbyNotification`,
-  `SocialNotification` pour les follows) enveloppés dans `EventEnvelopeResponse` (ossature Jackson
-  du web). Les événements reçus du bus sont des `EventEnvelope` SDK au payload typé (`eventType`) ;
+  `MatchmakingNotification`, `NotificationView` pour l'inbox personnelle) enveloppés dans
+  `EventEnvelopeResponse` (ossature Jackson du web). Les événements reçus du bus sont des
+  `EventEnvelope` SDK au payload typé (`eventType`) ;
   un `*-domain` ne porte **ni notification ni annotation framework**. `RoundStartedNotification`
   expose `questionText`/`answers` (langue source) **et** `translations` (toutes les langues du
   snapshot, clé = code ISO 639-1) : le client choisit sa langue, avec repli sur la source.
+  `GameCreatedNotification` expose `questionImageUrls` (images des questions, ordre des rounds)
+  pour le préchargement client dès la création de la partie.
 - **Pagination** : `?page=&size=` → `PageResponse<T> { content, page, size, totalElements,
   totalPages, first, last }`. **Tris par enum documenté** (phrase d'URL/valeurs fermées), jamais
   de nom de propriété arbitraire.
@@ -77,7 +80,7 @@ Le `quizup-mobile` n'est **pas** branché sur cette surface (migration dédiée 
 
 | Endpoint | Réponse | Notes |
 |---|---|---|
-| `GET /api/me` | `MeView` | Profil (+ `language` fr/en) + progression + stats de duel + `followingCount` + `followersCount` + `pendingChallengesCount` |
+| `GET /api/me` | `MeView` | Profil (+ `language` fr/en) + progression + stats de duel + `followingCount` + `followersCount` |
 | `GET /api/suggestions?q=&limit=` | `List<SuggestionView>` | Palette ⌘K : sujets + joueurs (`type`, `id`, libellé, visuel) |
 | `GET /api/clock` | `ServerTimeView` | `serverTime`, `epochMillis` |
 
@@ -131,17 +134,28 @@ Le `quizup-mobile` n'est **pas** branché sur cette surface (migration dédiée 
 
 | Endpoint | Réponse | Notes |
 |---|---|---|
-| `POST /api/lobbies` | `201 + Location` | Body `{ topicId }` — salon privé ; lien de partage `/join/{lobbyId}` |
-| `GET /api/lobbies/mine` | `List<LobbyView>` | Salons ouverts créés par le joueur (reprise) |
-| `GET /api/lobbies/{lobbyId}` | `LobbyView` | Sujet, statut (`OPEN\|CANCELLED\|EXPIRED\|FAILED`), adversaire, `gameId` |
-| `POST /api/lobbies/{lobbyId}/join` | `200` | Rejoint le salon (idempotent) ; 2ᵉ participant → partie créée |
+| `POST /api/lobbies` | `201 + Location` | Body `{ topicId, opponentId? }` — `opponentId` renseigné = **défi nominatif** (seul l'invité peut rejoindre) ; sinon salon partagé par lien `/join/{lobbyId}` |
+| `GET /api/lobbies/mine` | `List<LobbyView>` | Salons `CREATED` du joueur (initiateur **ou** invité) — filet de reprise |
+| `GET /api/lobbies/{lobbyId}` | `LobbyView` | Sujet, statut (`CREATED\|CLOSED\|FAILED`), adversaire, `nominative`, `awaitingMe`, `gameId` |
+| `POST /api/lobbies/{lobbyId}/join` | `200` | Rejoint le salon (idempotent) ; nominatif : invité uniquement (403 sinon) ; 2ᵉ participant → partie créée |
+| `POST /api/lobbies/{lobbyId}/decline` | `200` | Refus d'un défi nominatif (invité uniquement) |
 | `POST /api/lobbies/{lobbyId}/leave` | `200` | Sortie avant partie → annule le salon |
 | `POST /api/lobbies/{lobbyId}/cancel` | `200` | Annulation par l'initiateur |
 | `GET /api/lobbies/{lobbyId}/notifications` | `List<EventEnvelopeResponse>` (payload `LobbyNotification`) | Même contrat que le push WS |
 
-> Le défi nominatif n'existe plus : un défi est un **salon privé** partagé par lien
-> (`/join/{lobbyId}`, QR). Le bot n'est jamais un participant du salon ; c'est le matchmaking
-> public qui crée la partie bot à l'échéance.
+> Un état terminal (`CLOSED`/`FAILED`) est conservé le temps de la rétention (2 min) puis purgé :
+> les commandes tardives répondent 404 (pré-vérification BFF) ou un `Problem` métier, jamais un 500.
+
+### Notifications personnelles (quizup-notification)
+
+| Endpoint | Réponse | Notes |
+|---|---|---|
+| `GET /api/notifications?unreadOnly=&page=&size=` | `PageResponse<NotificationView>` | Inbox du joueur courant |
+| `GET /api/notifications/unread-count` | `{ count }` | Badge de la cloche |
+| `POST /api/notifications/{notificationId}/read` | `200` | Propriétaire uniquement (404/403 sinon) |
+| `POST /api/notifications/read-all` | `200` | Fan-out de commandes unitaires idempotentes |
+| `GET /api/notification-preferences` | `List<{ category, enabled }>` | `category` ∈ `FOLLOW\|LOBBY\|MATCHMAKING` (défaut activé) |
+| `PUT /api/notification-preferences/{category}` | `204` | `{ enabled }` |
 
 ### Duel (game)
 
@@ -164,18 +178,19 @@ Endpoint `/ws` (SockJS) ; broker `/topic`. Une connexion par client, JWT en `CON
 | Destination | Payload |
 |---|---|
 | `/topic/games/{gameId}` | `EventEnvelopeResponse` (payload `GameNotification`) |
-| `/topic/lobbies/{lobbyId}` | `EventEnvelopeResponse` (payload `LobbyNotification`) (`CREATED`, `JOINED`, `COMPLETED`, `CANCELLED`, `EXPIRED`, `FAILED`) |
+| `/topic/lobbies/{lobbyId}` | `EventEnvelopeResponse` (payload `LobbyNotification`) (`CREATED`, `JOINED`, `DECLINED`, `COMPLETED`, `CANCELLED`, `EXPIRED`, `FAILED`) |
 | `/topic/matchmaking/tickets/{ticketId}` | `EventEnvelopeResponse` (payload `MatchmakingNotification`) (`SEARCHING`, `MATCHED`, `CANCELLED`, `FAILED`) |
-| `/topic/social/{userId}` | `EventEnvelopeResponse` (payload `SocialNotification`) |
+| `/topic/notifications/{userId}` | `EventEnvelopeResponse` (payload `NotificationView`) — inbox personnelle (invitations de défi, follows, appariement prêt) |
 | `/topic/presence/{userId}` | `PresenceView` — **exception assumée** : événements de session non séquencés, pas d'enveloppe |
 
 `EventEnvelopeResponse` : `aggregateId`, `sequenceNumber`, `timestamp`, `eventType` (type web),
 `payload` (DTO de notification). L'historique REST (`GET .../notifications`) et le push WS
 partagent exactement le même contrat (dédup par `sequenceNumber` côté client). Les DTOs de
-notification (`GameNotification`, `TicketNotification`, `SocialNotification`) vivent dans
-`infrastructure/out/messaging/response/` ; **aucune notification ni annotation Jackson dans un
-`*-domain`**. Le transport des événements du query bus est l'`EventEnvelope` du SDK (payload typé
-via `eventType`, sans annotation), mappé ici vers `EventEnvelopeResponse`.
+notification (`GameNotification`, `LobbyNotification`, `MatchmakingNotification`, `NotificationView`)
+vivent dans `infrastructure/out/messaging/response/` ou `in/api/response/` ; **aucune notification
+ni annotation Jackson dans un `*-domain`**. Le transport des événements du query bus est
+l'`EventEnvelope` du SDK (payload typé via `eventType`, sans annotation), mappé ici vers
+`EventEnvelopeResponse`.
 
 ---
 

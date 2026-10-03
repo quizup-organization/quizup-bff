@@ -44,8 +44,15 @@ public class LobbyViewService {
 
     public CompletableFuture<String> create(String playerId, CreateLobbyRequest request) {
         String lobbyId = UUID.randomUUID().toString();
-        return commandGateway
-                .send(new LobbyCommand.CreateLobbyCommand(lobbyId, request.topicId(), playerId))
+        if (request.opponentId() == null || request.opponentId().isBlank()) {
+            return commandGateway
+                    .send(new LobbyCommand.CreateLobbyCommand(lobbyId, request.topicId(), playerId, null))
+                    .thenApply(_ -> lobbyId);
+        }
+        // Défi nominatif : l'adversaire doit exister (444/404 sinon, jamais de salon orphelin).
+        return profileLookup.get(request.opponentId())
+                .thenCompose(_ -> commandGateway.send(new LobbyCommand.CreateLobbyCommand(
+                        lobbyId, request.topicId(), playerId, request.opponentId())))
                 .thenApply(_ -> lobbyId);
     }
 
@@ -63,18 +70,47 @@ public class LobbyViewService {
     }
 
     public CompletableFuture<Void> join(String lobbyId, String playerId) {
-        return commandGateway.send(new LobbyCommand.JoinLobbyCommand(lobbyId, playerId)).thenAccept(_ -> {
-        });
+        return requireLobby(lobbyId)
+                .thenCompose(_ -> commandGateway
+                        .send(new LobbyCommand.JoinLobbyCommand(lobbyId, playerId))
+                        .thenAccept(_ -> {
+                        }));
     }
 
     public CompletableFuture<Void> leave(String lobbyId, String playerId) {
-        return commandGateway.send(new LobbyCommand.LeaveLobbyCommand(lobbyId, playerId)).thenAccept(_ -> {
-        });
+        return requireLobby(lobbyId)
+                .thenCompose(_ -> commandGateway
+                        .send(new LobbyCommand.LeaveLobbyCommand(lobbyId, playerId))
+                        .thenAccept(_ -> {
+                        }));
     }
 
     public CompletableFuture<Void> cancel(String lobbyId, String playerId) {
-        return commandGateway.send(new LobbyCommand.CancelLobbyCommand(lobbyId, playerId)).thenAccept(_ -> {
-        });
+        return requireLobby(lobbyId)
+                .thenCompose(_ -> commandGateway
+                        .send(new LobbyCommand.CancelLobbyCommand(lobbyId, playerId))
+                        .thenAccept(_ -> {
+                        }));
+    }
+
+    /** Refus d'un défi nominatif par l'invité. */
+    public CompletableFuture<Void> decline(String lobbyId, String playerId) {
+        return requireLobby(lobbyId)
+                .thenCompose(_ -> commandGateway
+                        .send(new LobbyCommand.DeclineLobbyCommand(lobbyId, playerId))
+                        .thenAccept(_ -> {
+                        }));
+    }
+
+    /**
+     * Pré-vérification : un salon purgé (état terminal + rétention) doit répondre 404,
+     * pas une {@code AggregateDeletedException} non mappée par le SDK.
+     */
+    private CompletableFuture<Void> requireLobby(String lobbyId) {
+        return queryGateway
+                .query(new LobbyQuery.GetLobbyById(lobbyId), QueryResponseTypes.instanceOf(Lobby.class))
+                .thenAccept(_ -> {
+                });
     }
 
     private CompletableFuture<List<LobbyView>> enrich(List<Lobby> lobbies, String viewerId) {
@@ -115,22 +151,32 @@ public class LobbyViewService {
         UserRefView opponentRef = opponent == null
                 ? null
                 : new UserRefView(opponent.userId(), opponent.pseudonym(), opponent.avatarOptions());
+        boolean nominative = lobby.opponentId() != null;
+        boolean awaitingMe = nominative
+                && viewerId.equals(lobby.opponentId())
+                && lobby.participantId() == null
+                && lobby.status() == io.github.quizup.matchmaking.domain.model.LobbyStatus.CREATED;
 
         return new LobbyView(
                 lobby.lobbyId(),
                 topic,
                 lobby.status(),
                 opponentRef,
+                nominative,
+                awaitingMe,
                 lobby.gameId(),
                 lobby.createdAt(),
                 lobby.expiresAt(),
                 lobby.updatedAt());
     }
 
-    /** L'adversaire du point de vue du viewer : l'autre participant s'il existe. */
+    /**
+     * L'adversaire du point de vue du viewer : le participant s'il est présent, sinon l'invité
+     * du défi nominatif (l'initiateur voit ainsi la cible avant la jointure).
+     */
     private static String opponentIdOf(String viewerId, Lobby lobby) {
         if (viewerId.equals(lobby.initiatorId())) {
-            return lobby.participantId();
+            return lobby.participantId() != null ? lobby.participantId() : lobby.opponentId();
         }
         return lobby.initiatorId();
     }

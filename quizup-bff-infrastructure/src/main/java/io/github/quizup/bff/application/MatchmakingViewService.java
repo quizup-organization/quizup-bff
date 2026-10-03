@@ -72,10 +72,15 @@ public class MatchmakingViewService {
     }
 
     public CompletableFuture<Void> cancel(String playerId, String ticketId) {
-        return commandGateway
-                .send(new MatchmakingCommand.CancelMatchmakingCommand(ticketId, playerId))
-                .thenAccept(_ -> {
-                });
+        // Pré-vérification : un ticket purgé (état terminal + rétention) doit répondre 404,
+        // pas une AggregateDeletedException non mappée.
+        return queryGateway
+                .query(new MatchmakingQuery.GetMatchmakingByIdQuery(ticketId),
+                        QueryResponseTypes.instanceOf(Matchmaking.class))
+                .thenCompose(_ -> commandGateway
+                        .send(new MatchmakingCommand.CancelMatchmakingCommand(ticketId, playerId))
+                        .thenAccept(_ -> {
+                        }));
     }
 
     private static int levelOf(PlayerProgress progress) {
