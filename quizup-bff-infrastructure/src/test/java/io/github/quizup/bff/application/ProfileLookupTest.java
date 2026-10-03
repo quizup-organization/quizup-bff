@@ -44,6 +44,24 @@ class ProfileLookupTest {
     }
 
     @Test
+    void invalidateClearsCachedEntryAndTriggersNewQuery() {
+        when(queryGateway.query(
+                ArgumentMatchers.<ProfileQuery.GetProfileQuery>any(),
+                ArgumentMatchers.<ResponseType<Profile>>any()))
+                .thenReturn(
+                        CompletableFuture.completedFuture(profile("u1")),
+                        CompletableFuture.completedFuture(profile("u1")));
+
+        lookup.get("u1").join();
+        lookup.invalidate("u1");
+        lookup.get("u1").join();
+
+        verify(queryGateway, times(2)).query(
+                ArgumentMatchers.<ProfileQuery.GetProfileQuery>any(),
+                ArgumentMatchers.<ResponseType<Profile>>any());
+    }
+
+    @Test
     void getAllUsesOneBatchQueryForMissingIds() {
         when(queryGateway.query(
                 ArgumentMatchers.<ProfileQuery.GetProfilesByIdsQuery>any(),

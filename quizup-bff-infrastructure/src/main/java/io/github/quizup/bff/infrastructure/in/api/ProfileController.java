@@ -1,5 +1,6 @@
 package io.github.quizup.bff.infrastructure.in.api;
 
+import io.github.quizup.bff.application.ProfileUpdateService;
 import io.github.quizup.bff.application.ProfileViewService;
 import io.github.quizup.bff.infrastructure.in.api.request.PageParams;
 import io.github.quizup.bff.infrastructure.in.api.request.PeopleSort;
@@ -15,7 +16,6 @@ import io.github.quizup.bff.infrastructure.in.api.response.PageResponse;
 import io.github.quizup.bff.infrastructure.in.api.response.PlayerCardView;
 import io.github.quizup.bff.infrastructure.in.api.response.PlayerProfileView;
 import io.github.quizup.microservice.security.SecurityHelper;
-import io.github.quizup.profile.domain.command.ProfileCommand;
 import io.github.quizup.social.domain.command.UserFollowerCommand;
 import io.github.quizup.social.domain.model.FollowDirection;
 import io.github.quizup.social.domain.model.FollowerIds;
@@ -45,10 +45,14 @@ public class ProfileController {
     private static final int MAX_PAGE_SIZE = 100;
 
     private final ProfileViewService profileViewService;
+    private final ProfileUpdateService profileUpdateService;
     private final CommandGateway commandGateway;
 
-    public ProfileController(ProfileViewService profileViewService, CommandGateway commandGateway) {
+    public ProfileController(ProfileViewService profileViewService,
+                             ProfileUpdateService profileUpdateService,
+                             CommandGateway commandGateway) {
         this.profileViewService = profileViewService;
+        this.profileUpdateService = profileUpdateService;
         this.commandGateway = commandGateway;
     }
 
@@ -63,11 +67,8 @@ public class ProfileController {
     public CompletableFuture<ResponseEntity<Void>> updatePseudonym(
             @PathVariable String userId,
             @Valid @RequestBody UpdatePseudonymRequest request) {
-        return commandGateway
-                .send(new ProfileCommand.UpdateProfilePseudonymCommand(
-                        userId,
-                        SecurityHelper.getUserId(),
-                        request.pseudonym()))
+        return profileUpdateService
+                .updatePseudonym(userId, SecurityHelper.getUserId(), request.pseudonym())
                 .thenApply(_ -> ResponseEntity.noContent().build());
     }
 
@@ -75,11 +76,8 @@ public class ProfileController {
     public CompletableFuture<ResponseEntity<Void>> updateBio(
             @PathVariable String userId,
             @Valid @RequestBody UpdateBioRequest request) {
-        return commandGateway
-                .send(new ProfileCommand.UpdateProfileBioCommand(
-                        userId,
-                        SecurityHelper.getUserId(),
-                        request.bio()))
+        return profileUpdateService
+                .updateBio(userId, SecurityHelper.getUserId(), request.bio())
                 .thenApply(_ -> ResponseEntity.noContent().build());
     }
 
@@ -87,11 +85,8 @@ public class ProfileController {
     public CompletableFuture<ResponseEntity<Void>> updateCountry(
             @PathVariable String userId,
             @Valid @RequestBody UpdateCountryRequest request) {
-        return commandGateway
-                .send(new ProfileCommand.UpdateProfileCountryCommand(
-                        userId,
-                        SecurityHelper.getUserId(),
-                        request.country()))
+        return profileUpdateService
+                .updateCountry(userId, SecurityHelper.getUserId(), request.country())
                 .thenApply(_ -> ResponseEntity.noContent().build());
     }
 
@@ -99,11 +94,8 @@ public class ProfileController {
     public CompletableFuture<ResponseEntity<Void>> updateAvatarOptions(
             @PathVariable String userId,
             @Valid @RequestBody UpdateAvatarOptionsRequest request) {
-        return commandGateway
-                .send(new ProfileCommand.UpdateProfileAvatarCommand(
-                        userId,
-                        SecurityHelper.getUserId(),
-                        request.avatarOptions()))
+        return profileUpdateService
+                .updateAvatarOptions(userId, SecurityHelper.getUserId(), request.avatarOptions())
                 .thenApply(_ -> ResponseEntity.noContent().build());
     }
 
@@ -111,11 +103,8 @@ public class ProfileController {
     public CompletableFuture<ResponseEntity<Void>> updateLanguage(
             @PathVariable String userId,
             @Valid @RequestBody UpdateLanguageRequest request) {
-        return commandGateway
-                .send(new ProfileCommand.UpdateProfileLanguageCommand(
-                        userId,
-                        SecurityHelper.getUserId(),
-                        request.language()))
+        return profileUpdateService
+                .updateLanguage(userId, SecurityHelper.getUserId(), request.language())
                 .thenApply(_ -> ResponseEntity.noContent().build());
     }
 

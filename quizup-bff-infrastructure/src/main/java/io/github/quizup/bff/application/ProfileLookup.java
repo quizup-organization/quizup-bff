@@ -50,6 +50,14 @@ public class ProfileLookup {
                 });
     }
 
+    /**
+     * Purge l'entrée de cache d'un joueur : à appeler après toute écriture de profil réussie,
+     * sinon les lectures servent l'ancien profil jusqu'à l'expiration du TTL (30 s).
+     */
+    public void invalidate(String userId) {
+        cache.invalidate(userId);
+    }
+
     /** Résout plusieurs profils en une requête batch (cache + complément), dans l'ordre des ids demandés. */
     public CompletableFuture<List<Profile>> getAll(List<String> userIds) {
         Map<String, Profile> resolved = new LinkedHashMap<>();

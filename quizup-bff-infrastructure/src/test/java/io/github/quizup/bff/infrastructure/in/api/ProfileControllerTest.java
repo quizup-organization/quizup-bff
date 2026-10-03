@@ -1,12 +1,12 @@
 package io.github.quizup.bff.infrastructure.in.api;
 
+import io.github.quizup.bff.application.ProfileUpdateService;
 import io.github.quizup.bff.application.ProfileViewService;
 import io.github.quizup.bff.infrastructure.in.api.response.DuelStatsView;
 import io.github.quizup.bff.infrastructure.in.api.response.PageResponse;
 import io.github.quizup.bff.infrastructure.in.api.response.PlayerProfileView;
 import io.github.quizup.bff.infrastructure.in.api.response.ProgressionView;
 import io.github.quizup.microservice.core.domain.model.i18n.Language;
-import io.github.quizup.profile.domain.command.ProfileCommand;
 import io.github.quizup.social.domain.command.UserFollowerCommand;
 import org.axonframework.commandhandling.gateway.CommandGateway;
 import org.junit.jupiter.api.AfterEach;
@@ -22,8 +22,8 @@ import java.util.concurrent.CompletableFuture;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.asyncDispatch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -38,12 +38,14 @@ class ProfileControllerTest {
     private static final String USER_ID = "user-1";
 
     private final ProfileViewService profileViewService = mock(ProfileViewService.class);
+    private final ProfileUpdateService profileUpdateService = mock(ProfileUpdateService.class);
     private final CommandGateway commandGateway = mock(CommandGateway.class);
     private MockMvc mockMvc;
 
     @BeforeEach
     void setUp() {
-        mockMvc = MockMvcBuilders.standaloneSetup(new ProfileController(profileViewService, commandGateway)).build();
+        mockMvc = MockMvcBuilders.standaloneSetup(
+                new ProfileController(profileViewService, profileUpdateService, commandGateway)).build();
         TestSecurity.authenticate(USER_ID);
     }
 
@@ -100,7 +102,8 @@ class ProfileControllerTest {
 
     @Test
     void updatePseudonym_sendsCommandWithActor() throws Exception {
-        when(commandGateway.send(any())).thenReturn(CompletableFuture.completedFuture(USER_ID));
+        when(profileUpdateService.updatePseudonym(USER_ID, USER_ID, "Alicia"))
+                .thenReturn(CompletableFuture.completedFuture(null));
 
         MvcResult result = mockMvc.perform(put("/api/profiles/user-1/pseudonym")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -109,13 +112,13 @@ class ProfileControllerTest {
                 .andReturn();
 
         mockMvc.perform(asyncDispatch(result)).andExpect(status().isNoContent());
-        verify(commandGateway).send(new ProfileCommand.UpdateProfilePseudonymCommand(
-                USER_ID, USER_ID, "Alicia"));
+        verify(profileUpdateService).updatePseudonym(USER_ID, USER_ID, "Alicia");
     }
 
     @Test
     void updateBio_sendsCommandWithActor() throws Exception {
-        when(commandGateway.send(any())).thenReturn(CompletableFuture.completedFuture(USER_ID));
+        when(profileUpdateService.updateBio(USER_ID, USER_ID, "Full stack"))
+                .thenReturn(CompletableFuture.completedFuture(null));
 
         MvcResult result = mockMvc.perform(put("/api/profiles/user-1/bio")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -124,13 +127,13 @@ class ProfileControllerTest {
                 .andReturn();
 
         mockMvc.perform(asyncDispatch(result)).andExpect(status().isNoContent());
-        verify(commandGateway).send(new ProfileCommand.UpdateProfileBioCommand(
-                USER_ID, USER_ID, "Full stack"));
+        verify(profileUpdateService).updateBio(USER_ID, USER_ID, "Full stack");
     }
 
     @Test
     void updateCountry_sendsCommandWithActor() throws Exception {
-        when(commandGateway.send(any())).thenReturn(CompletableFuture.completedFuture(USER_ID));
+        when(profileUpdateService.updateCountry(USER_ID, USER_ID, "FR"))
+                .thenReturn(CompletableFuture.completedFuture(null));
 
         MvcResult result = mockMvc.perform(put("/api/profiles/user-1/country")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -139,13 +142,13 @@ class ProfileControllerTest {
                 .andReturn();
 
         mockMvc.perform(asyncDispatch(result)).andExpect(status().isNoContent());
-        verify(commandGateway).send(new ProfileCommand.UpdateProfileCountryCommand(
-                USER_ID, USER_ID, "FR"));
+        verify(profileUpdateService).updateCountry(USER_ID, USER_ID, "FR");
     }
 
     @Test
     void updateAvatarOptions_sendsCommandWithActor() throws Exception {
-        when(commandGateway.send(any())).thenReturn(CompletableFuture.completedFuture(USER_ID));
+        when(profileUpdateService.updateAvatarOptions(USER_ID, USER_ID, "{\"hair\":\"full\"}"))
+                .thenReturn(CompletableFuture.completedFuture(null));
 
         MvcResult result = mockMvc.perform(put("/api/profiles/user-1/avatar-options")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -154,13 +157,13 @@ class ProfileControllerTest {
                 .andReturn();
 
         mockMvc.perform(asyncDispatch(result)).andExpect(status().isNoContent());
-        verify(commandGateway).send(new ProfileCommand.UpdateProfileAvatarCommand(
-                USER_ID, USER_ID, "{\"hair\":\"full\"}"));
+        verify(profileUpdateService).updateAvatarOptions(USER_ID, USER_ID, "{\"hair\":\"full\"}");
     }
 
     @Test
     void updateLanguage_sendsCommandWithActor() throws Exception {
-        when(commandGateway.send(any())).thenReturn(CompletableFuture.completedFuture(USER_ID));
+        when(profileUpdateService.updateLanguage(USER_ID, USER_ID, Language.EN))
+                .thenReturn(CompletableFuture.completedFuture(null));
 
         MvcResult result = mockMvc.perform(put("/api/profiles/user-1/language")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -169,8 +172,7 @@ class ProfileControllerTest {
                 .andReturn();
 
         mockMvc.perform(asyncDispatch(result)).andExpect(status().isNoContent());
-        verify(commandGateway).send(new ProfileCommand.UpdateProfileLanguageCommand(
-                USER_ID, USER_ID, Language.EN));
+        verify(profileUpdateService).updateLanguage(USER_ID, USER_ID, Language.EN);
     }
 
     @Test
@@ -180,6 +182,6 @@ class ProfileControllerTest {
                         .content("{\"language\":\"de\"}"))
                 .andExpect(status().isBadRequest());
 
-        verify(commandGateway, never()).send(any());
+        verifyNoInteractions(profileUpdateService);
     }
 }
