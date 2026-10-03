@@ -1,3 +1,9 @@
+## [4.2.0](https://github.com/quizup-organization/quizup-bff/compare/v4.1.1...v4.2.0) (2026-10-03)
+
+### Features
+
+* **bff:** topic authoring surface ([3e3fb01](https://github.com/quizup-organization/quizup-bff/commit/3e3fb01fd3b468047d548b9c863c85b6441953c0))
+
 ## [4.1.1](https://github.com/quizup-organization/quizup-bff/compare/v4.1.0...v4.1.1) (2026-10-03)
 
 ### Bug Fixes
