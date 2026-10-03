@@ -1,3 +1,9 @@
+## [4.1.1](https://github.com/quizup-organization/quizup-bff/compare/v4.1.0...v4.1.1) (2026-10-03)
+
+### Bug Fixes
+
+* **bff:** invalidate profile read cache on updates ([cda159c](https://github.com/quizup-organization/quizup-bff/commit/cda159c2c9847ce08f3547d684f383508243edde))
+
 ## [4.1.0](https://github.com/quizup-organization/quizup-bff/compare/v4.0.0...v4.1.0) (2026-10-03)
 
 ### Features
