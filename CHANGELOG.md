@@ -1,3 +1,9 @@
+## [4.1.0](https://github.com/quizup-organization/quizup-bff/compare/v4.0.0...v4.1.0) (2026-10-03)
+
+### Features
+
+* **bff:** notification inbox, nominative challenge and released domain pins ([769bb6a](https://github.com/quizup-organization/quizup-bff/commit/769bb6ae127618436b1613be52f2cb4f8ecc079e))
+
 ## [4.0.0](https://github.com/quizup-organization/quizup-bff/compare/v3.0.0...v4.0.0) (2026-10-02)
 
 ### ⚠ BREAKING CHANGES
