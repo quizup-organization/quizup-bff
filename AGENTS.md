@@ -158,7 +158,7 @@ Le `quizup-mobile` n'est **pas** branché sur cette surface (migration dédiée 
 | `GET /api/notifications/unread-count` | `{ count }` | Badge de la cloche |
 | `POST /api/notifications/{notificationId}/read` | `200` | Propriétaire uniquement (404/403 sinon) |
 | `POST /api/notifications/read-all` | `200` | Fan-out de commandes unitaires idempotentes |
-| `GET /api/notification-preferences` | `List<{ category, enabled }>` | `category` ∈ `FOLLOW\|LOBBY\|MATCHMAKING` (défaut activé) |
+| `GET /api/notification-preferences` | `List<{ category, enabled }>` | `category` ∈ `FOLLOW\|LOBBY` (défaut activé) |
 | `PUT /api/notification-preferences/{category}` | `204` | `{ enabled }` |
 
 ### Duel (game)
@@ -184,7 +184,7 @@ Endpoint `/ws` (SockJS) ; broker `/topic`. Une connexion par client, JWT en `CON
 | `/topic/games/{gameId}` | `EventEnvelopeResponse` (payload `GameNotification`) |
 | `/topic/lobbies/{lobbyId}` | `EventEnvelopeResponse` (payload `LobbyNotification`) (`CREATED`, `JOINED`, `DECLINED`, `COMPLETED`, `CANCELLED`, `EXPIRED`, `FAILED`) |
 | `/topic/matchmaking/tickets/{ticketId}` | `EventEnvelopeResponse` (payload `MatchmakingNotification`) (`SEARCHING`, `MATCHED`, `CANCELLED`, `FAILED`) |
-| `/topic/notifications/{userId}` | `EventEnvelopeResponse` (payload `NotificationView`) — inbox personnelle (invitations de défi, follows, appariement prêt) |
+| `/topic/notifications/{userId}` | `EventEnvelopeResponse` (payload `NotificationView`) — inbox personnelle (invitations de défi, follows) |
 | `/topic/presence/{userId}` | `PresenceView` — **exception assumée** : événements de session non séquencés, pas d'enveloppe |
 
 `EventEnvelopeResponse` : `aggregateId`, `sequenceNumber`, `timestamp`, `eventType` (type web),
