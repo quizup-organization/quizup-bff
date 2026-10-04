@@ -7,6 +7,7 @@ import io.github.quizup.bff.infrastructure.in.api.response.PageResponse;
 import io.github.quizup.bff.infrastructure.in.api.response.UnreadCountView;
 import io.github.quizup.microservice.security.SecurityHelper;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -17,7 +18,8 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * {@code /api/notifications} — inbox personnelle : page, compteur non lus, transitions de lecture.
+ * {@code /api/notifications} — inbox personnelle : page, compteur non lus, transitions de lecture,
+ * suppression.
  */
 @RestController
 @RequestMapping("/api/notifications")
@@ -54,6 +56,13 @@ public class NotificationController {
         return notificationViewService
                 .markRead(SecurityHelper.getUserId(), notificationId)
                 .thenApply(_ -> ResponseEntity.ok().build());
+    }
+
+    @DeleteMapping("/{notificationId}")
+    public CompletableFuture<ResponseEntity<Void>> delete(@PathVariable String notificationId) {
+        return notificationViewService
+                .delete(SecurityHelper.getUserId(), notificationId)
+                .thenApply(_ -> ResponseEntity.noContent().build());
     }
 
     @PostMapping("/read-all")

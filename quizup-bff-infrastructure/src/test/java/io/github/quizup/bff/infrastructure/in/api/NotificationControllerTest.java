@@ -16,6 +16,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.asyncDispatch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
@@ -84,5 +85,17 @@ class NotificationControllerTest {
 
         verify(notificationViewService).markRead(USER_ID, "notif-1");
         verify(notificationViewService).markAllRead(USER_ID);
+    }
+
+    @Test
+    void delete_delegates_and_returns_no_content() throws Exception {
+        when(notificationViewService.delete(USER_ID, "notif-1"))
+                .thenReturn(CompletableFuture.completedFuture(null));
+
+        MvcResult result = mockMvc.perform(delete("/api/notifications/notif-1"))
+                .andExpect(request().asyncStarted()).andReturn();
+        mockMvc.perform(asyncDispatch(result)).andExpect(status().isNoContent());
+
+        verify(notificationViewService).delete(USER_ID, "notif-1");
     }
 }

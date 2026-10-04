@@ -17,7 +17,7 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
-/** Facade de l'inbox : lecture paginée, compteur, transitions de lecture, préférences. */
+/** Facade de l'inbox : lecture paginée, compteur, transitions de lecture, suppression, préférences. */
 @Service
 public class NotificationViewService {
 
@@ -56,6 +56,17 @@ public class NotificationViewService {
                         QueryResponseTypes.instanceOf(Notification.class))
                 .thenCompose(_ -> commandGateway
                         .send(new NotificationCommand.MarkNotificationReadCommand(notificationId, userId))
+                        .thenAccept(_ -> {
+                        }));
+    }
+
+    /** Suppression (hard delete). Même pré-vérification propriétaire que la lecture. */
+    public CompletableFuture<Void> delete(String userId, String notificationId) {
+        return queryGateway
+                .query(new NotificationQuery.GetNotificationQuery(userId, notificationId),
+                        QueryResponseTypes.instanceOf(Notification.class))
+                .thenCompose(_ -> commandGateway
+                        .send(new NotificationCommand.DeleteNotificationCommand(notificationId, userId))
                         .thenAccept(_ -> {
                         }));
     }
