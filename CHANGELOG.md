@@ -1,3 +1,9 @@
+## [4.11.1](https://github.com/quizup-organization/quizup-bff/compare/v4.11.0...v4.11.1) (2026-10-05)
+
+### Bug Fixes
+
+* **bff:** pin theme-domain 4.2.0 (categorie Religions) ([73556d5](https://github.com/quizup-organization/quizup-bff/commit/73556d5873ce27f23e90581b59be29d6aba66f47))
+
 ## [4.11.0](https://github.com/quizup-organization/quizup-bff/compare/v4.10.0...v4.11.0) (2026-10-05)
 
 ### Features
