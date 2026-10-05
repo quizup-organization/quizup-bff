@@ -1,3 +1,9 @@
+## [4.8.0](https://github.com/quizup-organization/quizup-bff/compare/v4.7.0...v4.8.0) (2026-10-05)
+
+### Features
+
+* **bff:** historique de duel — issues WAITING/IN_PROGRESS/CANCELLED ([ae78a8d](https://github.com/quizup-organization/quizup-bff/commit/ae78a8dd44947f2777b925acea378f023b9f6c00))
+
 ## [4.7.0](https://github.com/quizup-organization/quizup-bff/compare/v4.6.1...v4.7.0) (2026-10-05)
 
 ### Features
