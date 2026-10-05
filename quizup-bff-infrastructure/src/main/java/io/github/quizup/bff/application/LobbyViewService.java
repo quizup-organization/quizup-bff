@@ -1,5 +1,6 @@
 package io.github.quizup.bff.application;
 
+import io.github.quizup.bff.infrastructure.in.api.problem.BffProblems;
 import io.github.quizup.bff.infrastructure.in.api.request.CreateLobbyRequest;
 import io.github.quizup.bff.infrastructure.in.api.response.LobbyRoomPhase;
 import io.github.quizup.bff.infrastructure.in.api.response.LobbyView;
@@ -44,17 +45,18 @@ public class LobbyViewService {
         this.profileLookup = profileLookup;
     }
 
+    /**
+     * Ouvre un salon partagé (lien). Le défi nominatif passe désormais par {@code POST
+     * /api/challenges} : le salon nominatif n'est créé qu'à l'acceptation (saga).
+     */
     public CompletableFuture<String> create(String playerId, CreateLobbyRequest request) {
-        String lobbyId = UUID.randomUUID().toString();
-        if (request.opponentId() == null || request.opponentId().isBlank()) {
-            return commandGateway
-                    .send(new LobbyCommand.CreateLobbyCommand(lobbyId, request.topicId(), playerId, null))
-                    .thenApply(_ -> lobbyId);
+        if (request.opponentId() != null && !request.opponentId().isBlank()) {
+            throw new BffProblems.InvalidLobbyRequestProblem(
+                    "Le défi nominatif se crée via POST /api/challenges");
         }
-        // Défi nominatif : l'adversaire doit exister (444/404 sinon, jamais de salon orphelin).
-        return profileLookup.get(request.opponentId())
-                .thenCompose(_ -> commandGateway.send(new LobbyCommand.CreateLobbyCommand(
-                        lobbyId, request.topicId(), playerId, request.opponentId())))
+        String lobbyId = UUID.randomUUID().toString();
+        return commandGateway
+                .send(new LobbyCommand.CreateLobbyCommand(lobbyId, request.topicId(), playerId, null))
                 .thenApply(_ -> lobbyId);
     }
 

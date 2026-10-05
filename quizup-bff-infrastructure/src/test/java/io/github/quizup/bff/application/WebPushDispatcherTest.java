@@ -72,6 +72,13 @@ class WebPushDispatcherTest {
     }
 
     @Test
+    void challenge_received_targets_the_challenge() {
+        dispatcher.dispatch(event(NotificationType.CHALLENGE_RECEIVED, "challenge-1", "actor-1"));
+
+        assertThat(capturedMessage().path()).isEqualTo("/challenges/challenge-1");
+    }
+
+    @Test
     void decline_targets_the_inbox() {
         dispatcher.dispatch(event(NotificationType.LOBBY_DECLINED, "lobby-1", "actor-1"));
 

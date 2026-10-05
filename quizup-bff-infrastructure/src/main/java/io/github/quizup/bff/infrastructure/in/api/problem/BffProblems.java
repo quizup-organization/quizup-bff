@@ -43,6 +43,16 @@ public final class BffProblems {
         }
     }
 
+    public static class InvalidLobbyRequestProblem extends BaseProblem {
+        public InvalidLobbyRequestProblem(String detail) {
+            super("urn:quizup:bff:lobby:invalidRequest",
+                    ProblemCategory.VALIDATION,
+                    "Invalid lobby request",
+                    detail,
+                    Map.of());
+        }
+    }
+
     public static class PushDisabledProblem extends BaseProblem {
         public PushDisabledProblem() {
             super("urn:quizup:bff:push:disabled",

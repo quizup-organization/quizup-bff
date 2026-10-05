@@ -70,6 +70,8 @@ public class WebPushDispatcher {
     /** Route applicative canonique du clic : chaque client la mappe (web : URL, mobile : deep link). */
     private static String pathFor(NotificationEvent.NotificationCreatedEvent event) {
         return switch (event.type()) {
+            case CHALLENGE_RECEIVED ->
+                    event.sourceId() != null ? "/challenges/" + event.sourceId() : "/notifications";
             case LOBBY_INVITATION ->
                     event.sourceId() != null ? "/lobbies/" + event.sourceId() : "/notifications";
             // Partie créée (gameId attaché) : arène ; sinon salle d'attente encore ouverte.

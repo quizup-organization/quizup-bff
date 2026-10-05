@@ -154,11 +154,25 @@ question ne connaît pas le créateur du sujet) et répondent `403` `PERMISSION`
 | `POST /api/matchmaking/tickets/{ticketId}/cancel` | `200` | Annule la recherche |
 | `GET /api/matchmaking/tickets/{ticketId}/notifications` | `List<EventEnvelopeResponse>` (payload `MatchmakingNotification`) | Même contrat que le push WS |
 
+### Défis nominatifs (matchmaking)
+
+Intention **asynchrone** (TTL 1 h) distincte de la salle temps réel : l'acceptation crée la salle
+(saga matchmaking) qui porte présence, compte à rebours et partie.
+
+| Endpoint | Réponse | Notes |
+|---|---|---|
+| `POST /api/challenges` | `201 + Location` | Body `{ topicId, opponentId }` — l'adversaire doit exister (`404` sinon) |
+| `GET /api/challenges/mine` | `List<ChallengeView>` | Défis `PENDING` où le joueur est challenger ou opposant |
+| `GET /api/challenges/{challengeId}` | `ChallengeView` | Sujet, challenger/opponent, statut (`PENDING\|ACCEPTED\|DECLINED\|CANCELLED\|EXPIRED`), `roomId` dès l'acceptation |
+| `POST /api/challenges/{challengeId}/accept` | `200` | Invité uniquement ; la salle est créée par la saga (`roomId`) |
+| `POST /api/challenges/{challengeId}/decline` | `200` | Invité uniquement |
+| `POST /api/challenges/{challengeId}/cancel` | `200` | Lanceur uniquement (défi sans réponse) |
+
 ### Salons privés (matchmaking)
 
 | Endpoint | Réponse | Notes |
 |---|---|---|
-| `POST /api/lobbies` | `201 + Location` | Body `{ topicId, opponentId? }` — `opponentId` renseigné = **défi nominatif** (seul l'invité peut rejoindre) ; sinon salon partagé par lien `/join/{lobbyId}` |
+| `POST /api/lobbies` | `201 + Location` | Body `{ topicId }` — **salon partagé** par lien `/join/{lobbyId}` ; le défi nominatif passe par `POST /api/challenges` (`400` si `opponentId`) |
 | `GET /api/lobbies/mine` | `List<LobbyView>` | Salons `CREATED` du joueur (initiateur **ou** invité) — filet de reprise |
 | `GET /api/lobbies/{lobbyId}` | `LobbyView` | Sujet, statut, `phase` (`WAITING_PARTICIPANT\|WAITING_PRESENCE\|READY\|COMPLETED\|MISSED\|CLOSED\|FAILED`), adversaire, `nominative`, `awaitingMe`, présences, `readyDeadlineAt`, `missedReason`, `gameId` |
 | `POST /api/lobbies/{lobbyId}/join` | `200` | Rejoint le salon (idempotent, acceptation) ; nominatif : invité uniquement (403 sinon) |
