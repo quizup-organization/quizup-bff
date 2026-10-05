@@ -1,3 +1,13 @@
+## [4.9.0](https://github.com/quizup-organization/quizup-bff/compare/v4.8.1...v4.9.0) (2026-10-05)
+
+### Features
+
+* **bff:** suppression en masse de l'inbox (DELETE /api/notifications) et pin notification 2.5.0 ([959acf3](https://github.com/quizup-organization/quizup-bff/commit/959acf32bc055ec24783fb2d881c39311395f9b1))
+
+### Bug Fixes
+
+* **bff:** partie courante absente en 204 au lieu d'un 404 ([47fa07e](https://github.com/quizup-organization/quizup-bff/commit/47fa07e74950147f93df5fa563e75781b6b56855))
+
 ## [4.8.1](https://github.com/quizup-organization/quizup-bff/compare/v4.8.0...v4.8.1) (2026-10-05)
 
 ### Bug Fixes
