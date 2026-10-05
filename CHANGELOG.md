@@ -1,3 +1,9 @@
+## [4.6.0](https://github.com/quizup-organization/quizup-bff/compare/v4.5.1...v4.6.0) (2026-10-05)
+
+### Features
+
+* **bff:** vue de reprise GET /api/games/current ([317a759](https://github.com/quizup-organization/quizup-bff/commit/317a75927a171a1cea5fecb44b97f3292d58d61f))
+
 ## [4.5.1](https://github.com/quizup-organization/quizup-bff/compare/v4.5.0...v4.5.1) (2026-10-05)
 
 ### Bug Fixes
