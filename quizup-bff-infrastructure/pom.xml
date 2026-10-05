@@ -16,7 +16,7 @@
     <properties>
         <!-- Contrats inter-services : dernières versions release des *-domain (GitHub Packages). -->
         <quizup.identity-domain.version>2.0.0</quizup.identity-domain.version>
-        <quizup.theme-domain.version>4.1.0</quizup.theme-domain.version>
+        <quizup.theme-domain.version>4.2.0</quizup.theme-domain.version>
         <quizup.social-domain.version>4.0.0</quizup.social-domain.version>
         <quizup.game-domain.version>5.1.0</quizup.game-domain.version>
         <quizup.profile-domain.version>3.0.0</quizup.profile-domain.version>
