@@ -1,3 +1,9 @@
+## [4.5.1](https://github.com/quizup-organization/quizup-bff/compare/v4.5.0...v4.5.1) (2026-10-05)
+
+### Bug Fixes
+
+* **bff:** embarque notification-domain 2.3.0 (LOBBY_MISSED) ([5297f73](https://github.com/quizup-organization/quizup-bff/commit/5297f73e16114b8051ae53e7ea60c13fd827420b))
+
 ## [4.5.0](https://github.com/quizup-organization/quizup-bff/compare/v4.4.2...v4.5.0) (2026-10-05)
 
 ### Features
