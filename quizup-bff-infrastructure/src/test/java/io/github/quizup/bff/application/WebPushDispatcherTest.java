@@ -58,8 +58,22 @@ class WebPushDispatcherTest {
     }
 
     @Test
-    void outcome_path_targets_the_inbox() {
+    void acceptance_without_game_targets_the_room() {
         dispatcher.dispatch(event(NotificationType.LOBBY_ACCEPTED, "lobby-1", "actor-1"));
+
+        assertThat(capturedMessage().path()).isEqualTo("/lobbies/lobby-1");
+    }
+
+    @Test
+    void acceptance_with_game_targets_the_arena() {
+        dispatcher.dispatch(event(NotificationType.LOBBY_ACCEPTED, "lobby-1", "actor-1", "game-1"));
+
+        assertThat(capturedMessage().path()).isEqualTo("/duel/game-1");
+    }
+
+    @Test
+    void decline_targets_the_inbox() {
+        dispatcher.dispatch(event(NotificationType.LOBBY_DECLINED, "lobby-1", "actor-1"));
 
         assertThat(capturedMessage().path()).isEqualTo("/notifications");
     }
@@ -99,6 +113,13 @@ class WebPushDispatcherTest {
     private static NotificationEvent.NotificationCreatedEvent event(NotificationType type,
                                                                     String sourceId,
                                                                     String actorId) {
+        return event(type, sourceId, actorId, null);
+    }
+
+    private static NotificationEvent.NotificationCreatedEvent event(NotificationType type,
+                                                                    String sourceId,
+                                                                    String actorId,
+                                                                    String gameId) {
         return new NotificationEvent.NotificationCreatedEvent(
                 "notification-1",
                 USER_ID,
@@ -106,7 +127,7 @@ class WebPushDispatcherTest {
                 actorId,
                 sourceId,
                 "topic-1",
-                null,
+                gameId,
                 Instant.parse("2026-01-01T11:00:00Z"),
                 Instant.parse("2026-01-01T10:00:00Z"));
     }

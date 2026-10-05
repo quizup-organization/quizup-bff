@@ -72,6 +72,10 @@ public class WebPushDispatcher {
         return switch (event.type()) {
             case LOBBY_INVITATION ->
                     event.sourceId() != null ? "/lobbies/" + event.sourceId() : "/notifications";
+            // Partie créée (gameId attaché) : arène ; sinon salle d'attente encore ouverte.
+            case LOBBY_ACCEPTED -> event.gameId() != null
+                    ? "/duel/" + event.gameId()
+                    : (event.sourceId() != null ? "/lobbies/" + event.sourceId() : "/notifications");
             case FOLLOW -> event.actorId() != null ? "/players/" + event.actorId() : "/notifications";
             default -> "/notifications";
         };
