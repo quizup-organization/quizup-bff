@@ -238,6 +238,7 @@ Endpoint `/ws` (SockJS) ; broker `/topic`. Une connexion par client, JWT en `CON
 | `/topic/matchmaking/tickets/{ticketId}` | `EventEnvelopeResponse` (payload `MatchmakingNotification`) (`SEARCHING`, `MATCHED`, `CANCELLED`, `FAILED`) |
 | `/topic/notifications/{userId}` | `EventEnvelopeResponse` (payload `NotificationView`) — inbox personnelle (invitations de défi, follows) ; suppression poussée sous `NOTIFICATION_DELETED` (payload `{ notificationId }`) |
 | `/topic/presence/{userId}` | `PresenceView` — **exception assumée** : événements de session non séquencés, pas d'enveloppe |
+| `/topic/follow-presence/{userId}` | `FollowPresenceView` (`actorId`, `pseudonym`, `avatarOptions`, `at`) — **fan-out éphémère** : quand un joueur passe en ligne, chaque **abonné** reçoit « X est en ligne » ; jamais persisté (pas d'inbox), poussé par le groupe `follow-presence-notification` |
 
 `EventEnvelopeResponse` : `aggregateId`, `sequenceNumber`, `timestamp`, `eventType` (type web),
 `payload` (DTO de notification). L'historique REST (`GET .../notifications`) et le push WS

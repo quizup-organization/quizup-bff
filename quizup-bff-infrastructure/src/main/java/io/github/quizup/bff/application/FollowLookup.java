@@ -23,6 +23,9 @@ public class FollowLookup {
 
     public static final int MAX_LIST_SIZE = 200;
 
+    /** Fan-out de présence : tous les abonnés, sans plafond. */
+    private static final int NO_LIMIT = Integer.MAX_VALUE;
+
     private final QueryGateway queryGateway;
 
     public FollowLookup(QueryGateway queryGateway) {
@@ -43,6 +46,17 @@ public class FollowLookup {
                 .query(new UserFollowerQuery.GetUserFollowsQuery(userId, FollowDirection.FOLLOWING, limit),
                         QueryResponseTypes.multipleInstancesOf(UserFollower.class))
                 .thenApply(follows -> follows.stream().map(UserFollower::followedId).toList());
+    }
+
+    /**
+     * Identifiants des abonnés d'un joueur (ceux qui le suivent), sans plafond : utilisé par le
+     * fan-out éphémère « X est en ligne » vers les abonnés d'un joueur qui vient de se connecter.
+     */
+    public CompletableFuture<List<String>> followerIds(String userId) {
+        return queryGateway
+                .query(new UserFollowerQuery.GetUserFollowsQuery(userId, FollowDirection.FOLLOWERS, NO_LIMIT),
+                        QueryResponseTypes.multipleInstancesOf(UserFollower.class))
+                .thenApply(follows -> follows.stream().map(UserFollower::followerId).toList());
     }
 
     public CompletableFuture<UserFollowCounts> userCounts(String userId) {
