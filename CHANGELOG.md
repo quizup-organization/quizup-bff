@@ -1,3 +1,9 @@
+## [4.10.0](https://github.com/quizup-organization/quizup-bff/compare/v4.9.0...v4.10.0) (2026-10-05)
+
+### Features
+
+* **bff:** notification ephemere LOBBY_LEFT (sortie non destructive) ([7e7af73](https://github.com/quizup-organization/quizup-bff/commit/7e7af7320b6959cc08ff0f3a4244d474d659234e))
+
 ## [4.9.0](https://github.com/quizup-organization/quizup-bff/compare/v4.8.1...v4.9.0) (2026-10-05)
 
 ### Features
