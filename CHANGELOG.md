@@ -1,3 +1,9 @@
+## [4.4.0](https://github.com/quizup-organization/quizup-bff/compare/v4.3.0...v4.4.0) (2026-10-05)
+
+### Features
+
+* **bff:** web push des notifications (abonnements VAPID + envoi) ([7ac039e](https://github.com/quizup-organization/quizup-bff/commit/7ac039ec9468cc7324a5cfc8592f3241a0d2eaf5))
+
 ## [4.3.0](https://github.com/quizup-organization/quizup-bff/compare/v4.2.0...v4.3.0) (2026-10-04)
 
 ### Features
