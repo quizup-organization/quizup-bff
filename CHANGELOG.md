@@ -1,3 +1,9 @@
+## [4.4.1](https://github.com/quizup-organization/quizup-bff/compare/v4.4.0...v4.4.1) (2026-10-05)
+
+### Bug Fixes
+
+* **bff:** enregistre le provider BouncyCastle du web push ([6cde211](https://github.com/quizup-organization/quizup-bff/commit/6cde211d34d1771422a179b021195716ed9a59d5))
+
 ## [4.4.0](https://github.com/quizup-organization/quizup-bff/compare/v4.3.0...v4.4.0) (2026-10-05)
 
 ### Features
