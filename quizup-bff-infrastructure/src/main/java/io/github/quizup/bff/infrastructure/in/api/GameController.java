@@ -5,6 +5,7 @@ import io.github.quizup.bff.infrastructure.in.api.request.AnswerQuestionRequest;
 import io.github.quizup.bff.infrastructure.in.api.request.CreateGameRequest;
 import io.github.quizup.bff.infrastructure.in.api.response.CurrentGameView;
 import io.github.quizup.bff.infrastructure.in.api.response.EventEnvelopeResponse;
+import io.github.quizup.bff.infrastructure.in.api.response.GameResultView;
 import io.github.quizup.bff.infrastructure.out.messaging.mapper.GameEventNotificationMapper;
 import io.github.quizup.game.domain.event.GameEvent;
 import io.github.quizup.game.domain.query.GameQuery;
@@ -95,6 +96,43 @@ public class GameController {
         return gameViewService
                 .cancel(gameId)
                 .thenApply(_ -> ResponseEntity.ok().build());
+    }
+
+    /** Résultat d'une partie terminée : score, détail, récompense XP et progression du joueur. */
+    @GetMapping("/{gameId}/result")
+    public CompletableFuture<ResponseEntity<GameResultView>> result(@PathVariable String gameId) {
+        return gameViewService
+                .result(gameId, SecurityHelper.getUserId())
+                .thenApply(ResponseEntity::ok);
+    }
+
+    /** Demande de revanche à l'issue d'une partie (l'adversaire accepte ou refuse). */
+    @PostMapping("/{gameId}/rematch")
+    public CompletableFuture<ResponseEntity<Void>> requestRematch(@PathVariable String gameId) {
+        return gameViewService
+                .requestRematch(gameId, SecurityHelper.getUserId())
+                .thenApply(_ -> ResponseEntity.noContent().build());
+    }
+
+    @PostMapping("/{gameId}/rematch/accept")
+    public CompletableFuture<ResponseEntity<Void>> acceptRematch(@PathVariable String gameId) {
+        return gameViewService
+                .acceptRematch(gameId, SecurityHelper.getUserId())
+                .thenApply(_ -> ResponseEntity.noContent().build());
+    }
+
+    @PostMapping("/{gameId}/rematch/decline")
+    public CompletableFuture<ResponseEntity<Void>> declineRematch(@PathVariable String gameId) {
+        return gameViewService
+                .declineRematch(gameId, SecurityHelper.getUserId())
+                .thenApply(_ -> ResponseEntity.noContent().build());
+    }
+
+    @PostMapping("/{gameId}/rematch/cancel")
+    public CompletableFuture<ResponseEntity<Void>> cancelRematch(@PathVariable String gameId) {
+        return gameViewService
+                .cancelRematch(gameId, SecurityHelper.getUserId())
+                .thenApply(_ -> ResponseEntity.noContent().build());
     }
 
     /**

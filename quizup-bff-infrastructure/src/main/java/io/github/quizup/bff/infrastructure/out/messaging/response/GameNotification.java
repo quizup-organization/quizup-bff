@@ -25,7 +25,12 @@ import java.util.Map;
         @JsonSubTypes.Type(value = GameNotification.RoundClosedNotification.class, name = "ROUND_CLOSED"),
         @JsonSubTypes.Type(value = GameNotification.GameForfeitedNotification.class, name = "GAME_FORFEITED"),
         @JsonSubTypes.Type(value = GameNotification.GameEndedNotification.class, name = "GAME_ENDED"),
-        @JsonSubTypes.Type(value = GameNotification.GameCancelledNotification.class, name = "GAME_CANCELLED")
+        @JsonSubTypes.Type(value = GameNotification.GameCancelledNotification.class, name = "GAME_CANCELLED"),
+        @JsonSubTypes.Type(value = GameNotification.RematchRequestedNotification.class, name = "REMATCH_REQUESTED"),
+        @JsonSubTypes.Type(value = GameNotification.RematchAcceptedNotification.class, name = "REMATCH_ACCEPTED"),
+        @JsonSubTypes.Type(value = GameNotification.RematchDeclinedNotification.class, name = "REMATCH_DECLINED"),
+        @JsonSubTypes.Type(value = GameNotification.RematchCancelledNotification.class, name = "REMATCH_CANCELLED"),
+        @JsonSubTypes.Type(value = GameNotification.RematchStartedNotification.class, name = "REMATCH_STARTED")
 })
 public interface GameNotification {
 
@@ -45,7 +50,12 @@ public interface GameNotification {
         ROUND_CLOSED,
         GAME_FORFEITED,
         GAME_ENDED,
-        GAME_CANCELLED
+        GAME_CANCELLED,
+        REMATCH_REQUESTED,
+        REMATCH_ACCEPTED,
+        REMATCH_DECLINED,
+        REMATCH_CANCELLED,
+        REMATCH_STARTED
     }
 
     /**
@@ -197,6 +207,59 @@ public interface GameNotification {
         @Override
         public GameNotificationType type() {
             return GameNotificationType.GAME_CANCELLED;
+        }
+    }
+
+    /** Revanche demandée par {@code requesterId} : l'adversaire peut accepter ou refuser. */
+    record RematchRequestedNotification(
+            String gameId,
+            String requesterId
+    ) implements GameNotification {
+        @Override
+        public GameNotificationType type() {
+            return GameNotificationType.REMATCH_REQUESTED;
+        }
+    }
+
+    record RematchAcceptedNotification(
+            String gameId,
+            String playerId
+    ) implements GameNotification {
+        @Override
+        public GameNotificationType type() {
+            return GameNotificationType.REMATCH_ACCEPTED;
+        }
+    }
+
+    record RematchDeclinedNotification(
+            String gameId,
+            String playerId
+    ) implements GameNotification {
+        @Override
+        public GameNotificationType type() {
+            return GameNotificationType.REMATCH_DECLINED;
+        }
+    }
+
+    /** Revanche annulée (retrait de la demande) : {@code reason} pour l'affichage client. */
+    record RematchCancelledNotification(
+            String gameId,
+            String reason
+    ) implements GameNotification {
+        @Override
+        public GameNotificationType type() {
+            return GameNotificationType.REMATCH_CANCELLED;
+        }
+    }
+
+    /** La revanche a donné naissance à une nouvelle partie ({@code newGameId}). */
+    record RematchStartedNotification(
+            String gameId,
+            String newGameId
+    ) implements GameNotification {
+        @Override
+        public GameNotificationType type() {
+            return GameNotificationType.REMATCH_STARTED;
         }
     }
 }
