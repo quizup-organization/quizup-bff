@@ -1,3 +1,9 @@
+## [4.11.2](https://github.com/quizup-organization/quizup-bff/compare/v4.11.1...v4.11.2) (2026-10-05)
+
+### Bug Fixes
+
+* **bff:** pin theme-domain 4.4.0 (categorie RELIGION et seeds) ([9992b5a](https://github.com/quizup-organization/quizup-bff/commit/9992b5a5ab5d1e2a9802c92e6eda3f1510fecf0f))
+
 ## [4.11.1](https://github.com/quizup-organization/quizup-bff/compare/v4.11.0...v4.11.1) (2026-10-05)
 
 ### Bug Fixes
