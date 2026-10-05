@@ -1,3 +1,9 @@
+## [4.8.1](https://github.com/quizup-organization/quizup-bff/compare/v4.8.0...v4.8.1) (2026-10-05)
+
+### Bug Fixes
+
+* **bff:** push du defi recu vers l'inbox ([6df3e40](https://github.com/quizup-organization/quizup-bff/commit/6df3e402adba8a2d781dd1bfdc09f65a187d30cb))
+
 ## [4.8.0](https://github.com/quizup-organization/quizup-bff/compare/v4.7.0...v4.8.0) (2026-10-05)
 
 ### Features
