@@ -1,3 +1,9 @@
+## [4.5.0](https://github.com/quizup-organization/quizup-bff/compare/v4.4.2...v4.5.0) (2026-10-05)
+
+### Features
+
+* **bff:** salle temps reelle (enter, phase, presence) ([c4f656a](https://github.com/quizup-organization/quizup-bff/commit/c4f656a896769330ffb6a43f9d9c9adbdfcb2988))
+
 ## [4.4.2](https://github.com/quizup-organization/quizup-bff/compare/v4.4.1...v4.4.2) (2026-10-05)
 
 ### Bug Fixes
