@@ -178,7 +178,7 @@ Intention **asynchrone** (TTL 1 h) distincte de la salle temps réel : l'accepta
 | `POST /api/lobbies/{lobbyId}/join` | `200` | Rejoint le salon (idempotent, acceptation) ; nominatif : invité uniquement (403 sinon) |
 | `POST /api/lobbies/{lobbyId}/enter` | `200` | **Présence temps réel** (idempotent) ; quand les deux sont entrés, compte à rebours de 3 s puis création de la partie |
 | `POST /api/lobbies/{lobbyId}/decline` | `200` | Refus d'un défi nominatif (invité uniquement) |
-| `POST /api/lobbies/{lobbyId}/leave` | `200` | Sortie avant partie → annule le salon |
+| `POST /api/lobbies/{lobbyId}/leave` | `200` | Sortie **non destructive** (idempotente) : le salon reste ouvert, retour possible ; seul `cancel` (initiateur) ferme le salon |
 | `POST /api/lobbies/{lobbyId}/cancel` | `200` | Annulation par l'initiateur |
 | `GET /api/lobbies/{lobbyId}/notifications` | `List<EventEnvelopeResponse>` (payload `LobbyNotification`) | Même contrat que le push WS |
 
@@ -234,7 +234,7 @@ Endpoint `/ws` (SockJS) ; broker `/topic`. Une connexion par client, JWT en `CON
 | Destination | Payload |
 |---|---|
 | `/topic/games/{gameId}` | `EventEnvelopeResponse` (payload `GameNotification`) |
-| `/topic/lobbies/{lobbyId}` | `EventEnvelopeResponse` (payload `LobbyNotification`) (`CREATED`, `JOINED`, `DECLINED`, `COMPLETED`, `CANCELLED`, `EXPIRED`, `FAILED`, `ROOM_ENTERED`, `ALL_PRESENT`, `MISSED`) |
+| `/topic/lobbies/{lobbyId}` | `EventEnvelopeResponse` (payload `LobbyNotification`) (`CREATED`, `JOINED`, `DECLINED`, `COMPLETED`, `CANCELLED`, `EXPIRED`, `FAILED`, `ROOM_ENTERED`, `LEFT`, `ALL_PRESENT`, `MISSED`) |
 | `/topic/matchmaking/tickets/{ticketId}` | `EventEnvelopeResponse` (payload `MatchmakingNotification`) (`SEARCHING`, `MATCHED`, `CANCELLED`, `FAILED`) |
 | `/topic/notifications/{userId}` | `EventEnvelopeResponse` (payload `NotificationView`) — inbox personnelle (invitations de défi, follows) ; suppression poussée sous `NOTIFICATION_DELETED` (payload `{ notificationId }`) |
 | `/topic/presence/{userId}` | `PresenceView` — **exception assumée** : événements de session non séquencés, pas d'enveloppe |

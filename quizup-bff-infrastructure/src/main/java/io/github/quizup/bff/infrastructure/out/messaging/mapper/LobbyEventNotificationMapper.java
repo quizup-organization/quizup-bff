@@ -38,6 +38,8 @@ public final class LobbyEventNotificationMapper {
                     new LobbyNotification.LobbyFailedNotification(e.lobbyId(), e.reason()));
             case LobbyEvent.LobbyRoomEnteredEvent e -> Optional.of(
                     new LobbyNotification.LobbyRoomEnteredNotification(e.lobbyId(), e.playerId()));
+            case LobbyEvent.LobbyLeftEvent e -> Optional.of(
+                    new LobbyNotification.LobbyLeftNotification(e.lobbyId(), e.playerId()));
             case LobbyEvent.LobbyAllPlayersPresentEvent e -> Optional.of(
                     new LobbyNotification.LobbyAllPlayersPresentNotification(e.lobbyId(), e.readyDeadlineAt()));
             case LobbyEvent.LobbyMissedEvent e -> Optional.of(

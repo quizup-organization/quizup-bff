@@ -19,6 +19,7 @@ import java.time.Instant;
         @JsonSubTypes.Type(value = LobbyNotification.LobbyExpiredNotification.class, name = "LOBBY_EXPIRED"),
         @JsonSubTypes.Type(value = LobbyNotification.LobbyFailedNotification.class, name = "LOBBY_FAILED"),
         @JsonSubTypes.Type(value = LobbyNotification.LobbyRoomEnteredNotification.class, name = "LOBBY_ROOM_ENTERED"),
+        @JsonSubTypes.Type(value = LobbyNotification.LobbyLeftNotification.class, name = "LOBBY_LEFT"),
         @JsonSubTypes.Type(value = LobbyNotification.LobbyAllPlayersPresentNotification.class, name = "LOBBY_ALL_PRESENT"),
         @JsonSubTypes.Type(value = LobbyNotification.LobbyMissedNotification.class, name = "LOBBY_MISSED")
 })
@@ -38,6 +39,7 @@ public interface LobbyNotification {
         LOBBY_EXPIRED,
         LOBBY_FAILED,
         LOBBY_ROOM_ENTERED,
+        LOBBY_LEFT,
         LOBBY_ALL_PRESENT,
         LOBBY_MISSED
     }
@@ -121,6 +123,16 @@ public interface LobbyNotification {
         @Override
         public LobbyNotificationType type() {
             return LobbyNotificationType.LOBBY_ROOM_ENTERED;
+        }
+    }
+
+    record LobbyLeftNotification(
+            String lobbyId,
+            String playerId
+    ) implements LobbyNotification {
+        @Override
+        public LobbyNotificationType type() {
+            return LobbyNotificationType.LOBBY_LEFT;
         }
     }
 
