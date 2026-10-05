@@ -1,3 +1,9 @@
+## [4.11.0](https://github.com/quizup-organization/quizup-bff/compare/v4.10.0...v4.11.0) (2026-10-05)
+
+### Features
+
+* **bff:** fan-out ephemere de presence aux abonnes (follow-presence) ([763f22d](https://github.com/quizup-organization/quizup-bff/commit/763f22d1ba583d54bdc7d7d3c619802597d3d88c))
+
 ## [4.10.0](https://github.com/quizup-organization/quizup-bff/compare/v4.9.0...v4.10.0) (2026-10-05)
 
 ### Features
