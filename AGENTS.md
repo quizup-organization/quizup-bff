@@ -160,8 +160,9 @@ question ne connaît pas le créateur du sujet) et répondent `403` `PERMISSION`
 |---|---|---|
 | `POST /api/lobbies` | `201 + Location` | Body `{ topicId, opponentId? }` — `opponentId` renseigné = **défi nominatif** (seul l'invité peut rejoindre) ; sinon salon partagé par lien `/join/{lobbyId}` |
 | `GET /api/lobbies/mine` | `List<LobbyView>` | Salons `CREATED` du joueur (initiateur **ou** invité) — filet de reprise |
-| `GET /api/lobbies/{lobbyId}` | `LobbyView` | Sujet, statut (`CREATED\|CLOSED\|FAILED`), adversaire, `nominative`, `awaitingMe`, `gameId` |
-| `POST /api/lobbies/{lobbyId}/join` | `200` | Rejoint le salon (idempotent) ; nominatif : invité uniquement (403 sinon) ; 2ᵉ participant → partie créée |
+| `GET /api/lobbies/{lobbyId}` | `LobbyView` | Sujet, statut, `phase` (`WAITING_PARTICIPANT\|WAITING_PRESENCE\|READY\|COMPLETED\|MISSED\|CLOSED\|FAILED`), adversaire, `nominative`, `awaitingMe`, présences, `readyDeadlineAt`, `missedReason`, `gameId` |
+| `POST /api/lobbies/{lobbyId}/join` | `200` | Rejoint le salon (idempotent, acceptation) ; nominatif : invité uniquement (403 sinon) |
+| `POST /api/lobbies/{lobbyId}/enter` | `200` | **Présence temps réel** (idempotent) ; quand les deux sont entrés, compte à rebours de 20 s puis création de la partie |
 | `POST /api/lobbies/{lobbyId}/decline` | `200` | Refus d'un défi nominatif (invité uniquement) |
 | `POST /api/lobbies/{lobbyId}/leave` | `200` | Sortie avant partie → annule le salon |
 | `POST /api/lobbies/{lobbyId}/cancel` | `200` | Annulation par l'initiateur |
@@ -217,7 +218,7 @@ Endpoint `/ws` (SockJS) ; broker `/topic`. Une connexion par client, JWT en `CON
 | Destination | Payload |
 |---|---|
 | `/topic/games/{gameId}` | `EventEnvelopeResponse` (payload `GameNotification`) |
-| `/topic/lobbies/{lobbyId}` | `EventEnvelopeResponse` (payload `LobbyNotification`) (`CREATED`, `JOINED`, `DECLINED`, `COMPLETED`, `CANCELLED`, `EXPIRED`, `FAILED`) |
+| `/topic/lobbies/{lobbyId}` | `EventEnvelopeResponse` (payload `LobbyNotification`) (`CREATED`, `JOINED`, `DECLINED`, `COMPLETED`, `CANCELLED`, `EXPIRED`, `FAILED`, `ROOM_ENTERED`, `ALL_PRESENT`, `MISSED`) |
 | `/topic/matchmaking/tickets/{ticketId}` | `EventEnvelopeResponse` (payload `MatchmakingNotification`) (`SEARCHING`, `MATCHED`, `CANCELLED`, `FAILED`) |
 | `/topic/notifications/{userId}` | `EventEnvelopeResponse` (payload `NotificationView`) — inbox personnelle (invitations de défi, follows) ; suppression poussée sous `NOTIFICATION_DELETED` (payload `{ notificationId }`) |
 | `/topic/presence/{userId}` | `PresenceView` — **exception assumée** : événements de session non séquencés, pas d'enveloppe |
