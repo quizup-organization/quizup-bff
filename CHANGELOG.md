@@ -1,3 +1,9 @@
+## [4.12.0](https://github.com/quizup-organization/quizup-bff/compare/v4.11.2...v4.12.0) (2026-10-05)
+
+### Features
+
+* **bff:** ecran de resultat (xp) et endpoints revanche (game-domain 5.2.0) ([184b2e2](https://github.com/quizup-organization/quizup-bff/commit/184b2e21eaeaf1669fd2a1b9cf760c9ae9749bd6))
+
 ## [4.11.2](https://github.com/quizup-organization/quizup-bff/compare/v4.11.1...v4.11.2) (2026-10-05)
 
 ### Bug Fixes

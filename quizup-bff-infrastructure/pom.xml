@@ -7,7 +7,7 @@
     <parent>
         <groupId>io.github.quizup</groupId>
         <artifactId>quizup-bff</artifactId>
-        <version>4.11.2-SNAPSHOT</version>
+        <version>4.12.0</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
