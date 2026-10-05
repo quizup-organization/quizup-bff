@@ -2,7 +2,12 @@ package io.github.quizup.bff.infrastructure.in.api;
 
 import io.github.quizup.bff.application.GameViewService;
 import io.github.quizup.bff.infrastructure.in.api.request.CreateGameRequest;
+import io.github.quizup.bff.infrastructure.in.api.response.CurrentGameView;
+import io.github.quizup.bff.infrastructure.in.api.response.TopicRefView;
+import io.github.quizup.bff.infrastructure.in.api.response.UserRefView;
+import io.github.quizup.game.domain.model.GamePlayerType;
 import io.github.quizup.game.domain.model.GameQuestionChoice;
+import io.github.quizup.game.domain.model.GameStatus;
 import org.axonframework.queryhandling.QueryGateway;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -12,12 +17,14 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+import java.time.Instant;
 import java.util.concurrent.CompletableFuture;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.asyncDispatch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
@@ -89,6 +96,25 @@ class GameControllerTest {
 
         mockMvc.perform(asyncDispatch(result)).andExpect(status().isOk());
         verify(gameViewService).abandon("game-1", USER_ID);
+    }
+
+    @Test
+    void current_returns_the_resumable_game() throws Exception {
+        CurrentGameView view = new CurrentGameView(
+                "game-1",
+                new TopicRefView("topic-1", "Culture générale", "GENERAL", "🌍", "#ffffff", null),
+                new UserRefView("opponent-1", "Bob", null),
+                GamePlayerType.HUMAN,
+                GameStatus.IN_PROGRESS,
+                Instant.parse("2026-10-05T10:00:00Z"));
+        when(gameViewService.current(USER_ID)).thenReturn(CompletableFuture.completedFuture(view));
+
+        MvcResult result = mockMvc.perform(get("/api/games/current"))
+                .andExpect(request().asyncStarted())
+                .andReturn();
+
+        mockMvc.perform(asyncDispatch(result)).andExpect(status().isOk());
+        verify(gameViewService).current(USER_ID);
     }
 
     @Test
