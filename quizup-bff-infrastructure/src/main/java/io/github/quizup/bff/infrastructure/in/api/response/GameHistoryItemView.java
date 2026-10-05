@@ -21,6 +21,11 @@ public record GameHistoryItemView(
         WIN,
         LOSS,
         DRAW,
-        PENDING
+        /** Partie créée, pas encore démarrée (salle/arène en attente des joueurs). */
+        WAITING,
+        /** Partie démarrée. */
+        IN_PROGRESS,
+        /** Partie annulée (no-show, expiration, sortie d'un joueur). */
+        CANCELLED
     }
 }
