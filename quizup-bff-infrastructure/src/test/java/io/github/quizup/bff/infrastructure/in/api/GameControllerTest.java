@@ -118,6 +118,18 @@ class GameControllerTest {
     }
 
     @Test
+    void current_returns_no_content_without_game() throws Exception {
+        when(gameViewService.current(USER_ID)).thenReturn(CompletableFuture.completedFuture(null));
+
+        MvcResult result = mockMvc.perform(get("/api/games/current"))
+                .andExpect(request().asyncStarted())
+                .andReturn();
+
+        mockMvc.perform(asyncDispatch(result)).andExpect(status().isNoContent());
+        verify(gameViewService).current(USER_ID);
+    }
+
+    @Test
     void join_and_leave_delegate_to_service() throws Exception {
         when(gameViewService.join("game-1", USER_ID)).thenReturn(CompletableFuture.completedFuture(null));
         when(gameViewService.leave("game-1", USER_ID)).thenReturn(CompletableFuture.completedFuture(null));

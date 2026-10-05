@@ -51,12 +51,14 @@ public class GameController {
                 .thenApply(gameId -> ResponseEntityBuilder.creation(ENDPOINT, gameId));
     }
 
-    /** Partie en attente/en cours du joueur (reprise) ; 404 s'il n'y en a aucune. */
+    /** Partie en attente/en cours du joueur (reprise) ; 204 s'il n'y en a aucune. */
     @GetMapping("/current")
     public CompletableFuture<ResponseEntity<CurrentGameView>> current() {
         return gameViewService
                 .current(SecurityHelper.getUserId())
-                .thenApply(ResponseEntity::ok);
+                .thenApply(view -> view == null
+                        ? ResponseEntity.<CurrentGameView>noContent().build()
+                        : ResponseEntity.ok(view));
     }
 
     @PostMapping("/{gameId}/join")

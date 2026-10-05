@@ -5,6 +5,7 @@ import io.github.quizup.bff.infrastructure.in.api.response.CurrentGameView;
 import io.github.quizup.bff.infrastructure.in.api.response.TopicRefView;
 import io.github.quizup.bff.infrastructure.in.api.response.UserRefView;
 import io.github.quizup.game.domain.command.GameCommand;
+import io.github.quizup.game.domain.exception.GameExceptions;
 import io.github.quizup.game.domain.model.BotDifficulty;
 import io.github.quizup.game.domain.model.Game;
 import io.github.quizup.game.domain.model.GamePlayerType;
@@ -24,6 +25,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 
 /**
  * Duel : écritures (création bot, entrée/sortie, réponse, abandon, annulation) et vue de
@@ -45,13 +47,22 @@ public class GameViewService {
     }
 
     /**
-     * Partie en attente/en cours du joueur (bannière de reprise). Absence ⇒
-     * {@code NoCurrentGameProblem} (404) côté query bus.
+     * Partie en attente/en cours du joueur (bannière de reprise). L'absence de partie
+     * ({@code NoCurrentGameProblem}) n'est pas une erreur : la façade répond {@code 204}.
      */
     public CompletableFuture<CurrentGameView> current(String userId) {
         return queryGateway
                 .query(new GameQuery.GetCurrentGameQuery(userId), QueryResponseTypes.instanceOf(Game.class))
+                .exceptionally(error -> {
+                    if (hasCause(error, GameExceptions.NoCurrentGameProblem.class)) {
+                        return null;
+                    }
+                    throw new CompletionException(error);
+                })
                 .thenCompose(game -> {
+                    if (game == null) {
+                        return CompletableFuture.completedFuture(null);
+                    }
                     String opponentId = opponentIdOf(userId, game);
                     CompletableFuture<Profile> opponentFuture = opponentId == null
                             ? CompletableFuture.completedFuture(null)
@@ -71,6 +82,15 @@ public class GameViewService {
                                 game.status(), game.createdAt());
                     });
                 });
+    }
+
+    private static boolean hasCause(Throwable error, Class<? extends Throwable> type) {
+        for (Throwable cause = error; cause != null; cause = cause.getCause()) {
+            if (type.isInstance(cause)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static String opponentIdOf(String userId, Game game) {
