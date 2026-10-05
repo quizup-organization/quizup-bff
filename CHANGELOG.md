@@ -1,3 +1,9 @@
+## [4.7.0](https://github.com/quizup-organization/quizup-bff/compare/v4.6.1...v4.7.0) (2026-10-05)
+
+### Features
+
+* **bff:** surface des defis nominatifs (/api/challenges) ([3f15033](https://github.com/quizup-organization/quizup-bff/commit/3f15033fbb3e7297023f4e735657a6c0bdd74738))
+
 ## [4.6.1](https://github.com/quizup-organization/quizup-bff/compare/v4.6.0...v4.6.1) (2026-10-05)
 
 ### Bug Fixes
