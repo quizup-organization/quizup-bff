@@ -65,6 +65,14 @@ public class NotificationController {
                 .thenApply(_ -> ResponseEntity.noContent().build());
     }
 
+    /** Vide l'inbox du joueur courant (hard delete). */
+    @DeleteMapping
+    public CompletableFuture<ResponseEntity<Void>> deleteAll() {
+        return notificationViewService
+                .deleteAll(SecurityHelper.getUserId())
+                .thenApply(_ -> ResponseEntity.noContent().build());
+    }
+
     @PostMapping("/read-all")
     public CompletableFuture<ResponseEntity<Void>> markAllRead() {
         return notificationViewService

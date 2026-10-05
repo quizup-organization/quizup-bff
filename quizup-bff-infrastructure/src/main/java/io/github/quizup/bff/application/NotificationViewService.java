@@ -78,6 +78,14 @@ public class NotificationViewService {
                 });
     }
 
+    /** Suppression de toute l'inbox (hard delete, fan-out côté quizup-notification). */
+    public CompletableFuture<Void> deleteAll(String userId) {
+        return commandGateway
+                .send(new NotificationCommand.DeleteAllNotificationsCommand(userId))
+                .thenAccept(_ -> {
+                });
+    }
+
     public CompletableFuture<List<NotificationPreferenceView>> preferences(String userId) {
         return queryGateway
                 .query(new NotificationQuery.GetNotificationPreferencesQuery(userId),

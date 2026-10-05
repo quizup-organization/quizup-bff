@@ -176,7 +176,7 @@ Intention **asynchrone** (TTL 1 h) distincte de la salle temps réel : l'accepta
 | `GET /api/lobbies/mine` | `List<LobbyView>` | Salons `CREATED` du joueur (initiateur **ou** invité) — filet de reprise |
 | `GET /api/lobbies/{lobbyId}` | `LobbyView` | Sujet, statut, `phase` (`WAITING_PARTICIPANT\|WAITING_PRESENCE\|READY\|COMPLETED\|MISSED\|CLOSED\|FAILED`), adversaire, `nominative`, `awaitingMe`, présences, `readyDeadlineAt`, `missedReason`, `gameId` |
 | `POST /api/lobbies/{lobbyId}/join` | `200` | Rejoint le salon (idempotent, acceptation) ; nominatif : invité uniquement (403 sinon) |
-| `POST /api/lobbies/{lobbyId}/enter` | `200` | **Présence temps réel** (idempotent) ; quand les deux sont entrés, compte à rebours de 20 s puis création de la partie |
+| `POST /api/lobbies/{lobbyId}/enter` | `200` | **Présence temps réel** (idempotent) ; quand les deux sont entrés, compte à rebours de 3 s puis création de la partie |
 | `POST /api/lobbies/{lobbyId}/decline` | `200` | Refus d'un défi nominatif (invité uniquement) |
 | `POST /api/lobbies/{lobbyId}/leave` | `200` | Sortie avant partie → annule le salon |
 | `POST /api/lobbies/{lobbyId}/cancel` | `200` | Annulation par l'initiateur |
@@ -193,6 +193,7 @@ Intention **asynchrone** (TTL 1 h) distincte de la salle temps réel : l'accepta
 | `GET /api/notifications/unread-count` | `{ count }` | Badge de la cloche |
 | `POST /api/notifications/{notificationId}/read` | `200` | Propriétaire uniquement (404/403 sinon) |
 | `DELETE /api/notifications/{notificationId}` | `204` | Hard delete — propriétaire uniquement (404/403 sinon) |
+| `DELETE /api/notifications` | `204` | Vide l'inbox du joueur courant (hard delete, fan-out de commandes unitaires idempotentes) |
 | `POST /api/notifications/read-all` | `200` | Fan-out de commandes unitaires idempotentes |
 | `GET /api/notification-preferences` | `List<{ category, enabled }>` | `category` ∈ `FOLLOW\|LOBBY` (défaut activé) |
 | `PUT /api/notification-preferences/{category}` | `204` | `{ enabled }` |
@@ -216,7 +217,7 @@ le Service Worker web compose le texte et route le clic. Configuration `quizup.p
 | Endpoint | Réponse | Notes |
 |---|---|---|
 | `POST /api/games` | `201 + Location` | Body `{ topicId, difficulty? }` — duel contre un bot uniquement |
-| `GET /api/games/current` | `CurrentGameView` | Partie en attente/en cours la plus récente (`CREATED\|READY\|IN_PROGRESS`) ; `404` s'il n'y en a aucune (reprise) |
+| `GET /api/games/current` | `CurrentGameView` | Partie en attente/en cours la plus récente (`CREATED\|READY\|IN_PROGRESS`) ; `204` s'il n'y en a aucune (reprise — pas d'erreur pour une absence normale) |
 | `POST /api/games/{gameId}/join` | `200` | Entrée dans la salle d'attente de l'arène (idempotent) |
 | `POST /api/games/{gameId}/leave` | `200` | Quitte la salle d'attente avant démarrage (annule la partie) |
 | `POST /api/games/{gameId}/answer` | `200` | Body `{ choice }` |

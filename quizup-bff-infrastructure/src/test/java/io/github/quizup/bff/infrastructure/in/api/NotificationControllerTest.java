@@ -98,4 +98,16 @@ class NotificationControllerTest {
 
         verify(notificationViewService).delete(USER_ID, "notif-1");
     }
+
+    @Test
+    void delete_all_delegates_and_returns_no_content() throws Exception {
+        when(notificationViewService.deleteAll(USER_ID))
+                .thenReturn(CompletableFuture.completedFuture(null));
+
+        MvcResult result = mockMvc.perform(delete("/api/notifications"))
+                .andExpect(request().asyncStarted()).andReturn();
+        mockMvc.perform(asyncDispatch(result)).andExpect(status().isNoContent());
+
+        verify(notificationViewService).deleteAll(USER_ID);
+    }
 }
