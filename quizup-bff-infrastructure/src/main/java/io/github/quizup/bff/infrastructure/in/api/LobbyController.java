@@ -68,6 +68,14 @@ public class LobbyController {
                 .thenApply(_ -> ResponseEntity.ok().build());
     }
 
+    /** Entrée effective dans la salle (présence temps réel, idempotent). */
+    @PostMapping("/{lobbyId}/enter")
+    public CompletableFuture<ResponseEntity<Void>> enter(@PathVariable String lobbyId) {
+        return lobbyViewService
+                .enter(lobbyId, SecurityHelper.getUserId())
+                .thenApply(_ -> ResponseEntity.ok().build());
+    }
+
     @PostMapping("/{lobbyId}/leave")
     public CompletableFuture<ResponseEntity<Void>> leave(@PathVariable String lobbyId) {
         return lobbyViewService

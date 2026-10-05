@@ -1,11 +1,13 @@
 package io.github.quizup.bff.application;
 
 import io.github.quizup.bff.infrastructure.in.api.request.CreateLobbyRequest;
+import io.github.quizup.bff.infrastructure.in.api.response.LobbyRoomPhase;
 import io.github.quizup.bff.infrastructure.in.api.response.LobbyView;
 import io.github.quizup.bff.infrastructure.in.api.response.TopicRefView;
 import io.github.quizup.bff.infrastructure.in.api.response.UserRefView;
 import io.github.quizup.matchmaking.domain.command.LobbyCommand;
 import io.github.quizup.matchmaking.domain.model.Lobby;
+import io.github.quizup.matchmaking.domain.model.LobbyStatus;
 import io.github.quizup.matchmaking.domain.query.LobbyQuery;
 import io.github.quizup.microservice.core.infrastructure.axon.QueryResponseTypes;
 import io.github.quizup.profile.domain.model.Profile;
@@ -73,6 +75,15 @@ public class LobbyViewService {
         return requireLobby(lobbyId)
                 .thenCompose(_ -> commandGateway
                         .send(new LobbyCommand.JoinLobbyCommand(lobbyId, playerId))
+                        .thenAccept(_ -> {
+                        }));
+    }
+
+    /** Entrée effective dans la salle (présence temps réel, idempotent). */
+    public CompletableFuture<Void> enter(String lobbyId, String playerId) {
+        return requireLobby(lobbyId)
+                .thenCompose(_ -> commandGateway
+                        .send(new LobbyCommand.EnterLobbyRoomCommand(lobbyId, playerId))
                         .thenAccept(_ -> {
                         }));
     }
@@ -155,19 +166,46 @@ public class LobbyViewService {
         boolean awaitingMe = nominative
                 && viewerId.equals(lobby.opponentId())
                 && lobby.participantId() == null
-                && lobby.status() == io.github.quizup.matchmaking.domain.model.LobbyStatus.CREATED;
+                && lobby.status() == LobbyStatus.CREATED;
 
         return new LobbyView(
                 lobby.lobbyId(),
                 topic,
                 lobby.status(),
+                phaseOf(lobby),
                 opponentRef,
                 nominative,
                 awaitingMe,
+                lobby.initiatorPresent(),
+                lobby.participantPresent(),
+                lobby.readyDeadlineAt(),
+                lobby.missedReason(),
                 lobby.gameId(),
                 lobby.createdAt(),
                 lobby.expiresAt(),
                 lobby.updatedAt());
+    }
+
+    /** Phase affichable de la salle, dérivée du cycle de vie et des présences. */
+    private static LobbyRoomPhase phaseOf(Lobby lobby) {
+        if (lobby.status() == LobbyStatus.FAILED) {
+            return LobbyRoomPhase.FAILED;
+        }
+        if (lobby.gameId() != null) {
+            return LobbyRoomPhase.COMPLETED;
+        }
+        if (lobby.missedReason() != null) {
+            return LobbyRoomPhase.MISSED;
+        }
+        if (lobby.status() == LobbyStatus.CLOSED) {
+            return LobbyRoomPhase.CLOSED;
+        }
+        if (lobby.allPresentAt() != null) {
+            return LobbyRoomPhase.READY;
+        }
+        return lobby.participantId() == null
+                ? LobbyRoomPhase.WAITING_PARTICIPANT
+                : LobbyRoomPhase.WAITING_PRESENCE;
     }
 
     /**

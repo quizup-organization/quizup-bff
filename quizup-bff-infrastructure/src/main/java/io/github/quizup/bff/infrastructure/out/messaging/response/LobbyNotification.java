@@ -17,7 +17,10 @@ import java.time.Instant;
         @JsonSubTypes.Type(value = LobbyNotification.LobbyCompletedNotification.class, name = "LOBBY_COMPLETED"),
         @JsonSubTypes.Type(value = LobbyNotification.LobbyCancelledNotification.class, name = "LOBBY_CANCELLED"),
         @JsonSubTypes.Type(value = LobbyNotification.LobbyExpiredNotification.class, name = "LOBBY_EXPIRED"),
-        @JsonSubTypes.Type(value = LobbyNotification.LobbyFailedNotification.class, name = "LOBBY_FAILED")
+        @JsonSubTypes.Type(value = LobbyNotification.LobbyFailedNotification.class, name = "LOBBY_FAILED"),
+        @JsonSubTypes.Type(value = LobbyNotification.LobbyRoomEnteredNotification.class, name = "LOBBY_ROOM_ENTERED"),
+        @JsonSubTypes.Type(value = LobbyNotification.LobbyAllPlayersPresentNotification.class, name = "LOBBY_ALL_PRESENT"),
+        @JsonSubTypes.Type(value = LobbyNotification.LobbyMissedNotification.class, name = "LOBBY_MISSED")
 })
 public interface LobbyNotification {
 
@@ -33,7 +36,10 @@ public interface LobbyNotification {
         LOBBY_COMPLETED,
         LOBBY_CANCELLED,
         LOBBY_EXPIRED,
-        LOBBY_FAILED
+        LOBBY_FAILED,
+        LOBBY_ROOM_ENTERED,
+        LOBBY_ALL_PRESENT,
+        LOBBY_MISSED
     }
 
     record LobbyCreatedNotification(
@@ -105,6 +111,37 @@ public interface LobbyNotification {
         @Override
         public LobbyNotificationType type() {
             return LobbyNotificationType.LOBBY_FAILED;
+        }
+    }
+
+    record LobbyRoomEnteredNotification(
+            String lobbyId,
+            String playerId
+    ) implements LobbyNotification {
+        @Override
+        public LobbyNotificationType type() {
+            return LobbyNotificationType.LOBBY_ROOM_ENTERED;
+        }
+    }
+
+    record LobbyAllPlayersPresentNotification(
+            String lobbyId,
+            Instant readyDeadlineAt
+    ) implements LobbyNotification {
+        @Override
+        public LobbyNotificationType type() {
+            return LobbyNotificationType.LOBBY_ALL_PRESENT;
+        }
+    }
+
+    record LobbyMissedNotification(
+            String lobbyId,
+            String absentPlayerId,
+            String reason
+    ) implements LobbyNotification {
+        @Override
+        public LobbyNotificationType type() {
+            return LobbyNotificationType.LOBBY_MISSED;
         }
     }
 }
