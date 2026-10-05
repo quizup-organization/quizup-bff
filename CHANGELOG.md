@@ -1,3 +1,9 @@
+## [4.4.2](https://github.com/quizup-organization/quizup-bff/compare/v4.4.1...v4.4.2) (2026-10-05)
+
+### Bug Fixes
+
+* **bff:** deep link du defi accepte vers l'arene ([8df3050](https://github.com/quizup-organization/quizup-bff/commit/8df30505f5aec928d0a3832daa0c56128bd25fe6))
+
 ## [4.4.1](https://github.com/quizup-organization/quizup-bff/compare/v4.4.0...v4.4.1) (2026-10-05)
 
 ### Bug Fixes
