@@ -43,6 +43,16 @@ public final class BffProblems {
         }
     }
 
+    public static class PushDisabledProblem extends BaseProblem {
+        public PushDisabledProblem() {
+            super("urn:quizup:bff:push:disabled",
+                    ProblemCategory.BUSINESS_RESOURCE_MISSING,
+                    "Web Push disabled",
+                    "Web Push is not configured on this server",
+                    Map.of());
+        }
+    }
+
     public static class NotTopicOwnerProblem extends BaseProblem {
         public NotTopicOwnerProblem(String topicId) {
             super("urn:quizup:bff:topic:notOwner",

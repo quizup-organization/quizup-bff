@@ -1,5 +1,6 @@
 package io.github.quizup.bff.infrastructure.out.messaging;
 
+import io.github.quizup.bff.application.WebPushDispatcher;
 import io.github.quizup.bff.infrastructure.in.api.response.EventEnvelopeResponse;
 import io.github.quizup.bff.infrastructure.in.api.response.NotificationDeletedView;
 import io.github.quizup.bff.infrastructure.in.api.response.NotificationView;
@@ -10,8 +11,11 @@ import org.axonframework.eventhandling.EventHandler;
 import org.axonframework.eventhandling.EventMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
+
+import java.util.concurrent.Executor;
 
 /**
  * Diffuse les notifications personnelles sur {@code /topic/notifications/{userId}} : c'est le
@@ -31,9 +35,15 @@ public class NotificationPushPublisher {
     private static final String DELETED_EVENT_TYPE = "NOTIFICATION_DELETED";
 
     private final SimpMessagingTemplate messagingTemplate;
+    private final WebPushDispatcher webPushDispatcher;
+    private final Executor webPushExecutor;
 
-    public NotificationPushPublisher(SimpMessagingTemplate messagingTemplate) {
+    public NotificationPushPublisher(SimpMessagingTemplate messagingTemplate,
+                                     WebPushDispatcher webPushDispatcher,
+                                     @Qualifier("webPushExecutor") Executor webPushExecutor) {
         this.messagingTemplate = messagingTemplate;
+        this.webPushDispatcher = webPushDispatcher;
+        this.webPushExecutor = webPushExecutor;
     }
 
     @EventHandler
@@ -72,5 +82,21 @@ public class NotificationPushPublisher {
             userId = event.userId();
         }
         messagingTemplate.convertAndSend(DESTINATION_PREFIX + userId, envelope);
+
+        if (payload instanceof NotificationEvent.NotificationCreatedEvent createdEvent) {
+            scheduleWebPush(createdEvent);
+        }
+    }
+
+    /**
+     * Web Push hors thread du tracking processor : l'envoi HTTP (potentiellement lent ou en échec)
+     * ne doit jamais retarder le fan-out STOMP ni bloquer l'avancement du token Kafka.
+     */
+    private void scheduleWebPush(NotificationEvent.NotificationCreatedEvent event) {
+        try {
+            webPushExecutor.execute(() -> webPushDispatcher.dispatch(event));
+        } catch (RuntimeException _) {
+            logger.warn("Web Push non planifié pour la notification {}", event.notificationId());
+        }
     }
 }

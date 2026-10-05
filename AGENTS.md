@@ -182,6 +182,20 @@ question ne connaît pas le créateur du sujet) et répondent `403` `PERMISSION`
 | `GET /api/notification-preferences` | `List<{ category, enabled }>` | `category` ∈ `FOLLOW\|LOBBY` (défaut activé) |
 | `PUT /api/notification-preferences/{category}` | `204` | `{ enabled }` |
 
+### Web Push (navigateur)
+
+Abonnements par navigateur portés par le BFF (`push_subscription`, migration `V2__push_subscriptions.sql`) :
+l'envoi est branché sur le processing group `notification-push` (même flux que le fan-out STOMP,
+hors thread du processor). Payload structuré (`type`, `actorPseudonym`, `sourceId`, `path`…) ;
+le Service Worker web compose le texte et route le clic. Configuration `quizup.push.vapid.*`
+(clé publique dans le ConfigMap, privée dans le secret sealed) : clés absentes ⇒ push désactivé.
+
+| Endpoint | Réponse | Notes |
+|---|---|---|
+| `GET /api/push/vapid-public-key` | `{ publicKey }` | `404` si Web Push non configuré ; clé = `applicationServerKey` du `PushManager.subscribe` |
+| `PUT /api/push/subscriptions` | `204` | idempotent, body `{ endpoint, keys: { p256dh, auth } }`, actor = JWT (upsert/rebind) |
+| `DELETE /api/push/subscriptions?endpoint=…` | `204` | désabonnement au logout (propriétaire uniquement) |
+
 ### Duel (game)
 
 | Endpoint | Réponse | Notes |
