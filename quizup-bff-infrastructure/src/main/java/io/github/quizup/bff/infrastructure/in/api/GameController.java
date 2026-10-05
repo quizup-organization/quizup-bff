@@ -3,6 +3,7 @@ package io.github.quizup.bff.infrastructure.in.api;
 import io.github.quizup.bff.application.GameViewService;
 import io.github.quizup.bff.infrastructure.in.api.request.AnswerQuestionRequest;
 import io.github.quizup.bff.infrastructure.in.api.request.CreateGameRequest;
+import io.github.quizup.bff.infrastructure.in.api.response.CurrentGameView;
 import io.github.quizup.bff.infrastructure.in.api.response.EventEnvelopeResponse;
 import io.github.quizup.bff.infrastructure.out.messaging.mapper.GameEventNotificationMapper;
 import io.github.quizup.game.domain.event.GameEvent;
@@ -48,6 +49,14 @@ public class GameController {
         return gameViewService
                 .createBotGame(SecurityHelper.getUserId(), request)
                 .thenApply(gameId -> ResponseEntityBuilder.creation(ENDPOINT, gameId));
+    }
+
+    /** Partie en attente/en cours du joueur (reprise) ; 404 s'il n'y en a aucune. */
+    @GetMapping("/current")
+    public CompletableFuture<ResponseEntity<CurrentGameView>> current() {
+        return gameViewService
+                .current(SecurityHelper.getUserId())
+                .thenApply(ResponseEntity::ok);
     }
 
     @PostMapping("/{gameId}/join")

@@ -202,6 +202,7 @@ le Service Worker web compose le texte et route le clic. Configuration `quizup.p
 | Endpoint | Réponse | Notes |
 |---|---|---|
 | `POST /api/games` | `201 + Location` | Body `{ topicId, difficulty? }` — duel contre un bot uniquement |
+| `GET /api/games/current` | `CurrentGameView` | Partie en attente/en cours la plus récente (`CREATED\|READY\|IN_PROGRESS`) ; `404` s'il n'y en a aucune (reprise) |
 | `POST /api/games/{gameId}/join` | `200` | Entrée dans la salle d'attente de l'arène (idempotent) |
 | `POST /api/games/{gameId}/leave` | `200` | Quitte la salle d'attente avant démarrage (annule la partie) |
 | `POST /api/games/{gameId}/answer` | `200` | Body `{ choice }` |

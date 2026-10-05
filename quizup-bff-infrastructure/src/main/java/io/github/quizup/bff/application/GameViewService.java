@@ -1,33 +1,83 @@
 package io.github.quizup.bff.application;
 
 import io.github.quizup.bff.infrastructure.in.api.request.CreateGameRequest;
+import io.github.quizup.bff.infrastructure.in.api.response.CurrentGameView;
+import io.github.quizup.bff.infrastructure.in.api.response.TopicRefView;
+import io.github.quizup.bff.infrastructure.in.api.response.UserRefView;
 import io.github.quizup.game.domain.command.GameCommand;
 import io.github.quizup.game.domain.model.BotDifficulty;
+import io.github.quizup.game.domain.model.Game;
 import io.github.quizup.game.domain.model.GamePlayerType;
 import io.github.quizup.game.domain.model.GameQuestionChoice;
+import io.github.quizup.game.domain.query.GameQuery;
 import io.github.quizup.microservice.core.domain.constant.QuizUpConstants;
+import io.github.quizup.microservice.core.infrastructure.axon.QueryResponseTypes;
 import io.github.quizup.profile.domain.model.Profile;
+import io.github.quizup.theme.domain.model.Topic;
+import io.github.quizup.theme.domain.query.TopicQuery;
 import org.axonframework.commandhandling.gateway.CommandGateway;
+import org.axonframework.queryhandling.QueryGateway;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * Écritures de duel : création d'un duel bot, entrée/sortie de la salle d'attente,
- * réponse, abandon, annulation.
+ * Duel : écritures (création bot, entrée/sortie, réponse, abandon, annulation) et vue de
+ * reprise de la partie en attente/en cours du joueur.
  */
 @Service
 public class GameViewService {
 
     private final CommandGateway commandGateway;
+    private final QueryGateway queryGateway;
     private final ProfileLookup profileLookup;
 
-    public GameViewService(CommandGateway commandGateway, ProfileLookup profileLookup) {
+    public GameViewService(CommandGateway commandGateway,
+                           QueryGateway queryGateway,
+                           ProfileLookup profileLookup) {
         this.commandGateway = commandGateway;
+        this.queryGateway = queryGateway;
         this.profileLookup = profileLookup;
+    }
+
+    /**
+     * Partie en attente/en cours du joueur (bannière de reprise). Absence ⇒
+     * {@code NoCurrentGameProblem} (404) côté query bus.
+     */
+    public CompletableFuture<CurrentGameView> current(String userId) {
+        return queryGateway
+                .query(new GameQuery.GetCurrentGameQuery(userId), QueryResponseTypes.instanceOf(Game.class))
+                .thenCompose(game -> {
+                    String opponentId = opponentIdOf(userId, game);
+                    CompletableFuture<Profile> opponentFuture = opponentId == null
+                            ? CompletableFuture.completedFuture(null)
+                            : profileLookup.get(opponentId);
+                    CompletableFuture<List<Topic>> topicsFuture = queryGateway.query(
+                            new TopicQuery.GetTopicsByIdsQuery(List.of(game.topicId())),
+                            QueryResponseTypes.multipleInstancesOf(Topic.class));
+                    return CompletableFuture.allOf(opponentFuture, topicsFuture).thenApply(_ -> {
+                        Profile opponent = opponentFuture.join();
+                        Topic topic = topicsFuture.join().stream().findFirst().orElse(null);
+                        TopicRefView topicRef = TopicViews.toRef(game.topicId(), topic);
+                        UserRefView opponentRef = opponent == null
+                                ? null
+                                : new UserRefView(opponent.userId(), opponent.pseudonym(), opponent.avatarOptions());
+                        return new CurrentGameView(
+                                game.gameId(), topicRef, opponentRef, game.opponent(),
+                                game.status(), game.createdAt());
+                    });
+                });
+    }
+
+    private static String opponentIdOf(String userId, Game game) {
+        if (GamePlayerType.BOT.equals(game.opponent())) {
+            return null;
+        }
+        return userId.equals(game.player1Id()) ? game.player2Id() : game.player1Id();
     }
 
     public CompletableFuture<String> createBotGame(String playerId, CreateGameRequest request) {
