@@ -8,12 +8,14 @@ import io.github.quizup.notification.domain.model.NotificationType;
 import nl.martijndwars.webpush.Notification;
 import nl.martijndwars.webpush.PushService;
 import nl.martijndwars.webpush.jwt.nimbus.NimbusJwtFactory;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.net.http.HttpResponse;
 import java.security.GeneralSecurityException;
+import java.security.Security;
 import java.time.Duration;
 import java.time.Instant;
 
@@ -23,6 +25,14 @@ import java.time.Instant;
  */
 @Component
 public class WebPushSender implements WebPushGateway {
+
+    static {
+        // La lib charge les clés VAPID via le provider BouncyCastle explicite (`BC`) : sans
+        // enregistrement dans la JVM, `withVapidPublicKey` échoue au démarrage (push désactivé).
+        if (Security.getProvider(BouncyCastleProvider.PROVIDER_NAME) == null) {
+            Security.addProvider(new BouncyCastleProvider());
+        }
+    }
 
     private static final Logger logger = LoggerFactory.getLogger(WebPushSender.class);
     private static final int DEFAULT_TTL_SECONDS = 43_200;
