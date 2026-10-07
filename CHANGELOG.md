@@ -1,3 +1,9 @@
+## [4.13.0](https://github.com/quizup-organization/quizup-bff/compare/v4.12.0...v4.13.0) (2026-10-07)
+
+### Features
+
+* **presence:** heartbeat batch des leases de session ([c421d6f](https://github.com/quizup-organization/quizup-bff/commit/c421d6fd1ba5a271286e168ef29e9a850745191b))
+
 ## [4.12.0](https://github.com/quizup-organization/quizup-bff/compare/v4.11.2...v4.12.0) (2026-10-05)
 
 ### Features
