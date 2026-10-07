@@ -1,3 +1,9 @@
+## [4.13.2](https://github.com/quizup-organization/quizup-bff/compare/v4.13.1...v4.13.2) (2026-10-07)
+
+### Reverts
+
+* Revert "feat(presence): heartbeat batch des leases de session" ([009700a](https://github.com/quizup-organization/quizup-bff/commit/009700aaa0f986bfd39bb4b60181d511a6166c6c))
+
 ## [4.13.1](https://github.com/quizup-organization/quizup-bff/compare/v4.13.0...v4.13.1) (2026-10-07)
 
 ### Bug Fixes
