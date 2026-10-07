@@ -1,3 +1,9 @@
+## [4.13.1](https://github.com/quizup-organization/quizup-bff/compare/v4.13.0...v4.13.1) (2026-10-07)
+
+### Bug Fixes
+
+* **deps:** pin theme 4.5.2 et matchmaking 4.3.0 (versions publiées) ([4f099b8](https://github.com/quizup-organization/quizup-bff/commit/4f099b866a230c38b2a9ff6f265182ae6e5c60ac))
+
 ## [4.13.0](https://github.com/quizup-organization/quizup-bff/compare/v4.12.0...v4.13.0) (2026-10-07)
 
 ### Features
