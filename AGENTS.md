@@ -17,8 +17,9 @@
   vers un socket client unique (`/topic/games/{id}`, `/topic/lobbies/{id}`,
   `/topic/notifications/{userId}`, `/topic/presence/{userId}`).
 - Porte la **présence joueur** (sessions STOMP client → `quizup-profile`) : chaque instance BFF a
-  un identifiant stable (`application:host`), purge au démarrage ses sessions antérieures et
-  retente les commandes de présence tant que le routage distribué n'est pas prêt.
+  un identifiant stable (`application:host`), **renouvelle en batch les leases de ses sessions
+  locales** (heartbeat, 1 commande/intervalle) et retente les commandes de présence tant que le
+  routage distribué n'est pas prêt.
 
 **Package** : `io.github.quizup.bff` · **Port** : `8092` (local) / `8080` (prod) · **DB** : `quizup_bff`
 
