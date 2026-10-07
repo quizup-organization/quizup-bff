@@ -1,13 +1,12 @@
 package io.github.quizup.bff.infrastructure.in.websocket;
 
 import io.github.quizup.profile.domain.command.PresenceCommand;
-import io.github.quizup.profile.domain.model.PresenceRules;
-import jakarta.annotation.PreDestroy;
-import org.axonframework.commandhandling.NoHandlerForCommandException;
 import org.axonframework.commandhandling.gateway.CommandGateway;
+import org.axonframework.commandhandling.NoHandlerForCommandException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.stereotype.Component;
@@ -15,12 +14,8 @@ import org.springframework.web.socket.messaging.SessionConnectedEvent;
 import org.springframework.web.socket.messaging.SessionDisconnectEvent;
 
 import java.security.Principal;
-import java.util.List;
-import java.util.Map;
+import java.time.Instant;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -29,45 +24,39 @@ import java.util.concurrent.TimeUnit;
  * Le {@code Principal} est posé par le {@code StompAuthChannelInterceptor} du SDK
  * (nom = claim {@code user_id}).
  *
- * <p>Chaque instance BFF porte un identifiant stable ({@code application:host}). La présence
- * {@code quizup-profile} est adossée à des leases TTL : le BFF <b>renouvelle en batch</b> les
- * leases de ses sessions locales ({@link PresenceRules#SESSION_RENEW_INTERVAL}) — un crash
- * d'instance laisse les leases expirer, aucune purge au démarrage n'est nécessaire.</p>
+ * <p>Chaque instance BFF porte un identifiant stable ({@code application:host}) : ses sessions
+ * sont rattachées à cet identifiant, et un redémarrage purge uniquement les siennes (ouvertes
+ * avant son démarrage).</p>
  *
  * <p><b>Fiabilité</b> : au démarrage, la découverte du command bus distribué peut ne pas encore
- * connaître {@code quizup-profile}, et un envoi fire-and-forget perdrait la commande. Les
- * commandes de session sont donc retentées tant que le routage n'est pas prêt
- * ({@link NoHandlerForCommandException}), dans une fenêtre bornée ; le heartbeat réessaie
- * simplement au tick suivant.</p>
+ * connaître {@code quizup-profile}, et un envoi fire-and-forget perdrait la commande. Toutes les
+ * commandes de présence sont donc retentées tant que le routage n'est pas prêt
+ * ({@link NoHandlerForCommandException}), dans une fenêtre bornée.</p>
  */
 @Component
 public class PresenceSessionListener {
 
     private static final Logger logger = LoggerFactory.getLogger(PresenceSessionListener.class);
     private static final int MAX_ROUTING_ATTEMPTS = 30;
-    private static final int MAX_RENEW_ATTEMPTS = 3;
     private static final long ROUTING_RETRY_DELAY_SECONDS = 1;
 
     private final CommandGateway commandGateway;
     private final String instanceId;
-    private final Map<String, String> localSessions = new ConcurrentHashMap<>();
-    private final ScheduledExecutorService renewer;
+    private final Instant startedAt = Instant.now();
 
     public PresenceSessionListener(CommandGateway commandGateway,
                                    @Value("${spring.application.name:quizup-bff}") String applicationName,
                                    @Value("${HOSTNAME:localhost}") String hostname) {
         this.commandGateway = commandGateway;
         this.instanceId = applicationName + ":" + hostname;
-        this.renewer = Executors.newSingleThreadScheduledExecutor(runnable -> {
-            Thread thread = new Thread(runnable, "presence-renewer");
-            thread.setDaemon(true);
-            return thread;
-        });
-        long intervalMillis = PresenceRules.SESSION_RENEW_INTERVAL.toMillis();
-        this.renewer.scheduleWithFixedDelay(this::renewSessions, intervalMillis, intervalMillis,
-                TimeUnit.MILLISECONDS);
-        logger.info("Présence: heartbeat des leases toutes les {}s (instance {})",
-                PresenceRules.SESSION_RENEW_INTERVAL.toSeconds(), instanceId);
+    }
+
+    /** Purge les sessions laissées par une incarnation précédente de cette instance. */
+    @EventListener(ApplicationReadyEvent.class)
+    public void onApplicationReady() {
+        logger.info("Présence: purge des sessions de l'instance {} antérieures à {}", instanceId, startedAt);
+        sendWithRoutingRetry(new PresenceCommand.ResetInstanceSessionsCommand(instanceId, startedAt),
+                "reset-instance " + instanceId, 1);
     }
 
     @EventListener
@@ -77,10 +66,9 @@ public class PresenceSessionListener {
         if (user == null || sessionId == null) {
             return;
         }
-        registerSession(sessionId, user.getName());
         logger.debug("Présence: session connectée userId={}, sessionId={}", user.getName(), sessionId);
         sendWithRoutingRetry(new PresenceCommand.ConnectPlayerCommand(sessionId, user.getName(), instanceId),
-                "connect " + sessionId, 1, MAX_ROUTING_ATTEMPTS);
+                "connect " + sessionId, 1);
     }
 
     @EventListener
@@ -90,36 +78,12 @@ public class PresenceSessionListener {
         if (user == null || sessionId == null) {
             return;
         }
-        unregisterSession(sessionId);
         logger.debug("Présence: session déconnectée userId={}, sessionId={}", user.getName(), sessionId);
         sendWithRoutingRetry(new PresenceCommand.DisconnectPlayerCommand(sessionId, user.getName()),
-                "disconnect " + sessionId, 1, MAX_ROUTING_ATTEMPTS);
+                "disconnect " + sessionId, 1);
     }
 
-    /** Heartbeat : renouvelle les leases de toutes les sessions locales (1 commande batch). */
-    void renewSessions() {
-        if (localSessions.isEmpty()) {
-            return;
-        }
-        List<String> sessionIds = List.copyOf(localSessions.keySet());
-        sendWithRoutingRetry(new PresenceCommand.RenewPresenceSessionsCommand(sessionIds),
-                "renew " + sessionIds.size() + " session(s)", 1, MAX_RENEW_ATTEMPTS);
-    }
-
-    void registerSession(String sessionId, String userId) {
-        localSessions.put(sessionId, userId);
-    }
-
-    void unregisterSession(String sessionId) {
-        localSessions.remove(sessionId);
-    }
-
-    @PreDestroy
-    public void shutdown() {
-        renewer.shutdownNow();
-    }
-
-    private void sendWithRoutingRetry(Object command, String description, int attempt, int maxAttempts) {
+    private void sendWithRoutingRetry(Object command, String description, int attempt) {
         commandGateway.send(command).whenComplete((result, error) -> {
             if (error == null) {
                 return;
@@ -128,13 +92,13 @@ public class PresenceSessionListener {
                 logger.warn("Présence: commande {} en échec", description, error);
                 return;
             }
-            if (attempt >= maxAttempts) {
+            if (attempt >= MAX_ROUTING_ATTEMPTS) {
                 logger.warn("Présence: commande {} abandonnée après {} tentatives (routage indisponible)",
                         description, attempt);
                 return;
             }
             CompletableFuture.delayedExecutor(ROUTING_RETRY_DELAY_SECONDS, TimeUnit.SECONDS)
-                    .execute(() -> sendWithRoutingRetry(command, description, attempt + 1, maxAttempts));
+                    .execute(() -> sendWithRoutingRetry(command, description, attempt + 1));
         });
     }
 
