@@ -1,3 +1,9 @@
+## [4.13.3](https://github.com/quizup-organization/quizup-bff/compare/v4.13.2...v4.13.3) (2026-10-07)
+
+### Bug Fixes
+
+* **deps:** aligner profile-domain 3.0.0 (retour post-revert) ([3f27fcd](https://github.com/quizup-organization/quizup-bff/commit/3f27fcd25ed0145b010102f9108968f032db5380))
+
 ## [4.13.2](https://github.com/quizup-organization/quizup-bff/compare/v4.13.1...v4.13.2) (2026-10-07)
 
 ### Reverts
