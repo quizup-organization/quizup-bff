@@ -1,3 +1,13 @@
+## [5.0.0](https://github.com/quizup-organization/quizup-bff/compare/v4.14.0...v5.0.0) (2026-10-08)
+
+### ⚠ BREAKING CHANGES
+
+* **bff:** endpoints /api/games/{id}/rematch* supprimes.
+
+### Features
+
+* **bff:** resultat a l'instant de la partie et retrait du rematch ([8f4e9dc](https://github.com/quizup-organization/quizup-bff/commit/8f4e9dc00694d7dd8706358396c337698bdab629))
+
 ## [4.14.0](https://github.com/quizup-organization/quizup-bff/compare/v4.13.3...v4.14.0) (2026-10-08)
 
 ### Features
