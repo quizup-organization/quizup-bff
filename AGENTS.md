@@ -4,7 +4,7 @@
 > `quizup-web`. Architecture : Axon (query/command bus distribués) + Kafka + STOMP.
 > Ce fichier est **normatif** pour la surface BFF ↔ web : toute route ajoutée ou modifiée doit
 > s'y conformer et y être documentée.
-> Patterns backend : [`../../best-practices/.backend/hexagonal-architecture.md`](../../best-practices/.backend/hexagonal-architecture.md).
+> Patterns backend : [`../../best-practices/.backend/folder-structure.md`](../../best-practices/.backend/folder-structure.md).
 
 ---
 
