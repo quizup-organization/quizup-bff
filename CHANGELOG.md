@@ -1,3 +1,13 @@
+## [6.0.0](https://github.com/quizup-organization/quizup-bff/compare/v5.1.0...v6.0.0) (2026-10-08)
+
+### ⚠ BREAKING CHANGES
+
+* **bff:** retrait des endpoints join/leave et des notifications PLAYER_JOINED/LEFT ; pinne game-domain 7.0.0
+
+### Features
+
+* **bff:** retrait des endpoints join/leave et des notifications PLAYER_JOINED/LEFT ; pinne game-domain 7.0.0 ([59269f6](https://github.com/quizup-organization/quizup-bff/commit/59269f6cdbb15b1e7e253428c705f544514ef63e))
+
 ## [5.1.0](https://github.com/quizup-organization/quizup-bff/compare/v5.0.0...v5.1.0) (2026-10-08)
 
 ### Features
