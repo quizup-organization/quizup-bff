@@ -1,3 +1,9 @@
+## [4.14.0](https://github.com/quizup-organization/quizup-bff/compare/v4.13.3...v4.14.0) (2026-10-08)
+
+### Features
+
+* **bff:** renouvellement des baux de session de presence ([5dbacef](https://github.com/quizup-organization/quizup-bff/commit/5dbacefe06dc0bad585c32114d1f4c7915feda17))
+
 ## [4.13.3](https://github.com/quizup-organization/quizup-bff/compare/v4.13.2...v4.13.3) (2026-10-07)
 
 ### Bug Fixes
