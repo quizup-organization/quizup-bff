@@ -1,3 +1,9 @@
+## [6.0.1](https://github.com/quizup-organization/quizup-bff/compare/v6.0.0...v6.0.1) (2026-10-08)
+
+### Bug Fixes
+
+* **bff:** historique sans statuts CREATED/READY (game-domain 7.0.0) ([b649a7c](https://github.com/quizup-organization/quizup-bff/commit/b649a7cfc22760eef103b47efb1e46481ef54c19))
+
 ## [6.0.0](https://github.com/quizup-organization/quizup-bff/compare/v5.1.0...v6.0.0) (2026-10-08)
 
 ### ⚠ BREAKING CHANGES
