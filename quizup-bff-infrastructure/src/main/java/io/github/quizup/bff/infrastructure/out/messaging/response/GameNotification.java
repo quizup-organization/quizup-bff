@@ -16,8 +16,6 @@ import java.util.Map;
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.EXISTING_PROPERTY, property = "type")
 @JsonSubTypes({
         @JsonSubTypes.Type(value = GameNotification.GameCreatedNotification.class, name = "GAME_CREATED"),
-        @JsonSubTypes.Type(value = GameNotification.PlayerJoinedNotification.class, name = "PLAYER_JOINED"),
-        @JsonSubTypes.Type(value = GameNotification.PlayerLeftNotification.class, name = "PLAYER_LEFT"),
         @JsonSubTypes.Type(value = GameNotification.GameStartedNotification.class, name = "GAME_STARTED"),
         @JsonSubTypes.Type(value = GameNotification.RoundStartedNotification.class, name = "ROUND_STARTED"),
         @JsonSubTypes.Type(value = GameNotification.QuestionRevealedNotification.class, name = "QUESTION_REVEALED"),
@@ -36,8 +34,6 @@ public interface GameNotification {
 
     enum GameNotificationType {
         GAME_CREATED,
-        PLAYER_JOINED,
-        PLAYER_LEFT,
         GAME_STARTED,
         ROUND_STARTED,
         QUESTION_REVEALED,
@@ -67,26 +63,6 @@ public interface GameNotification {
         @Override
         public GameNotificationType type() {
             return GameNotificationType.GAME_CREATED;
-        }
-    }
-
-    record PlayerJoinedNotification(
-            String gameId,
-            String playerId
-    ) implements GameNotification {
-        @Override
-        public GameNotificationType type() {
-            return GameNotificationType.PLAYER_JOINED;
-        }
-    }
-
-    record PlayerLeftNotification(
-            String gameId,
-            String playerId
-    ) implements GameNotification {
-        @Override
-        public GameNotificationType type() {
-            return GameNotificationType.PLAYER_LEFT;
         }
     }
 

@@ -46,20 +46,6 @@ public final class GameEventNotificationMapper {
                     )
             );
 
-            case GameEvent.GameJoinedEvent gameJoinedEvent -> Optional.of(
-                    new GameNotification.PlayerJoinedNotification(
-                            gameJoinedEvent.gameId(),
-                            gameJoinedEvent.playerId()
-                    )
-            );
-
-            case GameEvent.GameLeftEvent gameLeftEvent -> Optional.of(
-                    new GameNotification.PlayerLeftNotification(
-                            gameLeftEvent.gameId(),
-                            gameLeftEvent.playerId()
-                    )
-            );
-
             case GameEvent.GameStartedEvent gameStartedEvent -> Optional.of(
                     new GameNotification.GameStartedNotification(
                             gameStartedEvent.gameId(),

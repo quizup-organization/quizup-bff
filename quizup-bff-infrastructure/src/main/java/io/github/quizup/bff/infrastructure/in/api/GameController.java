@@ -62,20 +62,6 @@ public class GameController {
                         : ResponseEntity.ok(view));
     }
 
-    @PostMapping("/{gameId}/join")
-    public CompletableFuture<ResponseEntity<Void>> join(@PathVariable String gameId) {
-        return gameViewService
-                .join(gameId, SecurityHelper.getUserId())
-                .thenApply(_ -> ResponseEntity.ok().build());
-    }
-
-    @PostMapping("/{gameId}/leave")
-    public CompletableFuture<ResponseEntity<Void>> leave(@PathVariable String gameId) {
-        return gameViewService
-                .leave(gameId, SecurityHelper.getUserId())
-                .thenApply(_ -> ResponseEntity.ok().build());
-    }
-
     @PostMapping("/{gameId}/answer")
     public CompletableFuture<ResponseEntity<Void>> answer(@PathVariable String gameId,
                                                           @Valid @RequestBody AnswerQuestionRequest request) {

@@ -130,22 +130,6 @@ public class GameViewService {
         }).thenCompose(command -> commandGateway.send(command).thenApply(_ -> command.gameId()));
     }
 
-    /** Un joueur entre dans la salle d'attente de l'arène. */
-    public CompletableFuture<Void> join(String gameId, String playerId) {
-        return commandGateway
-                .send(new GameCommand.JoinGameCommand(gameId, playerId))
-                .thenAccept(_ -> {
-                });
-    }
-
-    /** Un joueur quitte la salle d'attente avant le démarrage (annule la partie). */
-    public CompletableFuture<Void> leave(String gameId, String playerId) {
-        return commandGateway
-                .send(new GameCommand.LeaveGameCommand(gameId, playerId))
-                .thenAccept(_ -> {
-                });
-    }
-
     public CompletableFuture<Void> answer(String gameId, String playerId, GameQuestionChoice choice) {
         return commandGateway
                 .send(new GameCommand.AnswerQuestionCommand(gameId, playerId, choice, Instant.now()))

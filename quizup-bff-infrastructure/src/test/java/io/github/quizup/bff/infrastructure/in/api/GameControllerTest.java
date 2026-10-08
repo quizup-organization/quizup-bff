@@ -162,22 +162,4 @@ class GameControllerTest {
                 .andExpect(jsonPath("$.opponentLevel").value(3));
         verify(gameViewService).result("game-1", USER_ID);
     }
-
-    @Test
-    void join_and_leave_delegate_to_service() throws Exception {
-        when(gameViewService.join("game-1", USER_ID)).thenReturn(CompletableFuture.completedFuture(null));
-        when(gameViewService.leave("game-1", USER_ID)).thenReturn(CompletableFuture.completedFuture(null));
-
-        MvcResult joinResult = mockMvc.perform(post("/api/games/game-1/join"))
-                .andExpect(request().asyncStarted())
-                .andReturn();
-        mockMvc.perform(asyncDispatch(joinResult)).andExpect(status().isOk());
-        verify(gameViewService).join("game-1", USER_ID);
-
-        MvcResult leaveResult = mockMvc.perform(post("/api/games/game-1/leave"))
-                .andExpect(request().asyncStarted())
-                .andReturn();
-        mockMvc.perform(asyncDispatch(leaveResult)).andExpect(status().isOk());
-        verify(gameViewService).leave("game-1", USER_ID);
-    }
 }

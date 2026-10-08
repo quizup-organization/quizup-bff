@@ -219,9 +219,7 @@ le Service Worker web compose le texte et route le clic. Configuration `quizup.p
 | Endpoint | Réponse | Notes |
 |---|---|---|
 | `POST /api/games` | `201 + Location` | Body `{ topicId, difficulty? }` — duel contre un bot uniquement |
-| `GET /api/games/current` | `CurrentGameView` | Partie en attente/en cours la plus récente (`CREATED\|READY\|IN_PROGRESS`) ; `204` s'il n'y en a aucune (reprise — pas d'erreur pour une absence normale) |
-| `POST /api/games/{gameId}/join` | `200` | Entrée dans la salle d'attente de l'arène (idempotent) |
-| `POST /api/games/{gameId}/leave` | `200` | Quitte la salle d'attente avant démarrage (annule la partie) |
+| `GET /api/games/current` | `CurrentGameView` | Partie en cours la plus récente (`IN_PROGRESS`) ; `204` s'il n'y en a aucune (reprise — pas d'erreur pour une absence normale) |
 | `POST /api/games/{gameId}/answer` | `200` | Body `{ choice }` |
 | `POST /api/games/{gameId}/abandon` | `200` | Forfait en cours (`ForfeitGameCommand`) — l'adversaire gagne |
 | `POST /api/games/{gameId}/cancel` | `200` | Annulation avant démarrage |
@@ -239,7 +237,7 @@ déclenche la déconnexion de session côté présence.
 
 | Destination | Payload |
 |---|---|
-| `/topic/games/{gameId}` | `EventEnvelopeResponse` (payload `GameNotification`) (`GAME_CREATED`, `PLAYER_JOINED`, `PLAYER_LEFT`, `GAME_STARTED`, `ROUND_STARTED`, `QUESTION_REVEALED`, `PLAYER_ANSWERED`, `ROUND_CLOSED`, `GAME_FORFEITED`, `GAME_ENDED`, `GAME_CANCELLED`) |
+| `/topic/games/{gameId}` | `EventEnvelopeResponse` (payload `GameNotification`) (`GAME_CREATED`, `GAME_STARTED`, `ROUND_STARTED`, `QUESTION_REVEALED`, `PLAYER_ANSWERED`, `ROUND_CLOSED`, `GAME_FORFEITED`, `GAME_ENDED`, `GAME_CANCELLED`) |
 | `/topic/lobbies/{lobbyId}` | `EventEnvelopeResponse` (payload `LobbyNotification`) (`CREATED`, `JOINED`, `DECLINED`, `COMPLETED`, `CANCELLED`, `EXPIRED`, `FAILED`, `ROOM_ENTERED`, `LEFT`, `ALL_PRESENT`, `MISSED`) |
 | `/topic/matchmaking/tickets/{ticketId}` | `EventEnvelopeResponse` (payload `MatchmakingNotification`) (`SEARCHING`, `MATCHED`, `CANCELLED`, `FAILED`) |
 | `/topic/notifications/{userId}` | `EventEnvelopeResponse` (payload `NotificationView`) — inbox personnelle (invitations de défi, follows) ; suppression poussée sous `NOTIFICATION_DELETED` (payload `{ notificationId }`) |
