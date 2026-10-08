@@ -9,6 +9,7 @@ import io.github.quizup.bff.infrastructure.in.api.response.TopicCategoryView;
 import io.github.quizup.bff.infrastructure.in.api.response.TopicFacetsView;
 import io.github.quizup.bff.infrastructure.in.api.response.TopicLeaderboardView;
 import io.github.quizup.bff.infrastructure.in.api.response.TopicOverviewView;
+import io.github.quizup.game.domain.query.GameQuery;
 import io.github.quizup.leaderboard.domain.model.LeaderboardPage;
 import io.github.quizup.leaderboard.domain.model.LeaderboardRank;
 import io.github.quizup.leaderboard.domain.model.LeaderboardRules;
@@ -163,20 +164,33 @@ public class TopicViewService {
         CompletableFuture<TopicProgress> progressFuture = queryGateway.query(
                 new ProgressionQuery.GetTopicProgressionQuery(viewerId, topicId),
                 QueryResponseTypes.instanceOf(TopicProgress.class));
+        CompletableFuture<Integer> completedFuture = queryGateway.query(
+                new GameQuery.GetTopicCompletionQuery(viewerId, topicId),
+                QueryResponseTypes.instanceOf(Integer.class));
 
-        return CompletableFuture.allOf(topicFuture, followedFuture, rankFuture, progressFuture)
+        return CompletableFuture.allOf(topicFuture, followedFuture, rankFuture, progressFuture, completedFuture)
                 .thenApply(_ -> {
                     Topic topic = topicFuture.join();
+                    TopicCardView card = TopicViews.toCard(topic, followedFuture.join());
                     int xp = progressFuture.join().xp();
                     int level = ProgressionRules.levelFor(xp);
+                    int totalQuestions = card.questionsCount();
+                    Integer answered = completedFuture.join();
+                    int completedQuestions = Math.min(answered == null ? 0 : answered, totalQuestions);
+                    int completionPercent = totalQuestions > 0
+                            ? (int) Math.round(completedQuestions * 100.0 / totalQuestions)
+                            : 0;
                     TopicOverviewView.MyProgressView progress = new TopicOverviewView.MyProgressView(
                             xp,
                             level,
                             ProgressionRules.titleFor(level),
                             ProgressionRules.xpForNextLevel(level),
-                            ProgressionViews.levelProgressPercent(xp, level));
+                            ProgressionViews.levelProgressPercent(xp, level),
+                            completedQuestions,
+                            totalQuestions,
+                            completionPercent);
                     return new TopicOverviewView(
-                            TopicViews.toCard(topic, followedFuture.join()),
+                            card,
                             rankFuture.join().map(LeaderboardRank::rank).orElse(null),
                             progress,
                             Objects.equals(topic.creatorId(), viewerId));

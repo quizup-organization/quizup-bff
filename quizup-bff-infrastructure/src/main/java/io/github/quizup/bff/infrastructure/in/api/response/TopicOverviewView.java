@@ -16,7 +16,13 @@ public record TopicOverviewView(
             int level,
             String title,
             int xpForNextLevel,
-            int levelProgressPercent
+            int levelProgressPercent,
+            /** Questions distinctes du sujet effectivement répondues par le joueur. */
+            int completedQuestions,
+            /** Nombre total de questions approuvées du sujet. */
+            int totalQuestions,
+            /** Complétion du sujet en pourcentage (`completedQuestions / totalQuestions`). */
+            int completionPercent
     ) {
     }
 }
