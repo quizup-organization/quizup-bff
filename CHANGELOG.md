@@ -1,3 +1,9 @@
+## [5.1.0](https://github.com/quizup-organization/quizup-bff/compare/v5.0.0...v5.1.0) (2026-10-08)
+
+### Features
+
+* **bff:** progression du theme = questions completees (query game) ; pinne game-domain 6.1.0 ([5ccaacb](https://github.com/quizup-organization/quizup-bff/commit/5ccaacbb8c570a7bda6d8d8b453e65a2fbbf2974))
+
 ## [5.0.0](https://github.com/quizup-organization/quizup-bff/compare/v4.14.0...v5.0.0) (2026-10-08)
 
 ### ⚠ BREAKING CHANGES
