@@ -17,7 +17,9 @@ public record GameResultView(
         int answeredRounds,
         int totalRounds,
         RewardView reward,
-        ProgressionResultView progression
+        ProgressionResultView progression,
+        int opponentLevel,
+        String opponentTitle
 ) {
 
     /** Récompense de la partie : XP totale gagnée et bonus de victoire dérivé du score. */

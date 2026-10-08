@@ -225,11 +225,7 @@ le Service Worker web compose le texte et route le clic. Configuration `quizup.p
 | `POST /api/games/{gameId}/answer` | `200` | Body `{ choice }` |
 | `POST /api/games/{gameId}/abandon` | `200` | Forfait en cours (`ForfeitGameCommand`) — l'adversaire gagne |
 | `POST /api/games/{gameId}/cancel` | `200` | Annulation avant démarrage |
-| `GET /api/games/{gameId}/result` | `GameResultView` | Résultat après `GAME_ENDED` : scores, détail (`basePoints`, `speedBonus`, `correctAnswers`…), `reward` XP de la partie (`null` tant que la projection n'est pas disponible) + progression du joueur |
-| `POST /api/games/{gameId}/rematch` | `204` | Demande de revanche ; langues = union des langues des deux profils (bot : langues du demandeur, refus par l'agrégat) |
-| `POST /api/games/{gameId}/rematch/accept` | `204` | Invité uniquement (garde agrégat) |
-| `POST /api/games/{gameId}/rematch/decline` | `204` | Invité uniquement (garde agrégat) |
-| `POST /api/games/{gameId}/rematch/cancel` | `204` | Demandeur uniquement (garde agrégat) |
+| `GET /api/games/{gameId}/result` | `GameResultView` | Résultat après `GAME_ENDED` : scores, détail (`basePoints`, `speedBonus`, `correctAnswers`…), `reward` XP de la partie (`null` tant que la projection n'est pas disponible), progression **à l'instant de la partie** (snapshot `game` + XP gagnée) et `opponentLevel/Title` |
 | `GET /api/games/{gameId}/notifications` | `List<EventEnvelopeResponse>` (payload `GameNotification`) | Même contrat que le push WS |
 
 ---
@@ -243,7 +239,7 @@ déclenche la déconnexion de session côté présence.
 
 | Destination | Payload |
 |---|---|
-| `/topic/games/{gameId}` | `EventEnvelopeResponse` (payload `GameNotification`) (`GAME_CREATED`, `PLAYER_JOINED`, `PLAYER_LEFT`, `GAME_STARTED`, `ROUND_STARTED`, `QUESTION_REVEALED`, `PLAYER_ANSWERED`, `ROUND_CLOSED`, `GAME_FORFEITED`, `GAME_ENDED`, `GAME_CANCELLED`, `REMATCH_REQUESTED`, `REMATCH_ACCEPTED`, `REMATCH_DECLINED`, `REMATCH_CANCELLED`, `REMATCH_STARTED`) |
+| `/topic/games/{gameId}` | `EventEnvelopeResponse` (payload `GameNotification`) (`GAME_CREATED`, `PLAYER_JOINED`, `PLAYER_LEFT`, `GAME_STARTED`, `ROUND_STARTED`, `QUESTION_REVEALED`, `PLAYER_ANSWERED`, `ROUND_CLOSED`, `GAME_FORFEITED`, `GAME_ENDED`, `GAME_CANCELLED`) |
 | `/topic/lobbies/{lobbyId}` | `EventEnvelopeResponse` (payload `LobbyNotification`) (`CREATED`, `JOINED`, `DECLINED`, `COMPLETED`, `CANCELLED`, `EXPIRED`, `FAILED`, `ROOM_ENTERED`, `LEFT`, `ALL_PRESENT`, `MISSED`) |
 | `/topic/matchmaking/tickets/{ticketId}` | `EventEnvelopeResponse` (payload `MatchmakingNotification`) (`SEARCHING`, `MATCHED`, `CANCELLED`, `FAILED`) |
 | `/topic/notifications/{userId}` | `EventEnvelopeResponse` (payload `NotificationView`) — inbox personnelle (invitations de défi, follows) ; suppression poussée sous `NOTIFICATION_DELETED` (payload `{ notificationId }`) |

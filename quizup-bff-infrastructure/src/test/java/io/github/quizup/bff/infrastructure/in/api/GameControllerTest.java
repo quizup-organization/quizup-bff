@@ -145,7 +145,9 @@ class GameControllerTest {
                 7,
                 7,
                 new GameResultView.RewardView(150, 30),
-                new GameResultView.ProgressionResultView(250, 2, "Apprenti", 400, 50));
+                new GameResultView.ProgressionResultView(250, 2, "Apprenti", 400, 50),
+                3,
+                "Apprenti");
         when(gameViewService.result("game-1", USER_ID)).thenReturn(CompletableFuture.completedFuture(view));
 
         MvcResult mvcResult = mockMvc.perform(get("/api/games/game-1/result"))
@@ -156,60 +158,9 @@ class GameControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.myScore").value(120))
                 .andExpect(jsonPath("$.reward.xp").value(150))
-                .andExpect(jsonPath("$.progression.level").value(2));
+                .andExpect(jsonPath("$.progression.level").value(2))
+                .andExpect(jsonPath("$.opponentLevel").value(3));
         verify(gameViewService).result("game-1", USER_ID);
-    }
-
-    @Test
-    void request_rematch_delegates_actor_and_returns_no_content() throws Exception {
-        when(gameViewService.requestRematch("game-1", USER_ID))
-                .thenReturn(CompletableFuture.completedFuture(null));
-
-        MvcResult result = mockMvc.perform(post("/api/games/game-1/rematch"))
-                .andExpect(request().asyncStarted())
-                .andReturn();
-
-        mockMvc.perform(asyncDispatch(result)).andExpect(status().isNoContent());
-        verify(gameViewService).requestRematch("game-1", USER_ID);
-    }
-
-    @Test
-    void accept_rematch_delegates_actor_and_returns_no_content() throws Exception {
-        when(gameViewService.acceptRematch("game-1", USER_ID))
-                .thenReturn(CompletableFuture.completedFuture(null));
-
-        MvcResult result = mockMvc.perform(post("/api/games/game-1/rematch/accept"))
-                .andExpect(request().asyncStarted())
-                .andReturn();
-
-        mockMvc.perform(asyncDispatch(result)).andExpect(status().isNoContent());
-        verify(gameViewService).acceptRematch("game-1", USER_ID);
-    }
-
-    @Test
-    void decline_rematch_delegates_actor_and_returns_no_content() throws Exception {
-        when(gameViewService.declineRematch("game-1", USER_ID))
-                .thenReturn(CompletableFuture.completedFuture(null));
-
-        MvcResult result = mockMvc.perform(post("/api/games/game-1/rematch/decline"))
-                .andExpect(request().asyncStarted())
-                .andReturn();
-
-        mockMvc.perform(asyncDispatch(result)).andExpect(status().isNoContent());
-        verify(gameViewService).declineRematch("game-1", USER_ID);
-    }
-
-    @Test
-    void cancel_rematch_delegates_actor_and_returns_no_content() throws Exception {
-        when(gameViewService.cancelRematch("game-1", USER_ID))
-                .thenReturn(CompletableFuture.completedFuture(null));
-
-        MvcResult result = mockMvc.perform(post("/api/games/game-1/rematch/cancel"))
-                .andExpect(request().asyncStarted())
-                .andReturn();
-
-        mockMvc.perform(asyncDispatch(result)).andExpect(status().isNoContent());
-        verify(gameViewService).cancelRematch("game-1", USER_ID);
     }
 
     @Test

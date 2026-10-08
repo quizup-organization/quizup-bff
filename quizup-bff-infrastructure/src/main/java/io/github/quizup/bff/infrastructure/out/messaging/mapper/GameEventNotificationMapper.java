@@ -151,41 +151,6 @@ public final class GameEventNotificationMapper {
                     )
             );
 
-            case GameEvent.RematchRequestedEvent rematchRequestedEvent -> Optional.of(
-                    new GameNotification.RematchRequestedNotification(
-                            rematchRequestedEvent.gameId(),
-                            rematchRequestedEvent.requesterId()
-                    )
-            );
-
-            case GameEvent.RematchAcceptedEvent rematchAcceptedEvent -> Optional.of(
-                    new GameNotification.RematchAcceptedNotification(
-                            rematchAcceptedEvent.gameId(),
-                            rematchAcceptedEvent.playerId()
-                    )
-            );
-
-            case GameEvent.RematchDeclinedEvent rematchDeclinedEvent -> Optional.of(
-                    new GameNotification.RematchDeclinedNotification(
-                            rematchDeclinedEvent.gameId(),
-                            rematchDeclinedEvent.playerId()
-                    )
-            );
-
-            case GameEvent.RematchCancelledEvent rematchCancelledEvent -> Optional.of(
-                    new GameNotification.RematchCancelledNotification(
-                            rematchCancelledEvent.gameId(),
-                            rematchCancelledEvent.reason()
-                    )
-            );
-
-            case GameEvent.RematchStartedEvent rematchStartedEvent -> Optional.of(
-                    new GameNotification.RematchStartedNotification(
-                            rematchStartedEvent.gameId(),
-                            rematchStartedEvent.newGameId()
-                    )
-            );
-
             default -> Optional.empty();
         };
     }

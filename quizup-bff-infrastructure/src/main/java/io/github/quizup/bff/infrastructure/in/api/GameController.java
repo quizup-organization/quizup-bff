@@ -106,35 +106,6 @@ public class GameController {
                 .thenApply(ResponseEntity::ok);
     }
 
-    /** Demande de revanche à l'issue d'une partie (l'adversaire accepte ou refuse). */
-    @PostMapping("/{gameId}/rematch")
-    public CompletableFuture<ResponseEntity<Void>> requestRematch(@PathVariable String gameId) {
-        return gameViewService
-                .requestRematch(gameId, SecurityHelper.getUserId())
-                .thenApply(_ -> ResponseEntity.noContent().build());
-    }
-
-    @PostMapping("/{gameId}/rematch/accept")
-    public CompletableFuture<ResponseEntity<Void>> acceptRematch(@PathVariable String gameId) {
-        return gameViewService
-                .acceptRematch(gameId, SecurityHelper.getUserId())
-                .thenApply(_ -> ResponseEntity.noContent().build());
-    }
-
-    @PostMapping("/{gameId}/rematch/decline")
-    public CompletableFuture<ResponseEntity<Void>> declineRematch(@PathVariable String gameId) {
-        return gameViewService
-                .declineRematch(gameId, SecurityHelper.getUserId())
-                .thenApply(_ -> ResponseEntity.noContent().build());
-    }
-
-    @PostMapping("/{gameId}/rematch/cancel")
-    public CompletableFuture<ResponseEntity<Void>> cancelRematch(@PathVariable String gameId) {
-        return gameViewService
-                .cancelRematch(gameId, SecurityHelper.getUserId())
-                .thenApply(_ -> ResponseEntity.noContent().build());
-    }
-
     /**
      * Historique des notifications d'une partie (même contrat que le push WebSocket) : le client
      * bootstrap son read model puis déduplique par {@code sequenceNumber}. Le service game mappe
