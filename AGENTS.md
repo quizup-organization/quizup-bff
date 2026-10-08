@@ -17,8 +17,10 @@
   vers un socket client unique (`/topic/games/{id}`, `/topic/lobbies/{id}`,
   `/topic/notifications/{userId}`, `/topic/presence/{userId}`).
 - Porte la **présence joueur** (sessions STOMP client → `quizup-profile`) : chaque instance BFF a
-  un identifiant stable (`application:host`), purge au démarrage ses sessions antérieures et
-  retente les commandes de présence tant que le routage distribué n'est pas prêt.
+  un identifiant stable (`application:host`), purge au démarrage ses sessions antérieures, renouvelle
+  en batch le bail de ses sessions locales (`RenewPresenceSessionsCommand`, 10 s), déconnecte ses
+  sessions locales à l'arrêt (`@PreDestroy`) et retente les commandes de présence tant que le
+  routage distribué n'est pas prêt.
 
 **Package** : `io.github.quizup.bff` · **Port** : `8092` (local) / `8080` (prod) · **DB** : `quizup_bff`
 
@@ -235,6 +237,9 @@ le Service Worker web compose le texte et route le clic. Configuration `quizup.p
 ## 4. WebSocket (STOMP)
 
 Endpoint `/ws` (SockJS) ; broker `/topic`. Une connexion par client, JWT en `CONNECT`.
+Heartbeats STOMP activés côté serveur (`heartbeat-outgoing`/`heartbeat-incoming`, 10 s par
+défaut, fournis par le SDK) : un client silencieux est fermé par le broker en ~30 s, ce qui
+déclenche la déconnexion de session côté présence.
 
 | Destination | Payload |
 |---|---|
