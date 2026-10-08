@@ -320,7 +320,6 @@ public class ProfileViewService {
 
     private static GameHistoryItemView.Outcome outcomeOf(Game game, String userId) {
         return switch (game.status()) {
-            case CREATED, READY -> GameHistoryItemView.Outcome.WAITING;
             case IN_PROGRESS -> GameHistoryItemView.Outcome.IN_PROGRESS;
             case CANCELED -> GameHistoryItemView.Outcome.CANCELLED;
             case FINISHED -> finishedOutcome(game, userId);
