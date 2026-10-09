@@ -94,13 +94,13 @@ Le `quizup-mobile` n'est **pas** branché sur cette surface (migration dédiée 
 
 | Endpoint | Réponse | Notes |
 |---|---|---|
-| `GET /api/home` | `HomeView` | `followedTopics` (récents) + `trendingTopics` (les plus joués, via `game`) |
+| `GET /api/home` | `HomeView` | `followedTopics` (récents) + `trendingTopics` (les plus joués, via `game`) + `newTopics` (récemment publiés ou mis à jour — tri theme `RECENT`, limités à 10) |
 
 ### Sujets (theme + social + leaderboard + profile)
 
 | Endpoint | Réponse | Notes |
 |---|---|---|
-| `GET /api/topics?q=&category=&followed=&mine=&sort=&page=&size=` | `PageResponse<TopicCardView>` | `sort` ∈ `POPULAR\|ALPHA` (défaut `POPULAR`) ; `followed=true` filtre côté serveur ; `mine=true` = sujets créés par le joueur courant (brouillons + publiés, tri `updatedAt desc`), exclusif de `followed`/`q`/`category`/`sort` (400 sinon). `TopicCardView.status` expose le statut |
+| `GET /api/topics?q=&category=&followed=&mine=&sort=&page=&size=` | `PageResponse<TopicCardView>` | `sort` ∈ `POPULAR\|ALPHA\|RECENT` (défaut `POPULAR`) ; `followed=true` filtre côté serveur ; `mine=true` = sujets créés par le joueur courant (brouillons + publiés, tri `updatedAt desc`), exclusif de `followed`/`q`/`category`/`sort` (400 sinon). `TopicCardView.status` expose le statut |
 | `GET /api/topics/facets?q=&followed=` | `TopicFacetsView` | `total` + `categories[{ category, label, count }]` |
 | `GET /api/topic-categories` | `List<TopicCategoryView>` | `category`, `label` |
 | `GET /api/topics/{topicId}/overview` | `TopicOverviewView` | `topic`, `follow`, `followersCount`, `myRank`, `myProgress`, `canManage` (créateur) |

@@ -57,7 +57,7 @@ class MiscControllersTest {
     @Test
     void home_returns_sections() throws Exception {
         when(homeService.home(USER_ID))
-                .thenReturn(CompletableFuture.completedFuture(new HomeView(List.of(), List.of())));
+                .thenReturn(CompletableFuture.completedFuture(new HomeView(List.of(), List.of(), List.of())));
 
         MvcResult result = mockMvc.perform(get("/api/home"))
                 .andExpect(request().asyncStarted())
@@ -66,7 +66,8 @@ class MiscControllersTest {
         mockMvc.perform(asyncDispatch(result))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.followedTopics").isArray())
-                .andExpect(jsonPath("$.trendingTopics").isArray());
+                .andExpect(jsonPath("$.trendingTopics").isArray())
+                .andExpect(jsonPath("$.newTopics").isArray());
     }
 
     @Test

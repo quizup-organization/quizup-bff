@@ -3,10 +3,12 @@ package io.github.quizup.bff.infrastructure.in.api.response;
 import java.util.List;
 
 /**
- * Données de l'accueil : sujets suivis (récents) et sujets les plus joués.
+ * Données de l'accueil : sujets suivis (récents), sujets les plus joués et sujets récemment
+ * publiés ou mis à jour (nouvelles questions).
  */
 public record HomeView(
         List<TopicCardView> followedTopics,
-        List<TopicCardView> trendingTopics
+        List<TopicCardView> trendingTopics,
+        List<TopicCardView> newTopics
 ) {
 }
