@@ -1,3 +1,9 @@
+## [6.1.0](https://github.com/quizup-organization/quizup-bff/compare/v6.0.1...v6.1.0) (2026-10-09)
+
+### Features
+
+* **bff:** accueil newTopics (theme RECENT, limite 10) ([60f8210](https://github.com/quizup-organization/quizup-bff/commit/60f8210c736f63abe661268c713bd959c7ad3747))
+
 ## [6.0.1](https://github.com/quizup-organization/quizup-bff/compare/v6.0.0...v6.0.1) (2026-10-08)
 
 ### Bug Fixes
