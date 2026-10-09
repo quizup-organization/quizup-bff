@@ -104,7 +104,9 @@ public class TopicViewService {
                             List<TopicCardView> cards = topics.stream()
                                     .filter(topic -> category == null || topic.category() == category)
                                     .filter(topic -> normalizedQuery == null || normalizedQuery.isBlank()
-                                            || SearchText.normalize(topic.name()).contains(normalizedQuery))
+                                            || topic.names().values().stream()
+                                                    .map(SearchText::normalize)
+                                                    .anyMatch(candidate -> candidate.contains(normalizedQuery)))
                                     .sorted(topicComparator(sort))
                                     .map(topic -> TopicViews.toCard(topic, true))
                                     .toList();

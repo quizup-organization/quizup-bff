@@ -60,14 +60,14 @@ public class TopicAuthoringService {
         String topicId = UUID.randomUUID().toString();
         return commandGateway
                 .send(new TopicCommand.CreateTopicCommand(
-                        topicId, request.name(), request.description(), request.category(),
+                        topicId, request.names(), request.description(), request.category(),
                         request.emoji(), request.color(), request.imageUrl(), userId))
                 .thenApply(_ -> topicId);
     }
 
     public CompletableFuture<Void> updateName(String topicId, String userId, UpdateTopicNameRequest request) {
         return dispatchTopicField(topicId, userId,
-                new TopicCommand.UpdateTopicNameCommand(topicId, userId, request.name()));
+                new TopicCommand.UpdateTopicNameCommand(topicId, userId, request.language(), request.name()));
     }
 
     public CompletableFuture<Void> updateDescription(String topicId,

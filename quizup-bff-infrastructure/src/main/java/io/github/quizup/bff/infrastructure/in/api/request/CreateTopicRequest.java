@@ -1,18 +1,22 @@
 package io.github.quizup.bff.infrastructure.in.api.request;
 
+import io.github.quizup.microservice.core.domain.model.i18n.Language;
 import io.github.quizup.theme.domain.model.TopicCategory;
 import io.github.quizup.theme.domain.model.TopicRules;
-import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
+import java.util.Map;
+
 /**
- * Création d'un sujet (brouillon) par le joueur courant. L'illustration de couverture est une
- * URL externe optionnelle ; l'emoji et la couleur d'accent alimentent la teinte des cartes.
+ * Création d'un sujet (brouillon) par le joueur courant. Les noms sont localisés (FR obligatoire,
+ * EN optionnel) ; l'illustration de couverture est une URL externe optionnelle ; l'emoji et la
+ * couleur d'accent alimentent la teinte des cartes.
  */
 public record CreateTopicRequest(
-        @NotBlank @Size(max = TopicRules.MAX_NAME_LENGTH) String name,
+        @NotEmpty Map<Language, @Size(max = TopicRules.MAX_NAME_LENGTH) String> names,
         @Size(max = TopicRules.MAX_DESCRIPTION_LENGTH) String description,
         @NotNull TopicCategory category,
         @Size(max = TopicRules.MAX_EMOJI_LENGTH) String emoji,

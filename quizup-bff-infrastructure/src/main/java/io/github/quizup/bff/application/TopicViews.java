@@ -2,8 +2,11 @@ package io.github.quizup.bff.application;
 
 import io.github.quizup.bff.infrastructure.in.api.response.TopicCardView;
 import io.github.quizup.bff.infrastructure.in.api.response.TopicRefView;
+import io.github.quizup.microservice.core.domain.model.i18n.Language;
 import io.github.quizup.theme.domain.model.QuestionStatus;
 import io.github.quizup.theme.domain.model.Topic;
+
+import java.util.Map;
 
 /**
  * Conversions sujet → vues web partagées par les compositions.
@@ -19,7 +22,7 @@ final class TopicViews {
                 : topic.questionsCounter().getOrDefault(QuestionStatus.APPROVED, 0);
         return new TopicCardView(
                 topic.topicId(),
-                topic.name(),
+                topic.names(),
                 topic.description(),
                 topic.category(),
                 topic.category() == null ? null : topic.category().label(),
@@ -34,10 +37,10 @@ final class TopicViews {
 
     static TopicRefView toRef(String topicId, Topic topic) {
         return topic == null
-                ? new TopicRefView(topicId, topicId, null, null, null, null)
+                ? new TopicRefView(topicId, Map.of(Language.FR, topicId), null, null, null, null)
                 : new TopicRefView(
                         topic.topicId(),
-                        topic.name(),
+                        topic.names(),
                         topic.category() == null ? null : topic.category().name(),
                         topic.emoji(),
                         topic.color(),

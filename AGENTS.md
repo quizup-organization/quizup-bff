@@ -41,7 +41,9 @@ Le `quizup-mobile` n'est **pas** branché sur cette surface (migration dédiée 
   générique : il utilise une requête dédiée (batch / count / facettes).
 - **DTOs de façade uniquement** : `*View` (lecture) et `*Request` (écriture). Jamais de read
   model interne exposé (`Challenge`, `Game`, `Lobby`, `Profile`, `Topic`…), jamais de `Map`,
-  `Object` ou cast non typé.
+  `Object` ou cast non typé. **Exception** : les noms de sujet sont exposés en valeur typée
+  `Map<Language,String> names` (clé = code ISO 639-1), le client choisit sa langue avec repli FR
+  (comme `translations` des questions) ; jamais de `String name` mono-langue.
 - **Notifications web** : DTOs d'infrastructure BFF (`GameNotification`, `LobbyNotification`,
   `MatchmakingNotification`, `NotificationView` pour l'inbox personnelle) enveloppés dans
   `EventEnvelopeResponse` (ossature Jackson du web). Les événements reçus du bus sont des
@@ -117,8 +119,9 @@ question ne connaît pas le créateur du sujet) et répondent `403` `PERMISSION`
 
 | Endpoint | Réponse | Notes |
 |---|---|---|
-| `POST /api/topics` | `201 + Location` | `{ name ≤25, description ≤500, category, emoji?, color?, imageUrl? }` → DRAFT |
-| `PUT /api/topics/{topicId}/name\|description\|category\|emoji\|color\|image-url` | `204` | un champ par route (description/image/emoji/color `null` efface) |
+| `POST /api/topics` | `201 + Location` | `{ names { fr (obligatoire), en? } ≤255 chacun, description ≤500, category, emoji?, color?, imageUrl? }` → DRAFT |
+| `PUT /api/topics/{topicId}/name` | `204` | `{ language, name ≤255 }` (nom d'une langue) |
+| `PUT /api/topics/{topicId}/description\|category\|emoji\|color\|image-url` | `204` | un champ par route (description/image/emoji/color `null` efface) |
 | `POST /api/topics/{topicId}/publish` | `200` | garde ≥ 7 questions approuvées |
 | `GET /api/topics/{topicId}/questions?page=&size=` | `PageResponse<QuestionEditorView>` | tous statuts, contenus FR/EN + statut + difficulté |
 | `POST /api/topics/{topicId}/questions` | `201 + Location` | contenus localisés `[{ language, text, answers[A-D] }]` + `correctAnswer` + `imageUrl?` → PENDING |

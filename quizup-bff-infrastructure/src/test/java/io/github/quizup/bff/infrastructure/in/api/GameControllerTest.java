@@ -104,7 +104,7 @@ class GameControllerTest {
     void current_returns_the_resumable_game() throws Exception {
         CurrentGameView view = new CurrentGameView(
                 "game-1",
-                new TopicRefView("topic-1", "Culture générale", "GENERAL", "🌍", "#ffffff", null),
+                new TopicRefView("topic-1", java.util.Map.of(io.github.quizup.microservice.core.domain.model.i18n.Language.FR, "Culture générale"), "GENERAL", "🌍", "#ffffff", null),
                 new UserRefView("opponent-1", "Bob", null),
                 GamePlayerType.HUMAN,
                 GameStatus.IN_PROGRESS,

@@ -63,7 +63,8 @@ public class SuggestionService {
                         topic.emoji(),
                         topic.color(),
                         topic.imageUrl(),
-                        null)));
+                        null,
+                        topic.names())));
                 players.forEach(profile -> suggestions.add(new SuggestionView(
                         SuggestionView.Type.PLAYER,
                         profile.userId(),
@@ -74,7 +75,8 @@ public class SuggestionService {
                         null,
                         null,
                         null,
-                        profile.avatarOptions())));
+                        profile.avatarOptions(),
+                        null)));
                 return List.copyOf(suggestions);
             });
         });

@@ -94,7 +94,7 @@ class TopicControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "name": "Cinéma",
+                                  "names": { "fr": "Cinéma" },
                                   "description": "Tout le cinéma",
                                   "category": "MOVIES"
                                 }
@@ -111,7 +111,7 @@ class TopicControllerTest {
     void create_with_too_long_name_is_rejected() throws Exception {
         mockMvc.perform(post("/api/topics")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"name\":\"" + "a".repeat(26) + "\",\"category\":\"MOVIES\"}"))
+                        .content("{\"names\":{\"fr\":\"" + "a".repeat(256) + "\"},\"category\":\"MOVIES\"}"))
                 .andExpect(status().is4xxClientError());
     }
 
@@ -122,7 +122,7 @@ class TopicControllerTest {
 
         MvcResult result = mockMvc.perform(put("/api/topics/topic-1/name")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"name\":\"Séries\"}"))
+                        .content("{\"language\":\"fr\",\"name\":\"Séries\"}"))
                 .andExpect(request().asyncStarted())
                 .andReturn();
 
@@ -136,7 +136,7 @@ class TopicControllerTest {
 
         MvcResult result = mockMvc.perform(put("/api/topics/topic-1/name")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"name\":\"Séries\"}"))
+                        .content("{\"language\":\"fr\",\"name\":\"Séries\"}"))
                 .andExpect(request().asyncStarted())
                 .andReturn();
 

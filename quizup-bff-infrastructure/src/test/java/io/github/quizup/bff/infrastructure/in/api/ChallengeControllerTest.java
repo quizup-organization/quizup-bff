@@ -69,7 +69,7 @@ class ChallengeControllerTest {
     void get_delegates() throws Exception {
         ChallengeView view = new ChallengeView(
                 "challenge-1",
-                new TopicRefView("topic-1", "Culture", "GENERAL", "🌍", "#fff", null),
+                new TopicRefView("topic-1", java.util.Map.of(io.github.quizup.microservice.core.domain.model.i18n.Language.FR, "Culture"), "GENERAL", "🌍", "#fff", null),
                 new UserRefView("challenger-1", "Alice", null),
                 new UserRefView("opponent-1", "Bob", null),
                 ChallengeStatus.PENDING,
