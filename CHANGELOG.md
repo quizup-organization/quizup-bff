@@ -1,3 +1,9 @@
+## [6.2.0](https://github.com/quizup-organization/quizup-bff/compare/v6.1.0...v6.2.0) (2026-10-09)
+
+### Features
+
+* **bff:** expose les noms de sujet multilingues (names) ([dacb227](https://github.com/quizup-organization/quizup-bff/commit/dacb2271d80f802223da26074b4801be96e9e585))
+
 ## [6.1.0](https://github.com/quizup-organization/quizup-bff/compare/v6.0.1...v6.1.0) (2026-10-09)
 
 ### Features
