@@ -1,3 +1,13 @@
+## [7.0.0](https://github.com/quizup-organization/quizup-bff/compare/v6.3.0...v7.0.0) (2026-10-10)
+
+### ⚠ BREAKING CHANGES
+
+* **bff:** routes, topics WS et DTOs changés de bout en bout.
+
+### Features
+
+* **bff:** surface /api/rooms, collection games active, résultat enrichi ([9042c32](https://github.com/quizup-organization/quizup-bff/commit/9042c325f365cd71ae211c2eae82e2d14d9ca2d4))
+
 ## [6.3.0](https://github.com/quizup-organization/quizup-bff/compare/v6.2.0...v6.3.0) (2026-10-10)
 
 ### Features
