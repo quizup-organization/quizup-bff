@@ -23,6 +23,16 @@ public final class BffProblems {
         }
     }
 
+    public static class InvalidGameListRequestProblem extends BaseProblem {
+        public InvalidGameListRequestProblem(String detail) {
+            super("urn:quizup:bff:game:invalidListRequest",
+                    ProblemCategory.VALIDATION,
+                    "Invalid game list request",
+                    detail,
+                    Map.of());
+        }
+    }
+
     public static class InvalidTopicListRequestProblem extends BaseProblem {
         public InvalidTopicListRequestProblem(String detail) {
             super("urn:quizup:bff:topic:invalidListRequest",
@@ -38,16 +48,6 @@ public final class BffProblems {
             super("urn:quizup:bff:question:invalidRequest",
                     ProblemCategory.VALIDATION,
                     "Invalid question request",
-                    detail,
-                    Map.of());
-        }
-    }
-
-    public static class InvalidLobbyRequestProblem extends BaseProblem {
-        public InvalidLobbyRequestProblem(String detail) {
-            super("urn:quizup:bff:lobby:invalidRequest",
-                    ProblemCategory.VALIDATION,
-                    "Invalid lobby request",
                     detail,
                     Map.of());
         }

@@ -1,9 +1,12 @@
 package io.github.quizup.bff.infrastructure.in.api.response;
 
+import io.github.quizup.game.domain.model.BotDifficulty;
+
 /**
  * Écran de résultat d'un duel terminé : score, détail de la performance, récompense XP de la
  * partie ({@code null} si la progression n'est pas encore projetée) et état de progression du
- * joueur (niveau, titre, palier).
+ * joueur (niveau, titre, palier). Enrichi du sujet et de l'adversaire pour que la page résultat
+ * soit autosuffisante (un seul GET + l'historique de revue).
  */
 public record GameResultView(
         int myScore,
@@ -19,7 +22,11 @@ public record GameResultView(
         RewardView reward,
         ProgressionResultView progression,
         int opponentLevel,
-        String opponentTitle
+        String opponentTitle,
+        TopicRefView topic,
+        UserRefView opponent,
+        String opponentId,
+        BotDifficulty botDifficulty
 ) {
 
     /** Récompense de la partie : XP totale gagnée et bonus de victoire dérivé du score. */

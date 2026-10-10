@@ -1,8 +1,8 @@
 package io.github.quizup.bff.infrastructure.out.messaging;
 
 import io.github.quizup.bff.infrastructure.in.api.response.EventEnvelopeResponse;
-import io.github.quizup.bff.infrastructure.out.messaging.mapper.LobbyEventNotificationMapper;
-import io.github.quizup.matchmaking.domain.event.LobbyEvent;
+import io.github.quizup.bff.infrastructure.out.messaging.mapper.RoomEventNotificationMapper;
+import io.github.quizup.matchmaking.domain.event.RoomEvent;
 import org.axonframework.config.ProcessingGroup;
 import org.axonframework.eventhandling.DomainEventMessage;
 import org.axonframework.eventhandling.EventHandler;
@@ -13,24 +13,24 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 /**
- * Diffuse les notifications de salon privé sur {@code /topic/lobbies/{lobbyId}}.
+ * Diffuse les notifications de salle sur {@code /topic/rooms/{roomId}}.
  */
 @Service
-@ProcessingGroup("lobby-notification")
-public class LobbyNotificationPublisher {
+@ProcessingGroup("room-notification")
+public class RoomNotificationPublisher {
 
-    private static final Logger logger = LoggerFactory.getLogger(LobbyNotificationPublisher.class);
-    private static final String DESTINATION_PREFIX = "/topic/lobbies/";
+    private static final Logger logger = LoggerFactory.getLogger(RoomNotificationPublisher.class);
+    private static final String DESTINATION_PREFIX = "/topic/rooms/";
 
     private final SimpMessagingTemplate messagingTemplate;
 
-    public LobbyNotificationPublisher(SimpMessagingTemplate messagingTemplate) {
+    public RoomNotificationPublisher(SimpMessagingTemplate messagingTemplate) {
         this.messagingTemplate = messagingTemplate;
     }
 
     @EventHandler
-    public void onLobbyEvent(EventMessage<?> eventMessage) {
-        if (!(eventMessage.getPayload() instanceof LobbyEvent event)) {
+    public void onRoomEvent(EventMessage<?> eventMessage) {
+        if (!(eventMessage.getPayload() instanceof RoomEvent event)) {
             return;
         }
         if (!(eventMessage instanceof DomainEventMessage<?> domainMessage)) {
@@ -38,14 +38,14 @@ public class LobbyNotificationPublisher {
             return;
         }
 
-        LobbyEventNotificationMapper.toNotification(event).ifPresent(notification -> {
+        RoomEventNotificationMapper.toNotification(event).ifPresent(notification -> {
             EventEnvelopeResponse envelope = EventEnvelopeResponse.of(
-                    event.lobbyId(),
+                    event.roomId(),
                     domainMessage.getSequenceNumber(),
                     domainMessage.getTimestamp(),
                     notification.type().name(),
                     notification);
-            messagingTemplate.convertAndSend(DESTINATION_PREFIX + event.lobbyId(), envelope);
+            messagingTemplate.convertAndSend(DESTINATION_PREFIX + event.roomId(), envelope);
         });
     }
 }

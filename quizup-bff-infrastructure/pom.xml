@@ -18,12 +18,12 @@
         <quizup.identity-domain.version>2.0.0</quizup.identity-domain.version>
         <quizup.theme-domain.version>4.10.0</quizup.theme-domain.version>
         <quizup.social-domain.version>4.0.0</quizup.social-domain.version>
-        <quizup.game-domain.version>7.0.0</quizup.game-domain.version>
+        <quizup.game-domain.version>8.0.0</quizup.game-domain.version>
         <quizup.profile-domain.version>3.2.0</quizup.profile-domain.version>
-        <quizup.matchmaking-domain.version>4.3.0</quizup.matchmaking-domain.version>
+        <quizup.matchmaking-domain.version>6.0.0</quizup.matchmaking-domain.version>
         <quizup.leaderboard-domain.version>3.0.0</quizup.leaderboard-domain.version>
-        <!-- 2.3.0 requis : l'inbox doit désérialiser le type LOBBY_MISSED ; 2.5.0 : delete-all. -->
-        <quizup.notification-domain.version>2.7.0</quizup.notification-domain.version>
+        <!-- 2.5.0 : delete-all. -->
+        <quizup.notification-domain.version>3.0.0</quizup.notification-domain.version>
         <!-- Web Push : JWT VAPID Nimbus + chiffrement BouncyCastle + HttpClient JDK. -->
         <webpush.version>6.1.3</webpush.version>
     </properties>

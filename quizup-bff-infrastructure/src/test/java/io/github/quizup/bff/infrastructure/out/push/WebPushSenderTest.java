@@ -37,8 +37,8 @@ class WebPushSenderTest {
         PushSubscription subscription = new PushSubscription(
                 "https://push.example/1", "user-1", "p256dh", "auth", "Chrome", Instant.now(), Instant.now());
         WebPushMessage message = new WebPushMessage(
-                "notification-1", "LOBBY_INVITATION", "actor-1", "Alice", "lobby-1",
-                "topic-1", null, null, "/lobbies/lobby-1");
+                "notification-1", "CHALLENGE_RECEIVED", "actor-1", "Alice", "challenge-1",
+                "topic-1", null, null, "/notifications");
 
         assertThat(sender.send(subscription, message)).isEqualTo(WebPushGateway.SendStatus.FAILED);
     }
@@ -47,9 +47,7 @@ class WebPushSenderTest {
     void time_sensitive_notifications_are_high_urgency() {
         assertThat(WebPushSender.urgency(message("CHALLENGE_RECEIVED", "challenge-1")))
                 .isEqualTo(Notification.Urgency.HIGH);
-        assertThat(WebPushSender.urgency(message("LOBBY_INVITATION", "lobby-1")))
-                .isEqualTo(Notification.Urgency.HIGH);
-        assertThat(WebPushSender.urgency(message("LOBBY_ACCEPTED", "lobby-1")))
+        assertThat(WebPushSender.urgency(message("ROOM_ACCEPTED", "room-1")))
                 .isEqualTo(Notification.Urgency.HIGH);
         assertThat(WebPushSender.urgency(message("FOLLOW", "follow-1")))
                 .isEqualTo(Notification.Urgency.NORMAL);
@@ -58,11 +56,9 @@ class WebPushSenderTest {
     @Test
     void invitations_collapse_per_source_only() {
         assertThat(WebPushSender.topic(message("CHALLENGE_RECEIVED", "challenge-1")))
-                .startsWith("lobby-");
-        assertThat(WebPushSender.topic(message("LOBBY_INVITATION", "lobby-1")))
-                .startsWith("lobby-");
+                .startsWith("challenge-");
         assertThat(WebPushSender.topic(message("FOLLOW", "follow-1"))).isNull();
-        assertThat(WebPushSender.topic(message("LOBBY_INVITATION", null))).isNull();
+        assertThat(WebPushSender.topic(message("CHALLENGE_RECEIVED", null))).isNull();
     }
 
     private static WebPushMessage message(String type, String sourceId) {

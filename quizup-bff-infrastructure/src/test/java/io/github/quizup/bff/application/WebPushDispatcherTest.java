@@ -41,16 +41,6 @@ class WebPushDispatcherTest {
     }
 
     @Test
-    void invitation_path_targets_the_lobby() {
-        dispatcher.dispatch(event(NotificationType.LOBBY_INVITATION, "lobby-1", "actor-1"));
-
-        WebPushMessage message = capturedMessage();
-        assertThat(message.type()).isEqualTo("LOBBY_INVITATION");
-        assertThat(message.path()).isEqualTo("/lobbies/lobby-1");
-        assertThat(message.sourceId()).isEqualTo("lobby-1");
-    }
-
-    @Test
     void follow_path_targets_the_actor_profile() {
         dispatcher.dispatch(event(NotificationType.FOLLOW, "follow-1", "actor-1"));
 
@@ -59,16 +49,19 @@ class WebPushDispatcherTest {
 
     @Test
     void acceptance_without_game_targets_the_room() {
-        dispatcher.dispatch(event(NotificationType.LOBBY_ACCEPTED, "lobby-1", "actor-1"));
+        dispatcher.dispatch(event(NotificationType.ROOM_ACCEPTED, "room-1", "actor-1"));
 
-        assertThat(capturedMessage().path()).isEqualTo("/lobbies/lobby-1");
+        WebPushMessage message = capturedMessage();
+        assertThat(message.type()).isEqualTo("ROOM_ACCEPTED");
+        assertThat(message.path()).isEqualTo("/rooms/room-1");
+        assertThat(message.sourceId()).isEqualTo("room-1");
     }
 
     @Test
     void acceptance_with_game_targets_the_arena() {
-        dispatcher.dispatch(event(NotificationType.LOBBY_ACCEPTED, "lobby-1", "actor-1", "game-1"));
+        dispatcher.dispatch(event(NotificationType.ROOM_ACCEPTED, "room-1", "actor-1", "game-1"));
 
-        assertThat(capturedMessage().path()).isEqualTo("/duel/game-1");
+        assertThat(capturedMessage().path()).isEqualTo("/game/game-1");
     }
 
     @Test
@@ -79,8 +72,8 @@ class WebPushDispatcherTest {
     }
 
     @Test
-    void decline_targets_the_inbox() {
-        dispatcher.dispatch(event(NotificationType.LOBBY_DECLINED, "lobby-1", "actor-1"));
+    void challenge_decline_targets_the_inbox() {
+        dispatcher.dispatch(event(NotificationType.CHALLENGE_DECLINED, "challenge-1", "actor-1"));
 
         assertThat(capturedMessage().path()).isEqualTo("/notifications");
     }
@@ -89,7 +82,7 @@ class WebPushDispatcherTest {
     void gone_subscription_is_pruned() {
         when(pushGateway.send(any(), any())).thenReturn(WebPushGateway.SendStatus.GONE);
 
-        dispatcher.dispatch(event(NotificationType.LOBBY_INVITATION, "lobby-1", "actor-1"));
+        dispatcher.dispatch(event(NotificationType.CHALLENGE_RECEIVED, "challenge-1", "actor-1"));
 
         verify(subscriptionService).unregister(USER_ID, ENDPOINT);
     }
@@ -98,7 +91,7 @@ class WebPushDispatcherTest {
     void no_subscription_skips_the_gateway() {
         when(subscriptionService.subscriptionsOf(USER_ID)).thenReturn(List.of());
 
-        dispatcher.dispatch(event(NotificationType.LOBBY_INVITATION, "lobby-1", "actor-1"));
+        dispatcher.dispatch(event(NotificationType.CHALLENGE_RECEIVED, "challenge-1", "actor-1"));
 
         verifyNoInteractions(pushGateway);
     }
@@ -107,7 +100,7 @@ class WebPushDispatcherTest {
     void gateway_failure_is_swallowed() {
         when(pushGateway.send(any(), any())).thenThrow(new IllegalStateException("boom"));
 
-        assertThatCode(() -> dispatcher.dispatch(event(NotificationType.LOBBY_INVITATION, "lobby-1", "actor-1")))
+        assertThatCode(() -> dispatcher.dispatch(event(NotificationType.CHALLENGE_RECEIVED, "challenge-1", "actor-1")))
                 .doesNotThrowAnyException();
     }
 

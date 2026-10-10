@@ -1,8 +1,9 @@
 package io.github.quizup.bff.infrastructure.in.api;
 
 import io.github.quizup.bff.application.GameViewService;
+import io.github.quizup.bff.infrastructure.in.api.problem.BffProblemExceptionHandler;
 import io.github.quizup.bff.infrastructure.in.api.request.CreateGameRequest;
-import io.github.quizup.bff.infrastructure.in.api.response.CurrentGameView;
+import io.github.quizup.bff.infrastructure.in.api.response.ActiveGameView;
 import io.github.quizup.bff.infrastructure.in.api.response.GameResultView;
 import io.github.quizup.bff.infrastructure.in.api.response.TopicRefView;
 import io.github.quizup.bff.infrastructure.in.api.response.UserRefView;
@@ -19,6 +20,7 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 import static org.mockito.Mockito.mock;
@@ -42,7 +44,9 @@ class GameControllerTest {
 
     @BeforeEach
     void setUp() {
-        mockMvc = MockMvcBuilders.standaloneSetup(new GameController(gameViewService, queryGateway)).build();
+        mockMvc = MockMvcBuilders.standaloneSetup(new GameController(gameViewService, queryGateway))
+                .setControllerAdvice(new BffProblemExceptionHandler())
+                .build();
         TestSecurity.authenticate(USER_ID);
     }
 
@@ -101,34 +105,46 @@ class GameControllerTest {
     }
 
     @Test
-    void current_returns_the_resumable_game() throws Exception {
-        CurrentGameView view = new CurrentGameView(
+    void active_games_returns_the_collection() throws Exception {
+        ActiveGameView view = new ActiveGameView(
                 "game-1",
                 new TopicRefView("topic-1", java.util.Map.of(io.github.quizup.microservice.core.domain.model.i18n.Language.FR, "Culture générale"), "GENERAL", "🌍", "#ffffff", null),
                 new UserRefView("opponent-1", "Bob", null),
                 GamePlayerType.HUMAN,
                 GameStatus.IN_PROGRESS,
                 Instant.parse("2026-10-05T10:00:00Z"));
-        when(gameViewService.current(USER_ID)).thenReturn(CompletableFuture.completedFuture(view));
+        when(gameViewService.activeGames(USER_ID)).thenReturn(CompletableFuture.completedFuture(List.of(view)));
 
-        MvcResult result = mockMvc.perform(get("/api/games/current"))
+        MvcResult result = mockMvc.perform(get("/api/games").param("active", "true"))
                 .andExpect(request().asyncStarted())
                 .andReturn();
 
-        mockMvc.perform(asyncDispatch(result)).andExpect(status().isOk());
-        verify(gameViewService).current(USER_ID);
+        mockMvc.perform(asyncDispatch(result))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].gameId").value("game-1"))
+                .andExpect(jsonPath("$[0].status").value("IN_PROGRESS"));
+        verify(gameViewService).activeGames(USER_ID);
     }
 
     @Test
-    void current_returns_no_content_without_game() throws Exception {
-        when(gameViewService.current(USER_ID)).thenReturn(CompletableFuture.completedFuture(null));
+    void active_games_returns_empty_collection_without_game() throws Exception {
+        when(gameViewService.activeGames(USER_ID)).thenReturn(CompletableFuture.completedFuture(List.of()));
 
-        MvcResult result = mockMvc.perform(get("/api/games/current"))
+        MvcResult result = mockMvc.perform(get("/api/games").param("active", "true"))
                 .andExpect(request().asyncStarted())
                 .andReturn();
 
-        mockMvc.perform(asyncDispatch(result)).andExpect(status().isNoContent());
-        verify(gameViewService).current(USER_ID);
+        mockMvc.perform(asyncDispatch(result))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray())
+                .andExpect(jsonPath("$").isEmpty());
+    }
+
+    @Test
+    void games_without_active_filter_is_rejected() throws Exception {
+        mockMvc.perform(get("/api/games"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.type").value("urn:quizup:bff:game:invalidListRequest"));
     }
 
     @Test
@@ -147,7 +163,11 @@ class GameControllerTest {
                 new GameResultView.RewardView(150, 30),
                 new GameResultView.ProgressionResultView(250, 2, "Apprenti", 400, 50),
                 3,
-                "Apprenti");
+                "Apprenti",
+                new TopicRefView("topic-1", java.util.Map.of(io.github.quizup.microservice.core.domain.model.i18n.Language.FR, "Culture générale"), "GENERAL", "🌍", "#ffffff", null),
+                new UserRefView("opponent-1", "Bob", null),
+                "opponent-1",
+                null);
         when(gameViewService.result("game-1", USER_ID)).thenReturn(CompletableFuture.completedFuture(view));
 
         MvcResult mvcResult = mockMvc.perform(get("/api/games/game-1/result"))
@@ -159,7 +179,9 @@ class GameControllerTest {
                 .andExpect(jsonPath("$.myScore").value(120))
                 .andExpect(jsonPath("$.reward.xp").value(150))
                 .andExpect(jsonPath("$.progression.level").value(2))
-                .andExpect(jsonPath("$.opponentLevel").value(3));
+                .andExpect(jsonPath("$.opponentLevel").value(3))
+                .andExpect(jsonPath("$.opponentId").value("opponent-1"))
+                .andExpect(jsonPath("$.topic.topicId").value("topic-1"));
         verify(gameViewService).result("game-1", USER_ID);
     }
 }

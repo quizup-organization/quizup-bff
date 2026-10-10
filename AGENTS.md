@@ -40,11 +40,11 @@ Le `quizup-mobile` n'est **pas** branché sur cette surface (migration dédiée 
   jamais un compteur, une facette, un historique ou une liste de page à partir d'une recherche
   générique : il utilise une requête dédiée (batch / count / facettes).
 - **DTOs de façade uniquement** : `*View` (lecture) et `*Request` (écriture). Jamais de read
-  model interne exposé (`Challenge`, `Game`, `Lobby`, `Profile`, `Topic`…), jamais de `Map`,
+  model interne exposé (`Challenge`, `Game`, `Room`, `Profile`, `Topic`…), jamais de `Map`,
   `Object` ou cast non typé. **Exception** : les noms de sujet sont exposés en valeur typée
   `Map<Language,String> names` (clé = code ISO 639-1), le client choisit sa langue avec repli FR
   (comme `translations` des questions) ; jamais de `String name` mono-langue.
-- **Notifications web** : DTOs d'infrastructure BFF (`GameNotification`, `LobbyNotification`,
+- **Notifications web** : DTOs d'infrastructure BFF (`GameNotification`, `RoomNotification`,
   `MatchmakingNotification`, `NotificationView` pour l'inbox personnelle) enveloppés dans
   `EventEnvelopeResponse` (ossature Jackson du web). Les événements reçus du bus sont des
   `EventEnvelope` SDK au payload typé (`eventType`) ;
@@ -173,19 +173,17 @@ Intention **asynchrone** (TTL 1 h) distincte de la salle temps réel : l'accepta
 | `POST /api/challenges/{challengeId}/decline` | `200` | Invité uniquement |
 | `POST /api/challenges/{challengeId}/cancel` | `200` | Lanceur uniquement (défi sans réponse) |
 
-### Salons privés (matchmaking)
+### Salles (matchmaking)
 
 | Endpoint | Réponse | Notes |
 |---|---|---|
-| `POST /api/lobbies` | `201 + Location` | Body `{ topicId }` — **salon partagé** par lien `/join/{lobbyId}` ; le défi nominatif passe par `POST /api/challenges` (`400` si `opponentId`) |
-| `GET /api/lobbies/mine` | `List<LobbyView>` | Salons `CREATED` du joueur (initiateur **ou** invité) — filet de reprise |
-| `GET /api/lobbies/{lobbyId}` | `LobbyView` | Sujet, statut, `phase` (`WAITING_PARTICIPANT\|WAITING_PRESENCE\|READY\|COMPLETED\|MISSED\|CLOSED\|FAILED`), adversaire, `nominative`, `awaitingMe`, présences, `readyDeadlineAt`, `missedReason`, `gameId` |
-| `POST /api/lobbies/{lobbyId}/join` | `200` | Rejoint le salon (idempotent, acceptation) ; nominatif : invité uniquement (403 sinon) |
-| `POST /api/lobbies/{lobbyId}/enter` | `200` | **Présence temps réel** (idempotent) ; quand les deux sont entrés, compte à rebours de 3 s puis création de la partie |
-| `POST /api/lobbies/{lobbyId}/decline` | `200` | Refus d'un défi nominatif (invité uniquement) |
-| `POST /api/lobbies/{lobbyId}/leave` | `200` | Sortie **non destructive** (idempotente) : le salon reste ouvert, retour possible ; seul `cancel` (initiateur) ferme le salon |
-| `POST /api/lobbies/{lobbyId}/cancel` | `200` | Annulation par l'initiateur |
-| `GET /api/lobbies/{lobbyId}/notifications` | `List<EventEnvelopeResponse>` (payload `LobbyNotification`) | Même contrat que le push WS |
+| `POST /api/rooms` | `201 + Location` | Body `{ topicId }` — **salle partagée** par lien `/join/{roomId}` ; le défi nominatif passe par `POST /api/challenges` |
+| `GET /api/rooms/mine` | `List<RoomView>` | Salles `CREATED` du joueur (initiateur **ou** invité) — filet de reprise |
+| `GET /api/rooms/{roomId}` | `RoomView` | Sujet, statut, `phase` (`WAITING_PARTICIPANT\|WAITING_PRESENCE\|READY\|COMPLETED\|CLOSED\|FAILED`), adversaire, présences, `readyDeadlineAt`, `gameId` |
+| `POST /api/rooms/{roomId}/join` | `200` | **Apparition** (idempotente) : présence et, pour le second humain, enregistrement du participant ; nominatif : invité uniquement (403 sinon). Émise par le client quand l'utilisateur est dans la salle ; quand les deux sont là, compte à rebours de 3 s puis création de la partie |
+| `POST /api/rooms/{roomId}/leave` | `200` | Sortie **non destructive** (idempotente) : la salle reste ouverte, retour possible ; seul `cancel` (initiateur) ferme la salle |
+| `POST /api/rooms/{roomId}/cancel` | `200` | Annulation par l'initiateur |
+| `GET /api/rooms/{roomId}/notifications` | `List<EventEnvelopeResponse>` (payload `RoomNotification`) | Même contrat que le push WS |
 
 > Un état terminal (`CLOSED`/`FAILED`) est conservé le temps de la rétention (2 min) puis purgé :
 > les commandes tardives répondent 404 (pré-vérification BFF) ou un `Problem` métier, jamais un 500.
@@ -201,7 +199,7 @@ Intention **asynchrone** (TTL 1 h) distincte de la salle temps réel : l'accepta
 | `DELETE /api/notifications/{notificationId}` | `204` | Hard delete — propriétaire uniquement (404/403 sinon) |
 | `DELETE /api/notifications` | `204` | Vide l'inbox du joueur courant (hard delete, fan-out de commandes unitaires idempotentes) |
 | `POST /api/notifications/read-all` | `200` | Fan-out de commandes unitaires idempotentes |
-| `GET /api/notification-preferences` | `List<{ category, enabled }>` | `category` ∈ `FOLLOW\|LOBBY` (défaut activé) |
+| `GET /api/notification-preferences` | `List<{ category, enabled }>` | `category` ∈ `FOLLOW\|ROOM` (défaut activé) |
 | `PUT /api/notification-preferences/{category}` | `204` | `{ enabled }` |
 
 ### Web Push (navigateur)
@@ -210,7 +208,7 @@ Abonnements par navigateur portés par le BFF (`push_subscription`, migration `V
 l'envoi est branché sur le processing group `notification-push` (même flux que le fan-out STOMP,
 hors thread du processor). Payload structuré (`type`, `actorPseudonym`, `sourceId`, `path`…) ;
 le Service Worker web compose le texte et route le clic. **Urgence `high`** pour les notifications
-time-sensitive (`CHALLENGE_RECEIVED`, `LOBBY_INVITATION`, `LOBBY_ACCEPTED`) : en `normal`, FCM
+time-sensitive (`CHALLENGE_RECEIVED`, `ROOM_ACCEPTED`) : en `normal`, FCM
 diffère la livraison quand l'appareil est verrouillé/en Doze ; le header `Topic` collapse les
 invitations d'un même défi/salon. Configuration `quizup.push.vapid.*`
 (clé publique dans le ConfigMap, privée dans le secret sealed) : clés absentes ⇒ push désactivé.
@@ -226,11 +224,11 @@ invitations d'un même défi/salon. Configuration `quizup.push.vapid.*`
 | Endpoint | Réponse | Notes |
 |---|---|---|
 | `POST /api/games` | `201 + Location` | Body `{ topicId, difficulty? }` — duel contre un bot uniquement |
-| `GET /api/games/current` | `CurrentGameView` | Partie en cours la plus récente (`IN_PROGRESS`) ; `204` s'il n'y en a aucune (reprise — pas d'erreur pour une absence normale) |
+| `GET /api/games?active=true` | `List<ActiveGameView>` | Parties en cours du joueur (`IN_PROGRESS`), plus récentes d'abord ; collection **vide** si aucune (jamais de 404). Seul `active=true` est exposé (l'historique vit sous `/api/profiles/{id}/games`) |
 | `POST /api/games/{gameId}/answer` | `200` | Body `{ choice }` |
 | `POST /api/games/{gameId}/abandon` | `200` | Forfait en cours (`ForfeitGameCommand`) — l'adversaire gagne |
 | `POST /api/games/{gameId}/cancel` | `200` | Annulation avant démarrage |
-| `GET /api/games/{gameId}/result` | `GameResultView` | Résultat après `GAME_ENDED` : scores, détail (`basePoints`, `speedBonus`, `correctAnswers`…), `reward` XP de la partie (`null` tant que la projection n'est pas disponible), progression **à l'instant de la partie** (snapshot `game` + XP gagnée) et `opponentLevel/Title` |
+| `GET /api/games/{gameId}/result` | `GameResultView` | Résultat après `GAME_ENDED` : scores, détail (`basePoints`, `speedBonus`, `correctAnswers`…), `reward` XP de la partie (`null` tant que la projection n'est pas disponible), progression **à l'instant de la partie** (snapshot `game` + XP gagnée), `opponentLevel/Title` et **enrichissements autosuffisants** : `topic`, `opponent`, `opponentId`, `botDifficulty` (la page web ne fait qu'un GET + l'historique de revue) |
 | `GET /api/games/{gameId}/notifications` | `List<EventEnvelopeResponse>` (payload `GameNotification`) | Même contrat que le push WS |
 
 ---
@@ -245,7 +243,7 @@ déclenche la déconnexion de session côté présence.
 | Destination | Payload |
 |---|---|
 | `/topic/games/{gameId}` | `EventEnvelopeResponse` (payload `GameNotification`) (`GAME_CREATED`, `GAME_STARTED`, `ROUND_STARTED`, `QUESTION_REVEALED`, `PLAYER_ANSWERED`, `ROUND_CLOSED`, `GAME_FORFEITED`, `GAME_ENDED`, `GAME_CANCELLED`) |
-| `/topic/lobbies/{lobbyId}` | `EventEnvelopeResponse` (payload `LobbyNotification`) (`CREATED`, `JOINED`, `DECLINED`, `COMPLETED`, `CANCELLED`, `EXPIRED`, `FAILED`, `ROOM_ENTERED`, `LEFT`, `ALL_PRESENT`, `MISSED`) |
+| `/topic/rooms/{roomId}` | `EventEnvelopeResponse` (payload `RoomNotification`) (`ROOM_CREATED`, `ROOM_ENTERED`, `ROOM_ALL_PRESENT`, `ROOM_LEFT`, `ROOM_COMPLETED`, `ROOM_CANCELLED`, `ROOM_EXPIRED`, `ROOM_FAILED`) |
 | `/topic/matchmaking/tickets/{ticketId}` | `EventEnvelopeResponse` (payload `MatchmakingNotification`) (`SEARCHING`, `MATCHED`, `CANCELLED`, `FAILED`) |
 | `/topic/notifications/{userId}` | `EventEnvelopeResponse` (payload `NotificationView`) — inbox personnelle (invitations de défi, follows) ; suppression poussée sous `NOTIFICATION_DELETED` (payload `{ notificationId }`) |
 | `/topic/presence/{userId}` | `PresenceView` — **exception assumée** : événements de session non séquencés, pas d'enveloppe |
@@ -254,7 +252,7 @@ déclenche la déconnexion de session côté présence.
 `EventEnvelopeResponse` : `aggregateId`, `sequenceNumber`, `timestamp`, `eventType` (type web),
 `payload` (DTO de notification). L'historique REST (`GET .../notifications`) et le push WS
 partagent exactement le même contrat (dédup par `sequenceNumber` côté client). Les DTOs de
-notification (`GameNotification`, `LobbyNotification`, `MatchmakingNotification`, `NotificationView`)
+notification (`GameNotification`, `RoomNotification`, `MatchmakingNotification`, `NotificationView`)
 vivent dans `infrastructure/out/messaging/response/` ou `in/api/response/` ; **aucune notification
 ni annotation Jackson dans un `*-domain`**. Le transport des événements du query bus est
 l'`EventEnvelope` du SDK (payload typé via `eventType`, sans annotation), mappé ici vers

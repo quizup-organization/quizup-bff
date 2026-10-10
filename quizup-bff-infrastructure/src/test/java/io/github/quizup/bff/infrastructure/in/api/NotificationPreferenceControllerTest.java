@@ -56,10 +56,10 @@ class NotificationPreferenceControllerTest {
 
     @Test
     void update_delegates_with_category() throws Exception {
-        when(notificationViewService.updatePreference(USER_ID, NotificationCategory.LOBBY, false))
+        when(notificationViewService.updatePreference(USER_ID, NotificationCategory.ROOM, false))
                 .thenReturn(CompletableFuture.completedFuture(null));
 
-        MvcResult result = mockMvc.perform(put("/api/notification-preferences/LOBBY")
+        MvcResult result = mockMvc.perform(put("/api/notification-preferences/ROOM")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"enabled":false}
@@ -69,6 +69,6 @@ class NotificationPreferenceControllerTest {
 
         mockMvc.perform(asyncDispatch(result)).andExpect(status().isNoContent());
 
-        verify(notificationViewService).updatePreference(USER_ID, NotificationCategory.LOBBY, false);
+        verify(notificationViewService).updatePreference(USER_ID, NotificationCategory.ROOM, false);
     }
 }

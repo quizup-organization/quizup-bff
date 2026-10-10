@@ -6,6 +6,8 @@ import io.github.quizup.game.domain.query.GameQuery;
 import io.github.quizup.profile.domain.model.GameXp;
 import io.github.quizup.profile.domain.model.ProgressionRules;
 import io.github.quizup.profile.domain.query.ProgressionQuery;
+import io.github.quizup.theme.domain.model.Topic;
+import io.github.quizup.theme.domain.query.TopicQuery;
 import org.axonframework.commandhandling.gateway.CommandGateway;
 import org.axonframework.messaging.responsetypes.ResponseType;
 import org.axonframework.queryhandling.QueryGateway;
@@ -29,7 +31,8 @@ class GameViewServiceTest {
     private final CommandGateway commandGateway = mock(CommandGateway.class);
     private final QueryGateway queryGateway = mock(QueryGateway.class);
     private final ProfileLookup profileLookup = mock(ProfileLookup.class);
-    private final GameViewService service = new GameViewService(commandGateway, queryGateway, profileLookup);
+    private final GameViewService service =
+            new GameViewService(commandGateway, queryGateway, profileLookup, mock(GameQuestionDrawer.class));
 
     @Test
     void result_derives_victory_bonus_from_game_xp() {
@@ -80,6 +83,11 @@ class GameViewServiceTest {
                 any(ProgressionQuery.GetGamesXpQuery.class),
                 ArgumentMatchers.<ResponseType<List<GameXp>>>any()))
                 .thenReturn(CompletableFuture.completedFuture(xp));
+        when(queryGateway.query(
+                any(TopicQuery.GetTopicsByIdsQuery.class),
+                ArgumentMatchers.<ResponseType<List<Topic>>>any()))
+                .thenReturn(CompletableFuture.completedFuture(List.of()));
+        when(profileLookup.get(any())).thenReturn(CompletableFuture.completedFuture(null));
     }
 
     private static GameResult gameResult(int myScore, int opponentScore) {
@@ -90,6 +98,7 @@ class GameViewServiceTest {
                 myScore, opponentScore,
                 myScore > opponentScore ? "player-1" : "player-2",
                 false,
+                null,
                 100, 20, 6, 3, 7, 7,
                 2, 100, 3, 400);
     }

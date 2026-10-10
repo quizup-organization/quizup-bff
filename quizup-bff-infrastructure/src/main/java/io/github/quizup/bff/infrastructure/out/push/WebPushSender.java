@@ -42,12 +42,10 @@ public class WebPushSender implements WebPushGateway {
     /** Notifications time-sensitive : haute priorité, sinon FCM diffère le push en Doze. */
     private static final Set<String> URGENT_TYPES = Set.of(
             NotificationType.CHALLENGE_RECEIVED.name(),
-            NotificationType.LOBBY_INVITATION.name(),
-            NotificationType.LOBBY_ACCEPTED.name());
-    /** Invitations d'un même défi/salon : collapsées par le header Topic. */
+            NotificationType.ROOM_ACCEPTED.name());
+    /** Invitations d'un même défi : collapsées par le header Topic. */
     private static final Set<String> INVITATION_TYPES = Set.of(
-            NotificationType.CHALLENGE_RECEIVED.name(),
-            NotificationType.LOBBY_INVITATION.name());
+            NotificationType.CHALLENGE_RECEIVED.name());
 
     private final ObjectMapper objectMapper;
     private final PushService pushService;
@@ -127,11 +125,11 @@ public class WebPushSender implements WebPushGateway {
                 : Notification.Urgency.NORMAL;
     }
 
-    /** Collapse des invitations d'un même défi/salon — le header Topic est limité à 32 caractères. */
+    /** Collapse des invitations d'un même défi — le header Topic est limité à 32 caractères. */
     static String topic(WebPushMessage message) {
         if (!INVITATION_TYPES.contains(message.type()) || message.sourceId() == null) {
             return null;
         }
-        return "lobby-" + Integer.toHexString(message.sourceId().hashCode());
+        return "challenge-" + Integer.toHexString(message.sourceId().hashCode());
     }
 }

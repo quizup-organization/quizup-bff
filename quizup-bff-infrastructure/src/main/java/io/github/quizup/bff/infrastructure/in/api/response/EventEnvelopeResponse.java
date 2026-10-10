@@ -9,7 +9,7 @@ import java.time.Instant;
  *
  * <p>Contrairement à l'{@code EventEnvelope} du SDK (transport, sans annotation), ce DTO est le
  * point d'ancrage des annotations Jackson du contrat web ; {@code eventType} porte le type web
- * ({@code GAME_CREATED}, {@code MATCHED}, {@code CHALLENGE_COMPLETED}…), jamais le nom de classe
+ * ({@code GAME_CREATED}, {@code MATCHED}, {@code ROOM_COMPLETED}…), jamais le nom de classe
  * interne.</p>
  */
 public record EventEnvelopeResponse(

@@ -1,9 +1,10 @@
 package io.github.quizup.bff.infrastructure.in.api;
 
 import io.github.quizup.bff.application.GameViewService;
+import io.github.quizup.bff.infrastructure.in.api.problem.BffProblems;
 import io.github.quizup.bff.infrastructure.in.api.request.AnswerQuestionRequest;
 import io.github.quizup.bff.infrastructure.in.api.request.CreateGameRequest;
-import io.github.quizup.bff.infrastructure.in.api.response.CurrentGameView;
+import io.github.quizup.bff.infrastructure.in.api.response.ActiveGameView;
 import io.github.quizup.bff.infrastructure.in.api.response.EventEnvelopeResponse;
 import io.github.quizup.bff.infrastructure.in.api.response.GameResultView;
 import io.github.quizup.bff.infrastructure.out.messaging.mapper.GameEventNotificationMapper;
@@ -22,6 +23,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -52,14 +54,19 @@ public class GameController {
                 .thenApply(gameId -> ResponseEntityBuilder.creation(ENDPOINT, gameId));
     }
 
-    /** Partie en attente/en cours du joueur (reprise) ; 204 s'il n'y en a aucune. */
-    @GetMapping("/current")
-    public CompletableFuture<ResponseEntity<CurrentGameView>> current() {
-        return gameViewService
-                .current(SecurityHelper.getUserId())
-                .thenApply(view -> view == null
-                        ? ResponseEntity.<CurrentGameView>noContent().build()
-                        : ResponseEntity.ok(view));
+    /**
+     * Collection des parties en cours du joueur (reprise), les plus récentes d'abord.
+     * Seul le filtre {@code active=true} est exposé (l'historique vit sous
+     * {@code /api/profiles/{id}/games}) ; collection vide si aucune partie — jamais de 404.
+     */
+    @GetMapping
+    public CompletableFuture<ResponseEntity<List<ActiveGameView>>> activeGames(
+            @RequestParam(name = "active", defaultValue = "false") boolean active) {
+        if (!active) {
+            throw new BffProblems.InvalidGameListRequestProblem(
+                    "Seules les parties actives sont exposées : utiliser ?active=true");
+        }
+        return gameViewService.activeGames(SecurityHelper.getUserId()).thenApply(ResponseEntity::ok);
     }
 
     @PostMapping("/{gameId}/answer")
