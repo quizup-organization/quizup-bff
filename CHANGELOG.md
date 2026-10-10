@@ -1,3 +1,13 @@
+## [8.0.0](https://github.com/quizup-organization/quizup-bff/compare/v7.0.0...v8.0.0) (2026-10-10)
+
+### ⚠ BREAKING CHANGES
+
+* **bff:** endpoint /api/profiles/{id}/activity retiré de la surface BFF.
+
+### Features
+
+* **bff:** retire l'endpoint d'activité joueur (MVP) ([1f42ead](https://github.com/quizup-organization/quizup-bff/commit/1f42ead17960a7ecc09db6d10903db300b36a4da))
+
 ## [7.0.0](https://github.com/quizup-organization/quizup-bff/compare/v6.3.0...v7.0.0) (2026-10-10)
 
 ### ⚠ BREAKING CHANGES
