@@ -58,6 +58,13 @@ public class NotificationController {
                 .thenApply(_ -> ResponseEntity.ok().build());
     }
 
+    @PostMapping("/{notificationId}/unread")
+    public CompletableFuture<ResponseEntity<Void>> markUnread(@PathVariable String notificationId) {
+        return notificationViewService
+                .markUnread(SecurityHelper.getUserId(), notificationId)
+                .thenApply(_ -> ResponseEntity.ok().build());
+    }
+
     @DeleteMapping("/{notificationId}")
     public CompletableFuture<ResponseEntity<Void>> delete(@PathVariable String notificationId) {
         return notificationViewService

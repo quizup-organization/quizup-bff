@@ -197,6 +197,7 @@ Intention **asynchrone** (TTL 1 h) distincte de la salle temps réel : l'accepta
 | `GET /api/notifications?unreadOnly=&page=&size=` | `PageResponse<NotificationView>` | Inbox du joueur courant |
 | `GET /api/notifications/unread-count` | `{ count }` | Badge de la cloche |
 | `POST /api/notifications/{notificationId}/read` | `200` | Propriétaire uniquement (404/403 sinon) |
+| `POST /api/notifications/{notificationId}/unread` | `200` | Repasse en non lue — propriétaire uniquement (404/403 sinon) |
 | `DELETE /api/notifications/{notificationId}` | `204` | Hard delete — propriétaire uniquement (404/403 sinon) |
 | `DELETE /api/notifications` | `204` | Vide l'inbox du joueur courant (hard delete, fan-out de commandes unitaires idempotentes) |
 | `POST /api/notifications/read-all` | `200` | Fan-out de commandes unitaires idempotentes |
@@ -208,7 +209,10 @@ Intention **asynchrone** (TTL 1 h) distincte de la salle temps réel : l'accepta
 Abonnements par navigateur portés par le BFF (`push_subscription`, migration `V2__push_subscriptions.sql`) :
 l'envoi est branché sur le processing group `notification-push` (même flux que le fan-out STOMP,
 hors thread du processor). Payload structuré (`type`, `actorPseudonym`, `sourceId`, `path`…) ;
-le Service Worker web compose le texte et route le clic. Configuration `quizup.push.vapid.*`
+le Service Worker web compose le texte et route le clic. **Urgence `high`** pour les notifications
+time-sensitive (`CHALLENGE_RECEIVED`, `LOBBY_INVITATION`, `LOBBY_ACCEPTED`) : en `normal`, FCM
+diffère la livraison quand l'appareil est verrouillé/en Doze ; le header `Topic` collapse les
+invitations d'un même défi/salon. Configuration `quizup.push.vapid.*`
 (clé publique dans le ConfigMap, privée dans le secret sealed) : clés absentes ⇒ push désactivé.
 
 | Endpoint | Réponse | Notes |

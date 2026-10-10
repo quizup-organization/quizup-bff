@@ -18,6 +18,7 @@ import java.security.GeneralSecurityException;
 import java.security.Security;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Set;
 
 /**
  * Envoi Web Push (RFC 8030/8291) via {@code dev.blanke.webpush} : JWT VAPID signé Nimbus,
@@ -38,6 +39,15 @@ public class WebPushSender implements WebPushGateway {
     private static final int DEFAULT_TTL_SECONDS = 43_200;
     private static final int MIN_TTL_SECONDS = 60;
     private static final int MAX_TTL_SECONDS = 86_400;
+    /** Notifications time-sensitive : haute priorité, sinon FCM diffère le push en Doze. */
+    private static final Set<String> URGENT_TYPES = Set.of(
+            NotificationType.CHALLENGE_RECEIVED.name(),
+            NotificationType.LOBBY_INVITATION.name(),
+            NotificationType.LOBBY_ACCEPTED.name());
+    /** Invitations d'un même défi/salon : collapsées par le header Topic. */
+    private static final Set<String> INVITATION_TYPES = Set.of(
+            NotificationType.CHALLENGE_RECEIVED.name(),
+            NotificationType.LOBBY_INVITATION.name());
 
     private final ObjectMapper objectMapper;
     private final PushService pushService;
@@ -111,15 +121,15 @@ public class WebPushSender implements WebPushGateway {
         return (int) Math.max(MIN_TTL_SECONDS, Math.min(MAX_TTL_SECONDS, seconds));
     }
 
-    private static Notification.Urgency urgency(WebPushMessage message) {
-        return NotificationType.LOBBY_INVITATION.name().equals(message.type())
+    static Notification.Urgency urgency(WebPushMessage message) {
+        return URGENT_TYPES.contains(message.type())
                 ? Notification.Urgency.HIGH
                 : Notification.Urgency.NORMAL;
     }
 
-    /** Collapse des invitations d'un même salon — le header Topic est limité à 32 caractères. */
-    private static String topic(WebPushMessage message) {
-        if (!NotificationType.LOBBY_INVITATION.name().equals(message.type()) || message.sourceId() == null) {
+    /** Collapse des invitations d'un même défi/salon — le header Topic est limité à 32 caractères. */
+    static String topic(WebPushMessage message) {
+        if (!INVITATION_TYPES.contains(message.type()) || message.sourceId() == null) {
             return null;
         }
         return "lobby-" + Integer.toHexString(message.sourceId().hashCode());

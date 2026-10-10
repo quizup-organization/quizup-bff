@@ -88,6 +88,18 @@ class NotificationControllerTest {
     }
 
     @Test
+    void mark_unread_delegates() throws Exception {
+        when(notificationViewService.markUnread(USER_ID, "notif-1"))
+                .thenReturn(CompletableFuture.completedFuture(null));
+
+        MvcResult result = mockMvc.perform(post("/api/notifications/notif-1/unread"))
+                .andExpect(request().asyncStarted()).andReturn();
+        mockMvc.perform(asyncDispatch(result)).andExpect(status().isOk());
+
+        verify(notificationViewService).markUnread(USER_ID, "notif-1");
+    }
+
+    @Test
     void delete_delegates_and_returns_no_content() throws Exception {
         when(notificationViewService.delete(USER_ID, "notif-1"))
                 .thenReturn(CompletableFuture.completedFuture(null));

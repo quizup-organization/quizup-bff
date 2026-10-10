@@ -60,6 +60,17 @@ public class NotificationViewService {
                         }));
     }
 
+    /** Repasse une notification en non lue (swipe inversé / menu desktop). */
+    public CompletableFuture<Void> markUnread(String userId, String notificationId) {
+        return queryGateway
+                .query(new NotificationQuery.GetNotificationQuery(userId, notificationId),
+                        QueryResponseTypes.instanceOf(Notification.class))
+                .thenCompose(_ -> commandGateway
+                        .send(new NotificationCommand.MarkNotificationUnreadCommand(notificationId, userId))
+                        .thenAccept(_ -> {
+                        }));
+    }
+
     /** Suppression (hard delete). Même pré-vérification propriétaire que la lecture. */
     public CompletableFuture<Void> delete(String userId, String notificationId) {
         return queryGateway
