@@ -1,3 +1,9 @@
+## [6.3.0](https://github.com/quizup-organization/quizup-bff/compare/v6.2.0...v6.3.0) (2026-10-10)
+
+### Features
+
+* **bff:** notifications non lues et push haute urgence ([4909aad](https://github.com/quizup-organization/quizup-bff/commit/4909aad4123b9fc8f57e828121fdf858be844fb8))
+
 ## [6.2.0](https://github.com/quizup-organization/quizup-bff/compare/v6.1.0...v6.2.0) (2026-10-09)
 
 ### Features
