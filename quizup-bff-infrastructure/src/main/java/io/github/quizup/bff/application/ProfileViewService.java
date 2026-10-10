@@ -1,7 +1,6 @@
 package io.github.quizup.bff.application;
 
 import io.github.quizup.bff.infrastructure.in.api.request.PeopleSort;
-import io.github.quizup.bff.infrastructure.in.api.response.ActivityViewResponse;
 import io.github.quizup.bff.infrastructure.in.api.response.GameHistoryItemView;
 import io.github.quizup.bff.infrastructure.in.api.response.HeadToHeadView;
 import io.github.quizup.bff.infrastructure.in.api.response.PageResponse;
@@ -16,12 +15,10 @@ import io.github.quizup.game.domain.model.GameStatus;
 import io.github.quizup.game.domain.model.PlayerGamesPage;
 import io.github.quizup.game.domain.query.GameQuery;
 import io.github.quizup.microservice.core.infrastructure.axon.QueryResponseTypes;
-import io.github.quizup.profile.domain.model.ActivityView;
 import io.github.quizup.profile.domain.model.GameXp;
 import io.github.quizup.profile.domain.model.PlayerPresence;
 import io.github.quizup.profile.domain.model.PlayerProgress;
 import io.github.quizup.profile.domain.model.Profile;
-import io.github.quizup.profile.domain.query.ActivityQuery;
 import io.github.quizup.profile.domain.query.PresenceQuery;
 import io.github.quizup.profile.domain.query.ProgressionQuery;
 import io.github.quizup.social.domain.model.FollowDirection;
@@ -34,7 +31,6 @@ import org.axonframework.queryhandling.QueryGateway;
 import org.springframework.stereotype.Service;
 
 import java.text.Normalizer;
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -196,23 +192,6 @@ public class ProfileViewService {
                     }
                     return new HeadToHeadView(games.size(), wins, losses, draws);
                 });
-    }
-
-    public CompletableFuture<ActivityViewResponse> activity(String userId, LocalDate from, LocalDate to) {
-        LocalDate end = to != null ? to : LocalDate.now();
-        LocalDate start = from != null ? from : end.minusDays(364);
-        return queryGateway.query(
-                        new ActivityQuery.GetActivityQuery(userId, start, end),
-                        QueryResponseTypes.instanceOf(ActivityView.class))
-                .thenApply(view -> new ActivityViewResponse(
-                        view.userId(),
-                        view.currentStreak(),
-                        view.longestStreak(),
-                        view.lastActiveDate(),
-                        view.totalActiveDays(),
-                        view.days().stream()
-                                .map(day -> new ActivityViewResponse.DayView(day.date(), day.games()))
-                                .toList()));
     }
 
     private CompletableFuture<List<GameHistoryItemView>> enrichGames(String userId, List<Game> games) {

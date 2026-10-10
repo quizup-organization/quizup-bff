@@ -142,7 +142,6 @@ question ne connaît pas le créateur du sujet) et répondent `403` `PERMISSION`
 | `DELETE /api/profiles/{userId}/follow` | `204` | |
 | `GET /api/profiles/{userId}/games?topicId=&opponentId=&page=&size=` | `PageResponse<GameHistoryItemView>` | Historique enrichi (adversaire, sujet, résultat, XP) |
 | `GET /api/profiles/{userId}/head-to-head?against=` | `HeadToHeadView` | V/N/D entre deux joueurs |
-| `GET /api/profiles/{userId}/activity?from=&to=` | `ActivityView` | Streak + graphe |
 | `PUT /api/profiles/{userId}/pseudonym` | `204` | `{ pseudonym }` |
 | `PUT /api/profiles/{userId}/bio` | `204` | `{ bio }` (`null` efface) |
 | `PUT /api/profiles/{userId}/country` | `204` | `{ country }` (`null` efface) |

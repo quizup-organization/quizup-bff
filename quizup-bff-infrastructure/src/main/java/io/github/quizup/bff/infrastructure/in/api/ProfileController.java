@@ -9,7 +9,6 @@ import io.github.quizup.bff.infrastructure.in.api.request.UpdateBioRequest;
 import io.github.quizup.bff.infrastructure.in.api.request.UpdateCountryRequest;
 import io.github.quizup.bff.infrastructure.in.api.request.UpdateLanguageRequest;
 import io.github.quizup.bff.infrastructure.in.api.request.UpdatePseudonymRequest;
-import io.github.quizup.bff.infrastructure.in.api.response.ActivityViewResponse;
 import io.github.quizup.bff.infrastructure.in.api.response.GameHistoryItemView;
 import io.github.quizup.bff.infrastructure.in.api.response.HeadToHeadView;
 import io.github.quizup.bff.infrastructure.in.api.response.PageResponse;
@@ -21,7 +20,6 @@ import io.github.quizup.social.domain.model.FollowDirection;
 import io.github.quizup.social.domain.model.FollowerIds;
 import jakarta.validation.Valid;
 import org.axonframework.commandhandling.gateway.CommandGateway;
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -32,7 +30,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.time.LocalDate;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -162,14 +159,6 @@ public class ProfileController {
             @PathVariable String userId,
             @RequestParam("against") String against) {
         return profileViewService.headToHead(userId, against).thenApply(ResponseEntity::ok);
-    }
-
-    @GetMapping("/{userId}/activity")
-    public CompletableFuture<ResponseEntity<ActivityViewResponse>> activity(
-            @PathVariable String userId,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
-        return profileViewService.activity(userId, from, to).thenApply(ResponseEntity::ok);
     }
 
     private CompletableFuture<ResponseEntity<PageResponse<PlayerCardView>>> people(String userId,
