@@ -1,3 +1,9 @@
+## [11.0.1](https://github.com/quizup-organization/quizup-bff/compare/v11.0.0...v11.0.1) (2026-10-11)
+
+### Bug Fixes
+
+* **bff:** en-têtes CORS sur le 401 unknownUser (purge de session visible du navigateur) ([51fc758](https://github.com/quizup-organization/quizup-bff/commit/51fc758e016a5c7155f16c0410043f748c7a5c97))
+
 ## [11.0.0](https://github.com/quizup-organization/quizup-bff/compare/v10.0.0...v11.0.0) (2026-10-11)
 
 ### ⚠ BREAKING CHANGES
