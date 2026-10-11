@@ -15,7 +15,12 @@
   **command bus** (`CommandGateway`).
 - Consomme le **flux d'événements Kafka** (`@ProcessingGroup`) et **fan-out** les notifications
   vers un socket client unique (`/topic/games/{id}`, `/topic/rooms/{id}`,
-  `/topic/notifications/{userId}`, `/topic/presence/{userId}`).
+  `/topic/notifications/{userId}`, `/topic/presence/{userId}`). **Multi-réplique** : les groupes de
+  fan-out (`game-notification`, `room-notification`, `matchmaking-notification`,
+  `presence-notification`, `follow-presence-notification`, `notification-ws`) sont
+  **instance-scopés** (`quizup.axon.instance-scoped-groups`) — chaque pod consomme tous les
+  événements avec son propre token (suffixé par `HOSTNAME`, token initial à la queue du flux) —
+  sinon les clients STOMP d'une réplique ne recevraient pas les événements consommés par une autre.
 - Porte la **présence joueur** (sessions STOMP client → `quizup-profile`) : chaque instance BFF a
   un identifiant stable (`application:host`), purge au démarrage ses sessions antérieures, renouvelle
   en batch le bail de ses sessions locales (`RenewPresenceSessionsCommand`, 10 s), déconnecte ses
@@ -209,8 +214,10 @@ Intention **asynchrone** (TTL 1 h) distincte de la salle temps réel : l'accepta
 ### Web Push (navigateur)
 
 Abonnements par navigateur portés par le BFF (`push_subscription`, migration `V2__push_subscriptions.sql`) :
-l'envoi est branché sur le processing group `notification-push` (même flux que le fan-out STOMP,
-hors thread du processor). Payload structuré (`type`, `actorPseudonym`, `sourceId`, `path`…) ;
+l'envoi est branché sur le processing group `notification-push` (**groupe global**, jamais
+instance-scopé : une seule notification OS par événement, même avec plusieurs répliques — le
+fan-out STOMP de l'inbox vit dans `notification-ws`, instance-scopé), hors thread du processor.
+Payload structuré (`type`, `actorPseudonym`, `sourceId`, `path`…) ;
 le Service Worker web compose le texte et route le clic. **Urgence `high`** pour les notifications
 time-sensitive (`CHALLENGE_RECEIVED`, `ROOM_ACCEPTED`) : en `normal`, FCM
 diffère la livraison quand l'appareil est verrouillé/en Doze ; le header `Topic` collapse les

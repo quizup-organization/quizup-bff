@@ -19,3 +19,17 @@ microservice:
     description: QuizUp BFF - facade unique REST + WebSocket (services headless)
   websocket:
     enabled: true
+
+# Fan-out temps réel multi-réplique : chaque pod BFF ne connaît que ses propres clients STOMP et
+# doit consommer TOUS les événements de ces groupes (processors suffixés par instance via le SDK,
+# token initial à la queue du flux — aucun replay Kafka). Le Web Push reste sur le groupe global
+# `notification-push` (une seule notification OS, quel que soit le nombre de répliques).
+quizup:
+  axon:
+    instance-scoped-groups:
+      - game-notification
+      - room-notification
+      - matchmaking-notification
+      - presence-notification
+      - follow-presence-notification
+      - notification-ws
