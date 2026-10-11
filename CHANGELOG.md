@@ -1,3 +1,13 @@
+## [9.0.0](https://github.com/quizup-organization/quizup-bff/compare/v8.0.0...v9.0.0) (2026-10-11)
+
+### ⚠ BREAKING CHANGES
+
+* **bff:** POST /api/games retiré ; MatchmakingMatchedEvent.gameId → roomId.
+
+### Features
+
+* **bff:** la salle est l'unique point d'entrée de préparation d'une partie ([4e57e2f](https://github.com/quizup-organization/quizup-bff/commit/4e57e2fc821ebbd0eeee88dd396fd21d40c6efa5))
+
 ## [8.0.0](https://github.com/quizup-organization/quizup-bff/compare/v7.0.0...v8.0.0) (2026-10-10)
 
 ### ⚠ BREAKING CHANGES
