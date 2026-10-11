@@ -9,6 +9,7 @@ import org.axonframework.queryhandling.QueryGateway;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -25,11 +26,23 @@ import java.util.concurrent.CompletableFuture;
 public class ProfileLookup {
 
     private static final Duration TTL = Duration.ofSeconds(30);
+
+    /**
+     * Fenêtre de grâce après une écriture : une lecture immédiate peut encore voir la projection
+     * en retard, elle ne doit pas empoisonner le cache pour {@link #TTL} (le client reverrait
+     * l'ancienne valeur à la réconciliation).
+     */
+    private static final Duration REFRESH_GRACE = Duration.ofSeconds(3);
+
     private static final long MAX_SIZE = 10_000;
 
     private final QueryGateway queryGateway;
     private final Cache<String, Profile> cache = Caffeine.newBuilder()
             .expireAfterWrite(TTL)
+            .maximumSize(MAX_SIZE)
+            .build();
+    private final Cache<String, Instant> recentlyInvalidated = Caffeine.newBuilder()
+            .expireAfterWrite(REFRESH_GRACE)
             .maximumSize(MAX_SIZE)
             .build();
 
@@ -45,7 +58,7 @@ public class ProfileLookup {
         return queryGateway
                 .query(new ProfileQuery.GetProfileQuery(userId), QueryResponseTypes.instanceOf(Profile.class))
                 .thenApply(profile -> {
-                    cache.put(userId, profile);
+                    cacheIfConverged(userId, profile);
                     return profile;
                 });
     }
@@ -56,6 +69,20 @@ public class ProfileLookup {
      */
     public void invalidate(String userId) {
         cache.invalidate(userId);
+        recentlyInvalidated.put(userId, Instant.now());
+    }
+
+    /**
+     * Juste après une écriture, la projection profile peut être en retard : on ne met en cache
+     * qu'une fois la fenêtre de grâce écoulée, sinon une lecture pessimiste figerait le profil
+     * périmé pour 30 s (sauvegarde perçue comme perdue). Les lectures intermédiaires interrogent
+     * la source sans cacher.
+     */
+    private void cacheIfConverged(String userId, Profile profile) {
+        if (recentlyInvalidated.getIfPresent(userId) != null) {
+            return;
+        }
+        cache.put(userId, profile);
     }
 
     /** Résout plusieurs profils en une requête batch (cache + complément), dans l'ordre des ids demandés. */
@@ -82,7 +109,7 @@ public class ProfileLookup {
                 .query(new ProfileQuery.GetProfilesByIdsQuery(missing), QueryResponseTypes.multipleInstancesOf(Profile.class))
                 .thenApply(profiles -> {
                     profiles.forEach(profile -> {
-                        cache.put(profile.userId(), profile);
+                        cacheIfConverged(profile.userId(), profile);
                         resolved.put(profile.userId(), profile);
                     });
                     return orderByIds(userIds, resolved);

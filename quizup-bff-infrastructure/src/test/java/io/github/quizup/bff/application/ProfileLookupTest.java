@@ -62,6 +62,25 @@ class ProfileLookupTest {
     }
 
     @Test
+    void getDoesNotCacheWhileRefreshGraceIsActive() {
+        when(queryGateway.query(
+                ArgumentMatchers.<ProfileQuery.GetProfileQuery>any(),
+                ArgumentMatchers.<ResponseType<Profile>>any()))
+                .thenReturn(
+                        CompletableFuture.completedFuture(profile("u1")),
+                        CompletableFuture.completedFuture(profile("u1")));
+
+        lookup.invalidate("u1");
+        lookup.get("u1").join();
+        lookup.get("u1").join();
+
+        // Lecture post-écriture potentiellement périmée : re-query au lieu de figer le cache 30 s.
+        verify(queryGateway, times(2)).query(
+                ArgumentMatchers.<ProfileQuery.GetProfileQuery>any(),
+                ArgumentMatchers.<ResponseType<Profile>>any());
+    }
+
+    @Test
     void getAllUsesOneBatchQueryForMissingIds() {
         when(queryGateway.query(
                 ArgumentMatchers.<ProfileQuery.GetProfilesByIdsQuery>any(),
