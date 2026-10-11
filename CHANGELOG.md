@@ -1,3 +1,13 @@
+## [11.0.0](https://github.com/quizup-organization/quizup-bff/compare/v10.0.0...v11.0.0) (2026-10-11)
+
+### ⚠ BREAKING CHANGES
+
+* **bff:** RoomView/RoomNotification sans readyDeadlineAt (partie créée immédiatement)
+
+### Features
+
+* **bff:** RoomView/RoomNotification sans readyDeadlineAt (partie créée immédiatement) ([42d17b1](https://github.com/quizup-organization/quizup-bff/commit/42d17b193eeb1d5092088551bf7da926acf0ad37))
+
 ## [10.0.0](https://github.com/quizup-organization/quizup-bff/compare/v9.0.0...v10.0.0) (2026-10-11)
 
 ### ⚠ BREAKING CHANGES
