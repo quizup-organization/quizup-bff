@@ -72,4 +72,26 @@ public final class BffProblems {
                     Map.of("topicId", topicId));
         }
     }
+
+    /** Le challenger n'a pas joué la partie d'origine de la revanche. */
+    public static class RematchNotAllowedProblem extends BaseProblem {
+        public RematchNotAllowedProblem(String gameId, String playerId) {
+            super("urn:quizup:bff:challenge:rematchNotAllowed",
+                    ProblemCategory.PERMISSION,
+                    "Rematch not allowed",
+                    "The player " + playerId + " did not play the game " + gameId,
+                    Map.of("gameId", gameId, "playerId", playerId));
+        }
+    }
+
+    /** Partie d'origine inéligible (bot) ou adversaire incohérent. */
+    public static class InvalidRematchProblem extends BaseProblem {
+        public InvalidRematchProblem(String detail) {
+            super("urn:quizup:bff:challenge:invalidRematch",
+                    ProblemCategory.VALIDATION,
+                    "Invalid rematch",
+                    detail,
+                    Map.of());
+        }
+    }
 }

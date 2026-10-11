@@ -68,8 +68,7 @@ public interface RoomNotification {
     }
 
     record RoomAllPlayersPresentNotification(
-            String roomId,
-            Instant readyDeadlineAt
+            String roomId
     ) implements RoomNotification {
         @Override
         public RoomNotificationType type() {
@@ -87,9 +86,10 @@ public interface RoomNotification {
         }
     }
 
-    /** Questions tirées (avancement de la préparation). */
+    /** Questions tirées : fin de préparation, compte à rebours de lancement armé. */
     record RoomQuestionsLoadedNotification(
-            String roomId
+            String roomId,
+            Instant readyDeadlineAt
     ) implements RoomNotification {
         @Override
         public RoomNotificationType type() {

@@ -22,7 +22,8 @@ public final class MatchmakingEventNotificationMapper {
 
         return switch (event) {
             case MatchmakingEvent.MatchmakingStartedEvent e -> Optional.of(
-                    new MatchmakingNotification.SearchingNotification(e.matchmakingId(), e.topicId()));
+                    new MatchmakingNotification.SearchingNotification(
+                            e.matchmakingId(), e.topicId(), e.deadlineAt()));
             case MatchmakingEvent.MatchmakingMatchedEvent e -> Optional.of(
                     new MatchmakingNotification.MatchedNotification(
                             e.matchmakingId(), e.roomId(), e.opponentId(), e.vsBot()));

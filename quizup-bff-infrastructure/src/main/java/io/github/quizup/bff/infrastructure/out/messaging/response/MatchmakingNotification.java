@@ -4,6 +4,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
+import java.time.Instant;
+
 /**
  * Notifications d'appariement public — contrat web du BFF
  * (diffusées sur {@code /topic/matchmaking/tickets/{ticketId}}).
@@ -31,7 +33,8 @@ public interface MatchmakingNotification {
 
     record SearchingNotification(
             String ticketId,
-            String topicId
+            String topicId,
+            Instant deadlineAt
     ) implements MatchmakingNotification {
         @Override
         public MatchmakingNotificationType type() {

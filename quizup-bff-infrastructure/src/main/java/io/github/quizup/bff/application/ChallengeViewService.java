@@ -1,9 +1,13 @@
 package io.github.quizup.bff.application;
 
+import io.github.quizup.bff.infrastructure.in.api.problem.BffProblems;
 import io.github.quizup.bff.infrastructure.in.api.request.CreateChallengeRequest;
 import io.github.quizup.bff.infrastructure.in.api.response.ChallengeView;
 import io.github.quizup.bff.infrastructure.in.api.response.TopicRefView;
 import io.github.quizup.bff.infrastructure.in.api.response.UserRefView;
+import io.github.quizup.game.domain.model.Game;
+import io.github.quizup.game.domain.model.GamePlayerType;
+import io.github.quizup.game.domain.query.GameQuery;
 import io.github.quizup.matchmaking.domain.command.ChallengeCommand;
 import io.github.quizup.matchmaking.domain.model.Challenge;
 import io.github.quizup.matchmaking.domain.query.ChallengeQuery;
@@ -44,11 +48,45 @@ public class ChallengeViewService {
 
     public CompletableFuture<String> create(String challengerId, CreateChallengeRequest request) {
         String challengeId = UUID.randomUUID().toString();
-        // L'adversaire doit exister (404 sinon, jamais de défi orphelin).
+        // L'adversaire doit exister (404 sinon, jamais de défi orphelin) ; une revanche doit
+        // référencer une partie terminée où le challenger a réellement joué.
         return profileLookup.get(request.opponentId())
+                .thenCompose(_ -> validateRematch(challengerId, request))
                 .thenCompose(_ -> commandGateway.send(new ChallengeCommand.CreateChallengeCommand(
-                        challengeId, request.topicId(), challengerId, request.opponentId())))
+                        challengeId, request.topicId(), challengerId, request.opponentId(), request.gameId())))
                 .thenApply(_ -> challengeId);
+    }
+
+    /**
+     * Validation d'une revanche ({@code gameId} renseigné) : la partie d'origine existe (404 via le
+     * problème game), le challenger en est l'un des joueurs, c'est un duel humain/humain et
+     * {@code opponentId} correspond bien à l'autre joueur.
+     */
+    private CompletableFuture<Void> validateRematch(String challengerId, CreateChallengeRequest request) {
+        if (request.gameId() == null || request.gameId().isBlank()) {
+            return CompletableFuture.completedFuture(null);
+        }
+        return queryGateway
+                .query(new GameQuery.GetGameByIdQuery(request.gameId()),
+                        QueryResponseTypes.instanceOf(Game.class))
+                .thenAccept(game -> {
+                    boolean participated = challengerId.equals(game.player1Id())
+                            || challengerId.equals(game.player2Id());
+                    if (!participated) {
+                        throw new BffProblems.RematchNotAllowedProblem(request.gameId(), challengerId);
+                    }
+                    if (GamePlayerType.BOT.equals(game.opponent())) {
+                        throw new BffProblems.InvalidRematchProblem(
+                                "A bot duel cannot be rematched with a challenge");
+                    }
+                    String opponentId = challengerId.equals(game.player1Id())
+                            ? game.player2Id()
+                            : game.player1Id();
+                    if (!opponentId.equals(request.opponentId())) {
+                        throw new BffProblems.InvalidRematchProblem(
+                                "opponentId must be the other player of the source game");
+                    }
+                });
     }
 
     public CompletableFuture<ChallengeView> get(String challengeId) {
@@ -137,6 +175,7 @@ public class ChallengeViewService {
                 toRef(profileById.get(challenge.opponentId())),
                 challenge.status(),
                 challenge.roomId(),
+                challenge.gameId(),
                 challenge.createdAt(),
                 challenge.expiresAt());
     }

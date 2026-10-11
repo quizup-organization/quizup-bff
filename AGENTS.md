@@ -165,9 +165,9 @@ Intention **asynchrone** (TTL 1 h) distincte de la salle temps réel : l'accepta
 
 | Endpoint | Réponse | Notes |
 |---|---|---|
-| `POST /api/challenges` | `201 + Location` | Body `{ topicId, opponentId }` — l'adversaire doit exister (`404` sinon) |
+| `POST /api/challenges` | `201 + Location` | Body `{ topicId, opponentId, gameId? }` — l'adversaire doit exister (`404` sinon) ; `gameId` = **partie terminée d'origine** d'une revanche, validée (le challenger a joué, duel humain/humain, `opponentId` cohérent) |
 | `GET /api/challenges/mine` | `List<ChallengeView>` | Défis `PENDING` où le joueur est challenger ou opposant |
-| `GET /api/challenges/{challengeId}` | `ChallengeView` | Sujet, challenger/opponent, statut (`PENDING\|ACCEPTED\|DECLINED\|CANCELLED\|EXPIRED`), `roomId` dès l'acceptation |
+| `GET /api/challenges/{challengeId}` | `ChallengeView` | Sujet, challenger/opponent, statut (`PENDING\|ACCEPTED\|DECLINED\|CANCELLED\|EXPIRED`), `roomId` dès l'acceptation, `gameId` de la partie d'origine (revanche) |
 | `POST /api/challenges/{challengeId}/accept` | `200` | Invité uniquement ; la salle est créée par la saga (`roomId`) |
 | `POST /api/challenges/{challengeId}/decline` | `200` | Invité uniquement |
 | `POST /api/challenges/{challengeId}/cancel` | `200` | Lanceur uniquement (défi sans réponse) |
@@ -179,8 +179,8 @@ Intention **asynchrone** (TTL 1 h) distincte de la salle temps réel : l'accepta
 | `POST /api/rooms` | `201 + Location` | Body `{ topicId }` — **salle partagée** par lien `/join/{roomId}` ; le défi nominatif passe par `POST /api/challenges` |
 | `POST /api/rooms/bot` | `201 + Location` | Body `{ topicId, difficulty? }` — **salle bot** : le bot rejoint la salle automatiquement, l'humain y apparaît ensuite |
 | `GET /api/rooms/mine` | `List<RoomView>` | Salles `WAITING_PLAYERS` du joueur (initiateur **ou** invité) — filet de reprise |
-| `GET /api/rooms/{roomId}` | `RoomView` | Sujet, `status` (`WAITING_PLAYERS\|FETCHING_PLAYERS\|FETCHING_QUESTIONS\|CREATING_GAME\|COMPLETED\|CANCELLED\|EXPIRED\|FAILED`), `vsBot`, adversaire, présences, `readyDeadlineAt`, `gameId` |
-| `POST /api/rooms/{roomId}/join` | `200` | **Apparition** (idempotente) : présence et, pour le second joueur, enregistrement du participant ; nominatif : invité uniquement (403 sinon). Émise par le client quand l'utilisateur est dans la salle ; quand les deux sont là, la salle prépare la partie (profils → questions) pendant le compte à rebours de 3 s puis la crée |
+| `GET /api/rooms/{roomId}` | `RoomView` | Sujet, `status` (`WAITING_PLAYERS\|FETCHING_PLAYERS\|FETCHING_QUESTIONS\|CREATING_GAME\|COMPLETED\|CANCELLED\|EXPIRED\|FAILED`), `vsBot`, `canCancel` (viewer = initiateur), adversaire, présences, `readyDeadlineAt`, `gameId` |
+| `POST /api/rooms/{roomId}/join` | `200` | **Apparition** (idempotente) : présence et, pour le second joueur, enregistrement du participant ; nominatif : invité uniquement (403 sinon). Émise par le client quand l'utilisateur est dans la salle ; quand les deux sont là, la salle prépare la partie (profils → questions) puis lance le compte à rebours de 3 s et la crée |
 | `POST /api/rooms/{roomId}/leave` | `200` | Sortie **non destructive** (idempotente) tant que la préparation n'est pas engagée ; refusée (400) dès que les deux joueurs sont présents — seul `cancel` ferme la salle |
 | `POST /api/rooms/{roomId}/cancel` | `200` | Annulation par l'initiateur, possible tant que la salle n'est pas terminale |
 | `GET /api/rooms/{roomId}/notifications` | `List<EventEnvelopeResponse>` (payload `RoomNotification`) | Même contrat que le push WS |

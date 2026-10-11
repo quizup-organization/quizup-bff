@@ -13,6 +13,8 @@ public record RoomView(
         TopicRefView topic,
         RoomStatus status,
         boolean vsBot,
+        /** Vrai si le viewer est l'initiateur (seul habilité à annuler la salle). */
+        boolean canCancel,
         UserRefView opponent,
         boolean initiatorPresent,
         boolean participantPresent,

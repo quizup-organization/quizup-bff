@@ -163,6 +163,7 @@ public class RoomViewService {
                 topic,
                 room.status(),
                 room.vsBot(),
+                viewerId.equals(room.initiatorId()),
                 opponentRef(opponentId, opponent),
                 room.initiatorPresent(),
                 room.participantPresent(),

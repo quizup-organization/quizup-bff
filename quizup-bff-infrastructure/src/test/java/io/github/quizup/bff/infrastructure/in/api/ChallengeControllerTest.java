@@ -55,7 +55,7 @@ class ChallengeControllerTest {
         MvcResult result = mockMvc.perform(post("/api/challenges")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"topicId":"topic-1","opponentId":"opponent-1"}
+                                {"topicId":"topic-1","opponentId":"opponent-1","gameId":"game-1"}
                                 """))
                 .andExpect(request().asyncStarted())
                 .andReturn();
@@ -63,6 +63,11 @@ class ChallengeControllerTest {
         mockMvc.perform(asyncDispatch(result))
                 .andExpect(status().isCreated())
                 .andExpect(header().string("Location", org.hamcrest.Matchers.endsWith("/api/challenges/challenge-1")));
+
+        org.mockito.ArgumentCaptor<CreateChallengeRequest> captor =
+                org.mockito.ArgumentCaptor.forClass(CreateChallengeRequest.class);
+        verify(challengeViewService).create(eq(USER_ID), captor.capture());
+        org.assertj.core.api.Assertions.assertThat(captor.getValue().gameId()).isEqualTo("game-1");
     }
 
     @Test
@@ -73,6 +78,7 @@ class ChallengeControllerTest {
                 new UserRefView("challenger-1", "Alice", null),
                 new UserRefView("opponent-1", "Bob", null),
                 ChallengeStatus.PENDING,
+                null,
                 null,
                 Instant.parse("2026-10-05T10:00:00Z"),
                 Instant.parse("2026-10-05T11:00:00Z"));
