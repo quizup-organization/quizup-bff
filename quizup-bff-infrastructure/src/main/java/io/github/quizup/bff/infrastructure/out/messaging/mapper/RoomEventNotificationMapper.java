@@ -30,6 +30,8 @@ public final class RoomEventNotificationMapper {
                     new RoomNotification.RoomAllPlayersPresentNotification(e.roomId()));
             case RoomEvent.RoomPlayersLoadedEvent e -> Optional.of(
                     new RoomNotification.RoomPlayersLoadedNotification(e.roomId()));
+            case RoomEvent.RoomPlayedQuestionsLoadedEvent e -> Optional.of(
+                    new RoomNotification.RoomPlayedQuestionsNotification(e.roomId()));
             case RoomEvent.RoomQuestionsLoadedEvent e -> Optional.of(
                     new RoomNotification.RoomQuestionsLoadedNotification(e.roomId()));
             case RoomEvent.RoomGameCreatedEvent e -> Optional.of(

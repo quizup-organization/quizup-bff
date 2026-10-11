@@ -15,6 +15,7 @@ import java.time.Instant;
         @JsonSubTypes.Type(value = RoomNotification.RoomEnteredNotification.class, name = "ROOM_ENTERED"),
         @JsonSubTypes.Type(value = RoomNotification.RoomAllPlayersPresentNotification.class, name = "ROOM_ALL_PRESENT"),
         @JsonSubTypes.Type(value = RoomNotification.RoomPlayersLoadedNotification.class, name = "ROOM_PLAYERS_LOADED"),
+        @JsonSubTypes.Type(value = RoomNotification.RoomPlayedQuestionsNotification.class, name = "ROOM_PLAYED_QUESTIONS_LOADED"),
         @JsonSubTypes.Type(value = RoomNotification.RoomQuestionsLoadedNotification.class, name = "ROOM_QUESTIONS_LOADED"),
         @JsonSubTypes.Type(value = RoomNotification.RoomGameCreatedNotification.class, name = "ROOM_GAME_CREATED"),
         @JsonSubTypes.Type(value = RoomNotification.RoomLeftNotification.class, name = "ROOM_LEFT"),
@@ -35,6 +36,7 @@ public interface RoomNotification {
         ROOM_ENTERED,
         ROOM_ALL_PRESENT,
         ROOM_PLAYERS_LOADED,
+        ROOM_PLAYED_QUESTIONS_LOADED,
         ROOM_QUESTIONS_LOADED,
         ROOM_GAME_CREATED,
         ROOM_LEFT,
@@ -85,6 +87,16 @@ public interface RoomNotification {
         @Override
         public RoomNotificationType type() {
             return RoomNotificationType.ROOM_PLAYERS_LOADED;
+        }
+    }
+
+    /** Historique des questions jouées résolu (avancement de la préparation). */
+    record RoomPlayedQuestionsNotification(
+            String roomId
+    ) implements RoomNotification {
+        @Override
+        public RoomNotificationType type() {
+            return RoomNotificationType.ROOM_PLAYED_QUESTIONS_LOADED;
         }
     }
 
