@@ -16,6 +16,7 @@ import java.time.Instant;
         @JsonSubTypes.Type(value = RoomNotification.RoomAllPlayersPresentNotification.class, name = "ROOM_ALL_PRESENT"),
         @JsonSubTypes.Type(value = RoomNotification.RoomPlayersLoadedNotification.class, name = "ROOM_PLAYERS_LOADED"),
         @JsonSubTypes.Type(value = RoomNotification.RoomQuestionsLoadedNotification.class, name = "ROOM_QUESTIONS_LOADED"),
+        @JsonSubTypes.Type(value = RoomNotification.RoomGameCreatedNotification.class, name = "ROOM_GAME_CREATED"),
         @JsonSubTypes.Type(value = RoomNotification.RoomLeftNotification.class, name = "ROOM_LEFT"),
         @JsonSubTypes.Type(value = RoomNotification.RoomCompletedNotification.class, name = "ROOM_COMPLETED"),
         @JsonSubTypes.Type(value = RoomNotification.RoomCancelledNotification.class, name = "ROOM_CANCELLED"),
@@ -35,6 +36,7 @@ public interface RoomNotification {
         ROOM_ALL_PRESENT,
         ROOM_PLAYERS_LOADED,
         ROOM_QUESTIONS_LOADED,
+        ROOM_GAME_CREATED,
         ROOM_LEFT,
         ROOM_COMPLETED,
         ROOM_CANCELLED,
@@ -86,13 +88,24 @@ public interface RoomNotification {
         }
     }
 
-    /** Questions tirées : fin de préparation, la partie est créée immédiatement. */
+    /** Questions tirées : la saga lance la création de la partie. */
     record RoomQuestionsLoadedNotification(
             String roomId
     ) implements RoomNotification {
         @Override
         public RoomNotificationType type() {
             return RoomNotificationType.ROOM_QUESTIONS_LOADED;
+        }
+    }
+
+    /** Le service game a accusé la création : le {@code gameId} est le deep link de l'arène. */
+    record RoomGameCreatedNotification(
+            String roomId,
+            String gameId
+    ) implements RoomNotification {
+        @Override
+        public RoomNotificationType type() {
+            return RoomNotificationType.ROOM_GAME_CREATED;
         }
     }
 
