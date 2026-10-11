@@ -32,7 +32,7 @@ class GameViewServiceTest {
     private final QueryGateway queryGateway = mock(QueryGateway.class);
     private final ProfileLookup profileLookup = mock(ProfileLookup.class);
     private final GameViewService service =
-            new GameViewService(commandGateway, queryGateway, profileLookup, mock(GameQuestionDrawer.class));
+            new GameViewService(commandGateway, queryGateway, profileLookup);
 
     @Test
     void result_derives_victory_bonus_from_game_xp() {

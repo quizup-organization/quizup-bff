@@ -11,7 +11,7 @@ public record MatchmakingTicketView(
         String ticketId,
         String topicId,
         MatchmakingStatus status,
-        String gameId,
+        String roomId,
         String opponentId,
         boolean vsBot,
         Instant createdAt,

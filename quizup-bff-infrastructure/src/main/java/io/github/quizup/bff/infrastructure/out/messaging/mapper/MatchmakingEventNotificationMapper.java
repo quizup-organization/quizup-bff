@@ -25,7 +25,7 @@ public final class MatchmakingEventNotificationMapper {
                     new MatchmakingNotification.SearchingNotification(e.matchmakingId(), e.topicId()));
             case MatchmakingEvent.MatchmakingMatchedEvent e -> Optional.of(
                     new MatchmakingNotification.MatchedNotification(
-                            e.matchmakingId(), e.gameId(), e.opponentId(), e.vsBot()));
+                            e.matchmakingId(), e.roomId(), e.opponentId(), e.vsBot()));
             case MatchmakingEvent.MatchmakingCancelledEvent e -> Optional.of(
                     new MatchmakingNotification.CancelledNotification(e.matchmakingId()));
             case MatchmakingEvent.MatchmakingFailedEvent e -> Optional.of(

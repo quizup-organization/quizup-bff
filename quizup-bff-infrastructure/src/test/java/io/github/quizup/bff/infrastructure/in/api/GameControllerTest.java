@@ -2,7 +2,6 @@ package io.github.quizup.bff.infrastructure.in.api;
 
 import io.github.quizup.bff.application.GameViewService;
 import io.github.quizup.bff.infrastructure.in.api.problem.BffProblemExceptionHandler;
-import io.github.quizup.bff.infrastructure.in.api.request.CreateGameRequest;
 import io.github.quizup.bff.infrastructure.in.api.response.ActiveGameView;
 import io.github.quizup.bff.infrastructure.in.api.response.GameResultView;
 import io.github.quizup.bff.infrastructure.in.api.response.TopicRefView;
@@ -29,7 +28,6 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.asyncDispatch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -53,25 +51,6 @@ class GameControllerTest {
     @AfterEach
     void tearDown() {
         TestSecurity.clear();
-    }
-
-    @Test
-    void create_bot_game_returns_created_with_location() throws Exception {
-        when(gameViewService.createBotGame(org.mockito.ArgumentMatchers.eq(USER_ID),
-                org.mockito.ArgumentMatchers.any(CreateGameRequest.class)))
-                .thenReturn(CompletableFuture.completedFuture("game-1"));
-
-        MvcResult result = mockMvc.perform(post("/api/games")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {"topicId":"topic-1"}
-                                """))
-                .andExpect(request().asyncStarted())
-                .andReturn();
-
-        mockMvc.perform(asyncDispatch(result))
-                .andExpect(status().isCreated())
-                .andExpect(header().string("Location", org.hamcrest.Matchers.endsWith("/api/games/game-1")));
     }
 
     @Test

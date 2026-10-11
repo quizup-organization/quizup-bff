@@ -41,7 +41,7 @@ public interface MatchmakingNotification {
 
     record MatchedNotification(
             String ticketId,
-            String gameId,
+            String roomId,
             String opponentId,
             boolean vsBot
     ) implements MatchmakingNotification {

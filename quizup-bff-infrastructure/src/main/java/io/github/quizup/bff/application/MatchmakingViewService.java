@@ -92,7 +92,7 @@ public class MatchmakingViewService {
                 matchmaking.matchmakingId(),
                 matchmaking.topicId(),
                 matchmaking.status(),
-                matchmaking.gameId(),
+                matchmaking.roomId(),
                 matchmaking.opponentId(),
                 matchmaking.vsBot(),
                 matchmaking.createdAt(),

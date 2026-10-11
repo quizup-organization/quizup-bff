@@ -14,7 +14,7 @@
 - Compose les lectures via le **query bus** Axon (`QueryGateway`) et les écritures via le
   **command bus** (`CommandGateway`).
 - Consomme le **flux d'événements Kafka** (`@ProcessingGroup`) et **fan-out** les notifications
-  vers un socket client unique (`/topic/games/{id}`, `/topic/lobbies/{id}`,
+  vers un socket client unique (`/topic/games/{id}`, `/topic/rooms/{id}`,
   `/topic/notifications/{userId}`, `/topic/presence/{userId}`).
 - Porte la **présence joueur** (sessions STOMP client → `quizup-profile`) : chaque instance BFF a
   un identifiant stable (`application:host`), purge au démarrage ses sessions antérieures, renouvelle
@@ -153,15 +153,15 @@ question ne connaît pas le créateur du sujet) et répondent `403` `PERMISSION`
 
 | Endpoint | Réponse | Notes |
 |---|---|---|
-| `POST /api/matchmaking/tickets` | `201 + Location` | Body `{ topicId }` — lance la recherche ; 5 s sans adversaire → partie bot |
-| `GET /api/matchmaking/tickets/{ticketId}` | `MatchmakingTicketView` | Statut `SEARCHING\|MATCHED\|CANCELLED\|FAILED`, `gameId`, `opponentId`, `vsBot` |
+| `POST /api/matchmaking/tickets` | `201 + Location` | Body `{ topicId }` — lance la recherche ; l'appariement crée une **salle** (nominative ou bot), jamais la partie |
+| `GET /api/matchmaking/tickets/{ticketId}` | `MatchmakingTicketView` | Statut `SEARCHING\|COMPLETED\|CANCELLED\|FAILED`, `roomId`, `opponentId`, `vsBot` |
 | `POST /api/matchmaking/tickets/{ticketId}/cancel` | `200` | Annule la recherche |
 | `GET /api/matchmaking/tickets/{ticketId}/notifications` | `List<EventEnvelopeResponse>` (payload `MatchmakingNotification`) | Même contrat que le push WS |
 
 ### Défis nominatifs (matchmaking)
 
 Intention **asynchrone** (TTL 1 h) distincte de la salle temps réel : l'acceptation crée la salle
-(saga matchmaking) qui porte présence, compte à rebours et partie.
+(saga matchmaking) qui porte présence, préparation (statuts) et création de la partie.
 
 | Endpoint | Réponse | Notes |
 |---|---|---|
@@ -177,15 +177,17 @@ Intention **asynchrone** (TTL 1 h) distincte de la salle temps réel : l'accepta
 | Endpoint | Réponse | Notes |
 |---|---|---|
 | `POST /api/rooms` | `201 + Location` | Body `{ topicId }` — **salle partagée** par lien `/join/{roomId}` ; le défi nominatif passe par `POST /api/challenges` |
-| `GET /api/rooms/mine` | `List<RoomView>` | Salles `CREATED` du joueur (initiateur **ou** invité) — filet de reprise |
-| `GET /api/rooms/{roomId}` | `RoomView` | Sujet, statut, `phase` (`WAITING_PARTICIPANT\|WAITING_PRESENCE\|READY\|COMPLETED\|CLOSED\|FAILED`), adversaire, présences, `readyDeadlineAt`, `gameId` |
-| `POST /api/rooms/{roomId}/join` | `200` | **Apparition** (idempotente) : présence et, pour le second humain, enregistrement du participant ; nominatif : invité uniquement (403 sinon). Émise par le client quand l'utilisateur est dans la salle ; quand les deux sont là, compte à rebours de 3 s puis création de la partie |
-| `POST /api/rooms/{roomId}/leave` | `200` | Sortie **non destructive** (idempotente) : la salle reste ouverte, retour possible ; seul `cancel` (initiateur) ferme la salle |
-| `POST /api/rooms/{roomId}/cancel` | `200` | Annulation par l'initiateur |
+| `POST /api/rooms/bot` | `201 + Location` | Body `{ topicId, difficulty? }` — **salle bot** : le bot rejoint la salle automatiquement, l'humain y apparaît ensuite |
+| `GET /api/rooms/mine` | `List<RoomView>` | Salles `WAITING_PLAYERS` du joueur (initiateur **ou** invité) — filet de reprise |
+| `GET /api/rooms/{roomId}` | `RoomView` | Sujet, `status` (`WAITING_PLAYERS\|FETCHING_PLAYERS\|FETCHING_QUESTIONS\|CREATING_GAME\|COMPLETED\|CANCELLED\|EXPIRED\|FAILED`), `vsBot`, adversaire, présences, `readyDeadlineAt`, `gameId` |
+| `POST /api/rooms/{roomId}/join` | `200` | **Apparition** (idempotente) : présence et, pour le second joueur, enregistrement du participant ; nominatif : invité uniquement (403 sinon). Émise par le client quand l'utilisateur est dans la salle ; quand les deux sont là, la salle prépare la partie (profils → questions) pendant le compte à rebours de 3 s puis la crée |
+| `POST /api/rooms/{roomId}/leave` | `200` | Sortie **non destructive** (idempotente) tant que la préparation n'est pas engagée ; refusée (400) dès que les deux joueurs sont présents — seul `cancel` ferme la salle |
+| `POST /api/rooms/{roomId}/cancel` | `200` | Annulation par l'initiateur, possible tant que la salle n'est pas terminale |
 | `GET /api/rooms/{roomId}/notifications` | `List<EventEnvelopeResponse>` (payload `RoomNotification`) | Même contrat que le push WS |
 
-> Un état terminal (`CLOSED`/`FAILED`) est conservé le temps de la rétention (2 min) puis purgé :
-> les commandes tardives répondent 404 (pré-vérification BFF) ou un `Problem` métier, jamais un 500.
+> Un état terminal (`COMPLETED`/`CANCELLED`/`EXPIRED`/`FAILED`) est conservé le temps de la rétention (2 min)
+> puis purgé : les commandes tardives répondent 404 (pré-vérification BFF) ou un `Problem` métier,
+> jamais un 500.
 
 ### Notifications personnelles (quizup-notification)
 
@@ -220,9 +222,12 @@ invitations d'un même défi/salon. Configuration `quizup.push.vapid.*`
 
 ### Duel (game)
 
+> La **création** d'une partie (bot compris) passe exclusivement par la salle
+> (`POST /api/rooms` ou `POST /api/rooms/bot`) : la salle est l'unique point d'entrée de
+> préparation.
+
 | Endpoint | Réponse | Notes |
 |---|---|---|
-| `POST /api/games` | `201 + Location` | Body `{ topicId, difficulty? }` — duel contre un bot uniquement |
 | `GET /api/games?active=true` | `List<ActiveGameView>` | Parties en cours du joueur (`IN_PROGRESS`), plus récentes d'abord ; collection **vide** si aucune (jamais de 404). Seul `active=true` est exposé (l'historique vit sous `/api/profiles/{id}/games`) |
 | `POST /api/games/{gameId}/answer` | `200` | Body `{ choice }` |
 | `POST /api/games/{gameId}/abandon` | `200` | Forfait en cours (`ForfeitGameCommand`) — l'adversaire gagne |
@@ -242,7 +247,7 @@ déclenche la déconnexion de session côté présence.
 | Destination | Payload |
 |---|---|
 | `/topic/games/{gameId}` | `EventEnvelopeResponse` (payload `GameNotification`) (`GAME_CREATED`, `GAME_STARTED`, `ROUND_STARTED`, `QUESTION_REVEALED`, `PLAYER_ANSWERED`, `ROUND_CLOSED`, `GAME_FORFEITED`, `GAME_ENDED`, `GAME_CANCELLED`) |
-| `/topic/rooms/{roomId}` | `EventEnvelopeResponse` (payload `RoomNotification`) (`ROOM_CREATED`, `ROOM_ENTERED`, `ROOM_ALL_PRESENT`, `ROOM_LEFT`, `ROOM_COMPLETED`, `ROOM_CANCELLED`, `ROOM_EXPIRED`, `ROOM_FAILED`) |
+| `/topic/rooms/{roomId}` | `EventEnvelopeResponse` (payload `RoomNotification`) (`ROOM_CREATED`, `ROOM_ENTERED`, `ROOM_ALL_PRESENT`, `ROOM_PLAYERS_LOADED`, `ROOM_QUESTIONS_LOADED`, `ROOM_LEFT`, `ROOM_COMPLETED`, `ROOM_CANCELLED`, `ROOM_EXPIRED`, `ROOM_FAILED`) |
 | `/topic/matchmaking/tickets/{ticketId}` | `EventEnvelopeResponse` (payload `MatchmakingNotification`) (`SEARCHING`, `MATCHED`, `CANCELLED`, `FAILED`) |
 | `/topic/notifications/{userId}` | `EventEnvelopeResponse` (payload `NotificationView`) — inbox personnelle (invitations de défi, follows) ; suppression poussée sous `NOTIFICATION_DELETED` (payload `{ notificationId }`) |
 | `/topic/presence/{userId}` | `PresenceView` — **exception assumée** : événements de session non séquencés, pas d'enveloppe |

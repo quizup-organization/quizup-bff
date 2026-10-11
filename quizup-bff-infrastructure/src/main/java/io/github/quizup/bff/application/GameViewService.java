@@ -1,24 +1,17 @@
 package io.github.quizup.bff.application;
 
-import io.github.quizup.bff.infrastructure.in.api.request.CreateGameRequest;
 import io.github.quizup.bff.infrastructure.in.api.response.ActiveGameView;
 import io.github.quizup.bff.infrastructure.in.api.response.GameResultView;
 import io.github.quizup.bff.infrastructure.in.api.response.TopicRefView;
 import io.github.quizup.bff.infrastructure.in.api.response.UserRefView;
 import io.github.quizup.game.domain.command.GameCommand;
-import io.github.quizup.game.domain.model.BotDifficulty;
 import io.github.quizup.game.domain.model.Game;
 import io.github.quizup.game.domain.model.GamePlayerType;
-import io.github.quizup.game.domain.model.GameQuestion;
 import io.github.quizup.game.domain.model.GameQuestionChoice;
 import io.github.quizup.game.domain.model.GameResult;
-import io.github.quizup.game.domain.model.PlayerProgressSnapshot;
 import io.github.quizup.game.domain.query.GameQuery;
-import io.github.quizup.microservice.core.domain.constant.QuizUpConstants;
-import io.github.quizup.microservice.core.domain.model.i18n.Language;
 import io.github.quizup.microservice.core.infrastructure.axon.QueryResponseTypes;
 import io.github.quizup.profile.domain.model.GameXp;
-import io.github.quizup.profile.domain.model.PlayerProgress;
 import io.github.quizup.profile.domain.model.ProgressionRules;
 import io.github.quizup.profile.domain.model.Profile;
 import io.github.quizup.profile.domain.query.ProgressionQuery;
@@ -33,15 +26,13 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
- * Duel : écritures (création bot, réponse, abandon, annulation) et parties en cours du joueur
- * (reprise depuis l'accueil).
+ * Duel : écritures (réponse, abandon, annulation) et parties en cours du joueur (reprise depuis
+ * l'accueil). La création d'une partie (bot ou humain) passe exclusivement par la salle.
  */
 @Service
 public class GameViewService {
@@ -49,16 +40,13 @@ public class GameViewService {
     private final CommandGateway commandGateway;
     private final QueryGateway queryGateway;
     private final ProfileLookup profileLookup;
-    private final GameQuestionDrawer gameQuestionDrawer;
 
     public GameViewService(CommandGateway commandGateway,
                            QueryGateway queryGateway,
-                           ProfileLookup profileLookup,
-                           GameQuestionDrawer gameQuestionDrawer) {
+                           ProfileLookup profileLookup) {
         this.commandGateway = commandGateway;
         this.queryGateway = queryGateway;
         this.profileLookup = profileLookup;
-        this.gameQuestionDrawer = gameQuestionDrawer;
     }
 
     /**
@@ -121,37 +109,6 @@ public class GameViewService {
             return null;
         }
         return userId.equals(game.player1Id()) ? game.player2Id() : game.player1Id();
-    }
-
-    public CompletableFuture<String> createBotGame(String playerId, CreateGameRequest request) {
-        CompletableFuture<Profile> profileFuture = profileLookup.get(playerId);
-        CompletableFuture<PlayerProgress> progressFuture = queryGateway.query(
-                new ProgressionQuery.GetProgressionQuery(playerId),
-                QueryResponseTypes.instanceOf(PlayerProgress.class));
-        // Les questions sont tirées en parallèle du profil/progress : la commande part complète,
-        // l'agrégat game ne fait plus aucun appel inter-service.
-        CompletableFuture<List<GameQuestion>> questionsFuture = profileFuture.thenCompose(player ->
-                gameQuestionDrawer.draw(request.topicId(), Set.of(player.language())));
-
-        return CompletableFuture.allOf(profileFuture, progressFuture, questionsFuture)
-                .thenApply(_ -> {
-                    Profile player = profileFuture.join();
-                    PlayerProgress progress = progressFuture.join();
-                    BotDifficulty difficulty = BotDifficulty.fromOrDefault(request.difficulty());
-                    return new GameCommand.CreateGameCommand(
-                            UUID.randomUUID().toString(),
-                            request.topicId(),
-                            player.userId(),
-                            player.pseudonym(),
-                            QuizUpConstants.SYSTEM_USER_ID,
-                            QuizUpConstants.SYSTEM_USER_NAME,
-                            GamePlayerType.BOT,
-                            difficulty,
-                            new PlayerProgressSnapshot(progress.level(), progress.xpTotal()),
-                            PlayerProgressSnapshot.forBot(difficulty),
-                            questionsFuture.join());
-                })
-                .thenCompose(command -> commandGateway.send(command).thenApply(_ -> command.gameId()));
     }
 
     public CompletableFuture<Void> answer(String gameId, String playerId, GameQuestionChoice choice) {

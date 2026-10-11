@@ -14,6 +14,8 @@ import java.time.Instant;
         @JsonSubTypes.Type(value = RoomNotification.RoomCreatedNotification.class, name = "ROOM_CREATED"),
         @JsonSubTypes.Type(value = RoomNotification.RoomEnteredNotification.class, name = "ROOM_ENTERED"),
         @JsonSubTypes.Type(value = RoomNotification.RoomAllPlayersPresentNotification.class, name = "ROOM_ALL_PRESENT"),
+        @JsonSubTypes.Type(value = RoomNotification.RoomPlayersLoadedNotification.class, name = "ROOM_PLAYERS_LOADED"),
+        @JsonSubTypes.Type(value = RoomNotification.RoomQuestionsLoadedNotification.class, name = "ROOM_QUESTIONS_LOADED"),
         @JsonSubTypes.Type(value = RoomNotification.RoomLeftNotification.class, name = "ROOM_LEFT"),
         @JsonSubTypes.Type(value = RoomNotification.RoomCompletedNotification.class, name = "ROOM_COMPLETED"),
         @JsonSubTypes.Type(value = RoomNotification.RoomCancelledNotification.class, name = "ROOM_CANCELLED"),
@@ -31,6 +33,8 @@ public interface RoomNotification {
         ROOM_CREATED,
         ROOM_ENTERED,
         ROOM_ALL_PRESENT,
+        ROOM_PLAYERS_LOADED,
+        ROOM_QUESTIONS_LOADED,
         ROOM_LEFT,
         ROOM_COMPLETED,
         ROOM_CANCELLED,
@@ -43,6 +47,7 @@ public interface RoomNotification {
             String topicId,
             String initiatorId,
             String opponentId,
+            boolean vsBot,
             Instant expiresAt
     ) implements RoomNotification {
         @Override
@@ -69,6 +74,26 @@ public interface RoomNotification {
         @Override
         public RoomNotificationType type() {
             return RoomNotificationType.ROOM_ALL_PRESENT;
+        }
+    }
+
+    /** Profils des joueurs résolus (avancement de la préparation). */
+    record RoomPlayersLoadedNotification(
+            String roomId
+    ) implements RoomNotification {
+        @Override
+        public RoomNotificationType type() {
+            return RoomNotificationType.ROOM_PLAYERS_LOADED;
+        }
+    }
+
+    /** Questions tirées (avancement de la préparation). */
+    record RoomQuestionsLoadedNotification(
+            String roomId
+    ) implements RoomNotification {
+        @Override
+        public RoomNotificationType type() {
+            return RoomNotificationType.ROOM_QUESTIONS_LOADED;
         }
     }
 

@@ -1,6 +1,7 @@
 package io.github.quizup.bff.infrastructure.in.api;
 
 import io.github.quizup.bff.application.RoomViewService;
+import io.github.quizup.bff.infrastructure.in.api.request.CreateBotRoomRequest;
 import io.github.quizup.bff.infrastructure.in.api.request.CreateRoomRequest;
 import io.github.quizup.bff.infrastructure.in.api.response.EventEnvelopeResponse;
 import io.github.quizup.bff.infrastructure.in.api.response.RoomView;
@@ -48,6 +49,14 @@ public class RoomController {
     public CompletableFuture<ResponseEntity<IdResponse>> create(@Valid @RequestBody CreateRoomRequest request) {
         return roomViewService
                 .create(SecurityHelper.getUserId(), request)
+                .thenApply(roomId -> ResponseEntityBuilder.creation(ENDPOINT, roomId));
+    }
+
+    /** Salle contre le bot : le bot est joint automatiquement par la saga, l'humain apparaît ensuite. */
+    @PostMapping("/bot")
+    public CompletableFuture<ResponseEntity<IdResponse>> createBot(@Valid @RequestBody CreateBotRoomRequest request) {
+        return roomViewService
+                .createBot(SecurityHelper.getUserId(), request)
                 .thenApply(roomId -> ResponseEntityBuilder.creation(ENDPOINT, roomId));
     }
 

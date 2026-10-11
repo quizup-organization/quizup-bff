@@ -3,7 +3,6 @@ package io.github.quizup.bff.infrastructure.in.api;
 import io.github.quizup.bff.application.GameViewService;
 import io.github.quizup.bff.infrastructure.in.api.problem.BffProblems;
 import io.github.quizup.bff.infrastructure.in.api.request.AnswerQuestionRequest;
-import io.github.quizup.bff.infrastructure.in.api.request.CreateGameRequest;
 import io.github.quizup.bff.infrastructure.in.api.response.ActiveGameView;
 import io.github.quizup.bff.infrastructure.in.api.response.EventEnvelopeResponse;
 import io.github.quizup.bff.infrastructure.in.api.response.GameResultView;
@@ -12,8 +11,6 @@ import io.github.quizup.game.domain.event.GameEvent;
 import io.github.quizup.game.domain.query.GameQuery;
 import io.github.quizup.microservice.core.domain.model.notification.EventEnvelope;
 import io.github.quizup.microservice.core.infrastructure.axon.QueryResponseTypes;
-import io.github.quizup.microservice.core.infrastructure.in.api.ResponseEntityBuilder;
-import io.github.quizup.microservice.core.infrastructure.in.api.response.IdResponse;
 import io.github.quizup.microservice.security.SecurityHelper;
 import jakarta.validation.Valid;
 import org.axonframework.queryhandling.QueryGateway;
@@ -31,13 +28,12 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * {@code /api/games} — arène : création, réponse, abandon, historique de notifications.
+ * {@code /api/games} — arène : réponse, abandon, historique de notifications. La création d'une
+ * partie passe par la salle ({@code POST /api/rooms} ou {@code POST /api/rooms/bot}).
  */
 @RestController
 @RequestMapping("/api/games")
 public class GameController {
-
-    private static final String ENDPOINT = "/api/games";
 
     private final GameViewService gameViewService;
     private final QueryGateway queryGateway;
@@ -45,13 +41,6 @@ public class GameController {
     public GameController(GameViewService gameViewService, QueryGateway queryGateway) {
         this.gameViewService = gameViewService;
         this.queryGateway = queryGateway;
-    }
-
-    @PostMapping
-    public CompletableFuture<ResponseEntity<IdResponse>> create(@Valid @RequestBody CreateGameRequest request) {
-        return gameViewService
-                .createBotGame(SecurityHelper.getUserId(), request)
-                .thenApply(gameId -> ResponseEntityBuilder.creation(ENDPOINT, gameId));
     }
 
     /**

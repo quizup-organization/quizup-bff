@@ -1,6 +1,7 @@
 package io.github.quizup.bff.infrastructure.in.api;
 
 import io.github.quizup.bff.application.RoomViewService;
+import io.github.quizup.bff.infrastructure.in.api.request.CreateBotRoomRequest;
 import io.github.quizup.bff.infrastructure.in.api.request.CreateRoomRequest;
 import org.axonframework.queryhandling.QueryGateway;
 import org.junit.jupiter.api.AfterEach;
@@ -52,6 +53,24 @@ class RoomControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"topicId":"topic-1"}
+                                """))
+                .andExpect(request().asyncStarted())
+                .andReturn();
+
+        mockMvc.perform(asyncDispatch(result))
+                .andExpect(status().isCreated())
+                .andExpect(header().string("Location", org.hamcrest.Matchers.endsWith("/api/rooms/room-1")));
+    }
+
+    @Test
+    void create_bot_room_returns_created_with_location() throws Exception {
+        when(roomViewService.createBot(eq(USER_ID), any(CreateBotRoomRequest.class)))
+                .thenReturn(CompletableFuture.completedFuture("room-1"));
+
+        MvcResult result = mockMvc.perform(post("/api/rooms/bot")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"topicId":"topic-1","difficulty":"HARD"}
                                 """))
                 .andExpect(request().asyncStarted())
                 .andReturn();

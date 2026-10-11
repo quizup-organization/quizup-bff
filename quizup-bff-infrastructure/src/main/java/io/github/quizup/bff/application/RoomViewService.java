@@ -1,14 +1,15 @@
 package io.github.quizup.bff.application;
 
+import io.github.quizup.bff.infrastructure.in.api.request.CreateBotRoomRequest;
 import io.github.quizup.bff.infrastructure.in.api.request.CreateRoomRequest;
-import io.github.quizup.bff.infrastructure.in.api.response.RoomPhase;
 import io.github.quizup.bff.infrastructure.in.api.response.RoomView;
 import io.github.quizup.bff.infrastructure.in.api.response.TopicRefView;
 import io.github.quizup.bff.infrastructure.in.api.response.UserRefView;
+import io.github.quizup.game.domain.model.BotDifficulty;
 import io.github.quizup.matchmaking.domain.command.RoomCommand;
 import io.github.quizup.matchmaking.domain.model.Room;
-import io.github.quizup.matchmaking.domain.model.RoomStatus;
 import io.github.quizup.matchmaking.domain.query.RoomQuery;
+import io.github.quizup.microservice.core.domain.constant.QuizUpConstants;
 import io.github.quizup.microservice.core.infrastructure.axon.QueryResponseTypes;
 import io.github.quizup.profile.domain.model.Profile;
 import io.github.quizup.theme.domain.model.Topic;
@@ -26,8 +27,8 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
- * Salle (salle d'attente temps réel) : création, consultation, apparition, annulation.
- * Le lien de partage se compose côté client via {@code /join/{roomId}}.
+ * Salle (salle d'attente temps réel) : création (partagée ou contre le bot), consultation,
+ * apparition, annulation. Le lien de partage se compose côté client via {@code /join/{roomId}}.
  */
 @Service
 public class RoomViewService {
@@ -51,7 +52,20 @@ public class RoomViewService {
     public CompletableFuture<String> create(String playerId, CreateRoomRequest request) {
         String roomId = UUID.randomUUID().toString();
         return commandGateway
-                .send(new RoomCommand.CreateRoomCommand(roomId, request.topicId(), playerId, null))
+                .send(new RoomCommand.CreateRoomCommand(roomId, request.topicId(), playerId, null, false, null))
+                .thenApply(_ -> roomId);
+    }
+
+    /**
+     * Ouvre une salle contre le bot : le second joueur est le bot, joint automatiquement par la
+     * saga salle (l'humain apparaît ensuite côté client).
+     */
+    public CompletableFuture<String> createBot(String playerId, CreateBotRoomRequest request) {
+        String roomId = UUID.randomUUID().toString();
+        BotDifficulty difficulty = BotDifficulty.fromOrDefault(request.difficulty());
+        return commandGateway
+                .send(new RoomCommand.CreateRoomCommand(
+                        roomId, request.topicId(), playerId, QuizUpConstants.SYSTEM_USER_ID, true, difficulty.name()))
                 .thenApply(_ -> roomId);
     }
 
@@ -112,7 +126,7 @@ public class RoomViewService {
         List<String> topicIds = rooms.stream().map(Room::topicId).distinct().toList();
         List<String> opponentIds = rooms.stream()
                 .map(room -> opponentIdOf(viewerId, room))
-                .filter(id -> id != null)
+                .filter(id -> id != null && !QuizUpConstants.SYSTEM_USER_ID.equals(id))
                 .distinct()
                 .toList();
 
@@ -143,16 +157,13 @@ public class RoomViewService {
         String opponentId = opponentIdOf(viewerId, room);
         Profile opponent = opponentId == null ? null : profileById.get(opponentId);
         TopicRefView topic = TopicViews.toRef(room.topicId(), topicById.get(room.topicId()));
-        UserRefView opponentRef = opponent == null
-                ? null
-                : new UserRefView(opponent.userId(), opponent.pseudonym(), opponent.avatarOptions());
 
         return new RoomView(
                 room.roomId(),
                 topic,
                 room.status(),
-                phaseOf(room),
-                opponentRef,
+                room.vsBot(),
+                opponentRef(opponentId, opponent),
                 room.initiatorPresent(),
                 room.participantPresent(),
                 room.readyDeadlineAt(),
@@ -162,23 +173,15 @@ public class RoomViewService {
                 room.updatedAt());
     }
 
-    /** Phase affichable de la salle, dérivée du cycle de vie et des présences. */
-    private static RoomPhase phaseOf(Room room) {
-        if (room.status() == RoomStatus.FAILED) {
-            return RoomPhase.FAILED;
+    /** Le bot n'a pas de profil : référence synthétique stable (nom système, sans avatar). */
+    private static UserRefView opponentRef(String opponentId, Profile opponent) {
+        if (opponent != null) {
+            return new UserRefView(opponent.userId(), opponent.pseudonym(), opponent.avatarOptions());
         }
-        if (room.gameId() != null) {
-            return RoomPhase.COMPLETED;
+        if (QuizUpConstants.SYSTEM_USER_ID.equals(opponentId)) {
+            return new UserRefView(QuizUpConstants.SYSTEM_USER_ID, QuizUpConstants.SYSTEM_USER_NAME, null);
         }
-        if (room.status() == RoomStatus.CLOSED) {
-            return RoomPhase.CLOSED;
-        }
-        if (room.allPresentAt() != null) {
-            return RoomPhase.READY;
-        }
-        return room.participantId() == null
-                ? RoomPhase.WAITING_PARTICIPANT
-                : RoomPhase.WAITING_PRESENCE;
+        return null;
     }
 
     /**
