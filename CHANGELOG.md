@@ -1,3 +1,9 @@
+## [11.1.0](https://github.com/quizup-organization/quizup-bff/compare/v11.0.1...v11.1.0) (2026-10-11)
+
+### Features
+
+* **bff:** fan-out temps réel multi-réplique (groupes instance-scopés, Web Push global) ([f76d48a](https://github.com/quizup-organization/quizup-bff/commit/f76d48a4f5b47012efe73834497ce046f9d17854))
+
 ## [11.0.1](https://github.com/quizup-organization/quizup-bff/compare/v11.0.0...v11.0.1) (2026-10-11)
 
 ### Bug Fixes
