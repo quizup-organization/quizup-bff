@@ -72,7 +72,10 @@ Le `quizup-mobile` n'est **pas** branché sur cette surface (migration dédiée 
 - **Session périmée** : un JWT encore valide dont le `user_id` n'existe plus dans identity (base
   purgée, compte supprimé) est rejeté en `401` par `CurrentUserExistsFilter` sur `/api/**` —
   le client purge sa session et repasse par le login. Existence résolue via
-  `UserExistsByIdQuery` (cache court 30 s) ; identity injoignable ⇒ fail-open.
+  `UserExistsByIdQuery` (cache court 30 s) ; identity injoignable ⇒ fail-open. La réponse 401
+  porte les **en-têtes CORS** de la configuration du service (le filtre court-circuite avant le
+  `CorsFilter` servlet, même ordre par défaut) : sans eux le navigateur masque le 401 et le
+  client web ne peut pas purger sa session.
 - **Entrées** : `@Valid`, enums stricts, `ProblemDetail` en erreur. Aucun parsing permissif,
   aucune valeur par défaut inventée (`level=1`, `OFFLINE` fabriqué…).
 - **Composition asynchrone** : combiner les `QueryGateway.query()` (pas de `.join()` bloquant

@@ -2,11 +2,13 @@ package io.github.quizup.bff.infrastructure.in.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.quizup.bff.application.IdentityLookup;
+import io.github.quizup.microservice.MicroserviceProperties;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpHeaders;
 import org.springframework.mock.web.MockFilterChain;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -14,6 +16,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -31,7 +34,16 @@ class CurrentUserExistsFilterTest {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     private CurrentUserExistsFilter filter() {
-        return new CurrentUserExistsFilter(identityLookup, objectMapper);
+        return new CurrentUserExistsFilter(identityLookup, objectMapper, corsProperties());
+    }
+
+    private static MicroserviceProperties corsProperties() {
+        return new MicroserviceProperties(
+                new MicroserviceProperties.Cors(
+                        true, List.of("*"),
+                        List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"),
+                        List.of("*"), List.of(), true, 3600L),
+                null, null, null, null, null);
     }
 
     @AfterEach
@@ -70,6 +82,7 @@ class CurrentUserExistsFilterTest {
         authenticate("ghost");
         when(identityLookup.exists("ghost")).thenReturn(CompletableFuture.completedFuture(false));
         MockHttpServletRequest request = request("/api/matchmaking/tickets");
+        request.addHeader(HttpHeaders.ORIGIN, "https://app.quizup.cnadjim.fr");
         MockHttpServletResponse response = new MockHttpServletResponse();
         MockFilterChain chain = new MockFilterChain();
 
@@ -78,8 +91,25 @@ class CurrentUserExistsFilterTest {
         assertEquals(401, response.getStatus());
         assertTrue(response.getContentType().startsWith("application/problem+json"));
         assertTrue(response.getContentAsString().contains("urn:quizup:authentification:unknownUser"));
+        // Sans ces en-têtes, le navigateur masque le 401 : le web ne peut pas purger sa session.
+        assertEquals("https://app.quizup.cnadjim.fr",
+                response.getHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN));
+        assertEquals("true", response.getHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_CREDENTIALS));
         assertNull(chain.getRequest());
         assertNull(SecurityContextHolder.getContext().getAuthentication());
+    }
+
+    @Test
+    void rejectsWithoutCorsHeadersWhenNotACorsRequest() throws Exception {
+        authenticate("ghost");
+        when(identityLookup.exists("ghost")).thenReturn(CompletableFuture.completedFuture(false));
+        MockHttpServletRequest request = request("/api/me");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        filter().doFilter(request, response, new MockFilterChain());
+
+        assertEquals(401, response.getStatus());
+        assertNull(response.getHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN));
     }
 
     @Test

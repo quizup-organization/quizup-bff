@@ -2,6 +2,7 @@ package io.github.quizup.bff.infrastructure.in.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.quizup.bff.application.IdentityLookup;
+import io.github.quizup.microservice.MicroserviceProperties;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -14,6 +15,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.stereotype.Component;
+import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
@@ -31,6 +33,11 @@ import java.util.concurrent.TimeoutException;
  * <p>
  * Fail-open : si identity est injoignable, le jeton reste la preuve d'authentification et la
  * requête passe (la disponibilité prime sur le nettoyage des sessions périmées).
+ * <p>
+ * La réponse 401 porte les en-têtes CORS de la configuration du service : le filtre
+ * court-circuite **avant** le {@code CorsFilter} servlet (même ordre par défaut), et sans eux
+ * le navigateur masque la réponse — le web ne verrait jamais le 401 et ne purgerait pas la
+ * session (écran figé jusqu'à l'expiration de l'access token).
  */
 @Component
 public class CurrentUserExistsFilter extends OncePerRequestFilter {
@@ -42,10 +49,27 @@ public class CurrentUserExistsFilter extends OncePerRequestFilter {
 
     private final IdentityLookup identityLookup;
     private final ObjectMapper objectMapper;
+    private final CorsConfiguration corsConfiguration;
 
-    public CurrentUserExistsFilter(IdentityLookup identityLookup, ObjectMapper objectMapper) {
+    public CurrentUserExistsFilter(IdentityLookup identityLookup,
+                                   ObjectMapper objectMapper,
+                                   MicroserviceProperties properties) {
         this.identityLookup = identityLookup;
         this.objectMapper = objectMapper;
+        this.corsConfiguration = corsConfiguration(properties);
+    }
+
+    /** Mêmes origines/credentials que {@code CorsAutoConfiguration} du SDK (source des headers). */
+    private static CorsConfiguration corsConfiguration(MicroserviceProperties properties) {
+        MicroserviceProperties.Cors cors = properties.cors();
+        CorsConfiguration configuration = new CorsConfiguration();
+        configuration.setAllowCredentials(cors.allowCredentials());
+        if (cors.allowCredentials() && cors.allowedOrigins().contains("*")) {
+            configuration.addAllowedOriginPattern("*");
+        } else {
+            cors.allowedOrigins().forEach(configuration::addAllowedOrigin);
+        }
+        return configuration;
     }
 
     @Override
@@ -73,7 +97,7 @@ public class CurrentUserExistsFilter extends OncePerRequestFilter {
         if (Boolean.FALSE.equals(exists(userId))) {
             logger.warn("Stale session rejected: user {} no longer exists in identity", userId);
             SecurityContextHolder.clearContext();
-            writeUnauthorized(response, request.getRequestURI());
+            writeUnauthorized(request, response);
             return;
         }
 
@@ -93,7 +117,8 @@ public class CurrentUserExistsFilter extends OncePerRequestFilter {
         return null;
     }
 
-    private void writeUnauthorized(HttpServletResponse response, String requestUri) throws IOException {
+    private void writeUnauthorized(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        applyCorsHeaders(request, response);
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         response.setContentType(MediaType.APPLICATION_PROBLEM_JSON_VALUE);
         response.setHeader(HttpHeaders.WWW_AUTHENTICATE, "Bearer error=\"invalid_token\", error_description=\"unknown user\"");
@@ -103,7 +128,24 @@ public class CurrentUserExistsFilter extends OncePerRequestFilter {
         body.put("title", "Session invalide");
         body.put("status", HttpServletResponse.SC_UNAUTHORIZED);
         body.put("detail", "L'utilisateur associé à ce jeton n'existe plus. Veuillez vous reconnecter.");
-        body.put("instance", requestUri);
+        body.put("instance", request.getRequestURI());
         objectMapper.writeValue(response.getWriter(), body);
+    }
+
+    /** Sans ces en-têtes, le navigateur masque le 401 (CORS) et le web ne purge pas sa session. */
+    private void applyCorsHeaders(HttpServletRequest request, HttpServletResponse response) {
+        String origin = request.getHeader(HttpHeaders.ORIGIN);
+        if (origin == null) {
+            return;
+        }
+        String resolved = corsConfiguration.checkOrigin(origin);
+        if (resolved == null) {
+            return;
+        }
+        response.setHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, resolved);
+        response.addHeader(HttpHeaders.VARY, HttpHeaders.ORIGIN);
+        if (Boolean.TRUE.equals(corsConfiguration.getAllowCredentials())) {
+            response.setHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_CREDENTIALS, "true");
+        }
     }
 }
