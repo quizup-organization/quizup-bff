@@ -1,3 +1,13 @@
+## [10.0.0](https://github.com/quizup-organization/quizup-bff/compare/v9.0.0...v10.0.0) (2026-10-11)
+
+### ⚠ BREAKING CHANGES
+
+* **bff:** payloads de notifications (deadlineAt déplacée) et corps POST /api/challenges étendu.
+
+### Features
+
+* **bff:** revanche (gameId validé), annulation de salon, countdown de recherche ([0af4e04](https://github.com/quizup-organization/quizup-bff/commit/0af4e045ad40dad0fd3257d6c830b2a7e4431397))
+
 ## [9.0.0](https://github.com/quizup-organization/quizup-bff/compare/v8.0.0...v9.0.0) (2026-10-11)
 
 ### ⚠ BREAKING CHANGES
