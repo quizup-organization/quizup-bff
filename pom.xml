@@ -12,7 +12,7 @@
     </parent>
 
     <artifactId>quizup-bff</artifactId>
-    <version>11.1.1-SNAPSHOT</version>
+    <version>11.2.0</version>
     <packaging>pom</packaging>
 
     <distributionManagement>

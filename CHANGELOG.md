@@ -1,3 +1,9 @@
+## [11.2.0](https://github.com/quizup-organization/quizup-bff/compare/v11.1.1...v11.2.0) (2026-10-11)
+
+### Features
+
+* **bff:** caches progression et compteurs de follows (hot path /api/me) ([36012c1](https://github.com/quizup-organization/quizup-bff/commit/36012c14b0a214939208117a59dea037f153f499))
+
 ## [11.1.1](https://github.com/quizup-organization/quizup-bff/compare/v11.1.0...v11.1.1) (2026-10-11)
 
 ### Bug Fixes
