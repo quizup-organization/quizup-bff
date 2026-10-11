@@ -1,3 +1,9 @@
+## [11.1.1](https://github.com/quizup-organization/quizup-bff/compare/v11.1.0...v11.1.1) (2026-10-11)
+
+### Bug Fixes
+
+* **bff:** fan-out multi-réplique branché sur la source Kafka (SDK 4.4.1) ([7943516](https://github.com/quizup-organization/quizup-bff/commit/7943516544d16c42675029d69fe2884138d37ec5))
+
 ## [11.1.0](https://github.com/quizup-organization/quizup-bff/compare/v11.0.1...v11.1.0) (2026-10-11)
 
 ### Features
