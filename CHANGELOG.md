@@ -1,3 +1,9 @@
+## [11.4.1](https://github.com/quizup-organization/quizup-bff/compare/v11.4.0...v11.4.1) (2026-10-11)
+
+### Bug Fixes
+
+* **bff:** ne pas empoisonner le cache de profil juste après une écriture ([351b833](https://github.com/quizup-organization/quizup-bff/commit/351b8333890ce8c0635da1a0100bf8a94675636f))
+
 ## [11.4.0](https://github.com/quizup-organization/quizup-bff/compare/v11.3.0...v11.4.0) (2026-10-11)
 
 ### Features
