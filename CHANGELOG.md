@@ -1,3 +1,9 @@
+## [11.3.0](https://github.com/quizup-organization/quizup-bff/compare/v11.2.0...v11.3.0) (2026-10-11)
+
+### Features
+
+* **bff:** notification de salle ROOM_GAME_CREATED (pin matchmaking 9.1.0) ([d1b4c4c](https://github.com/quizup-organization/quizup-bff/commit/d1b4c4c99a7312655661531b274ddf61cd2e56a1))
+
 ## [11.2.0](https://github.com/quizup-organization/quizup-bff/compare/v11.1.1...v11.2.0) (2026-10-11)
 
 ### Features
