@@ -1,5 +1,7 @@
 package io.github.quizup.bff.application;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import io.github.quizup.microservice.core.infrastructure.axon.QueryResponseTypes;
 import io.github.quizup.social.domain.model.FollowDirection;
 import io.github.quizup.social.domain.model.TopicFollower;
@@ -10,13 +12,15 @@ import io.github.quizup.social.domain.query.UserFollowerQuery;
 import org.axonframework.queryhandling.QueryGateway;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 /**
  * Lecture centralisée des follows (sujets et joueurs) pour les compositions BFF.
  * Les listes sont bornées (pas de pagination profonde côté social) ; le BFF découpe ensuite
- * ses propres pages.
+ * ses propres pages. Les **compteurs** (lus sur chaque `/api/me` et fiche joueur) sont mis en
+ * cache (Caffeine, TTL 30 s) et purgés après un follow/unfollow.
  */
 @Service
 public class FollowLookup {
@@ -26,7 +30,14 @@ public class FollowLookup {
     /** Fan-out de présence : tous les abonnés, sans plafond. */
     private static final int NO_LIMIT = Integer.MAX_VALUE;
 
+    private static final Duration COUNTS_TTL = Duration.ofSeconds(30);
+    private static final long COUNTS_MAX_SIZE = 10_000;
+
     private final QueryGateway queryGateway;
+    private final Cache<String, UserFollowCounts> countsCache = Caffeine.newBuilder()
+            .expireAfterWrite(COUNTS_TTL)
+            .maximumSize(COUNTS_MAX_SIZE)
+            .build();
 
     public FollowLookup(QueryGateway queryGateway) {
         this.queryGateway = queryGateway;
@@ -60,9 +71,24 @@ public class FollowLookup {
     }
 
     public CompletableFuture<UserFollowCounts> userCounts(String userId) {
+        UserFollowCounts cached = countsCache.getIfPresent(userId);
+        if (cached != null) {
+            return CompletableFuture.completedFuture(cached);
+        }
         return queryGateway.query(
-                new UserFollowerQuery.GetUserFollowCountsQuery(userId),
-                QueryResponseTypes.instanceOf(UserFollowCounts.class));
+                        new UserFollowerQuery.GetUserFollowCountsQuery(userId),
+                        QueryResponseTypes.instanceOf(UserFollowCounts.class))
+                .thenApply(counts -> {
+                    if (counts != null) {
+                        countsCache.put(userId, counts);
+                    }
+                    return counts;
+                });
+    }
+
+    /** Purge les compteurs (follow/unfollow : le follower et le suivi changent). */
+    public void invalidateCounts(String userId) {
+        countsCache.invalidate(userId);
     }
 
     public CompletableFuture<Boolean> userFollowed(String followerId, String followedId) {

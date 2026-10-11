@@ -1,5 +1,6 @@
 package io.github.quizup.bff.infrastructure.in.api;
 
+import io.github.quizup.bff.application.FollowLookup;
 import io.github.quizup.bff.application.ProfileUpdateService;
 import io.github.quizup.bff.application.ProfileViewService;
 import io.github.quizup.bff.infrastructure.in.api.response.DuelStatsView;
@@ -39,13 +40,14 @@ class ProfileControllerTest {
 
     private final ProfileViewService profileViewService = mock(ProfileViewService.class);
     private final ProfileUpdateService profileUpdateService = mock(ProfileUpdateService.class);
+    private final FollowLookup followLookup = mock(FollowLookup.class);
     private final CommandGateway commandGateway = mock(CommandGateway.class);
     private MockMvc mockMvc;
 
     @BeforeEach
     void setUp() {
         mockMvc = MockMvcBuilders.standaloneSetup(
-                new ProfileController(profileViewService, profileUpdateService, commandGateway)).build();
+                new ProfileController(profileViewService, profileUpdateService, followLookup, commandGateway)).build();
         TestSecurity.authenticate(USER_ID);
     }
 

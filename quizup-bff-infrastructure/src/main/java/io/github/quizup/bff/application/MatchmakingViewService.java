@@ -9,7 +9,6 @@ import io.github.quizup.microservice.core.domain.model.i18n.Language;
 import io.github.quizup.microservice.core.infrastructure.axon.QueryResponseTypes;
 import io.github.quizup.profile.domain.model.PlayerProgress;
 import io.github.quizup.profile.domain.model.Profile;
-import io.github.quizup.profile.domain.query.ProgressionQuery;
 import org.axonframework.commandhandling.gateway.CommandGateway;
 import org.axonframework.queryhandling.QueryGateway;
 import org.springframework.stereotype.Service;
@@ -28,21 +27,22 @@ public class MatchmakingViewService {
     private final QueryGateway queryGateway;
     private final CommandGateway commandGateway;
     private final ProfileLookup profileLookup;
+    private final ProgressionLookup progressionLookup;
 
     public MatchmakingViewService(QueryGateway queryGateway,
                                   CommandGateway commandGateway,
-                                  ProfileLookup profileLookup) {
+                                  ProfileLookup profileLookup,
+                                  ProgressionLookup progressionLookup) {
         this.queryGateway = queryGateway;
         this.commandGateway = commandGateway;
         this.profileLookup = profileLookup;
+        this.progressionLookup = progressionLookup;
     }
 
     /** Entre en recherche : résout niveau et langue du joueur, puis crée l'agrégat. */
     public CompletableFuture<MatchmakingTicketView> enqueue(String playerId, String topicId) {
         CompletableFuture<Profile> profileFuture = profileLookup.get(playerId);
-        CompletableFuture<PlayerProgress> progressFuture = queryGateway.query(
-                new ProgressionQuery.GetProgressionQuery(playerId),
-                QueryResponseTypes.instanceOf(PlayerProgress.class));
+        CompletableFuture<PlayerProgress> progressFuture = progressionLookup.get(playerId);
 
         return profileFuture.thenCombine(progressFuture, (profile, progress) -> {
             String matchmakingId = UUID.randomUUID().toString();

@@ -1,42 +1,42 @@
 package io.github.quizup.bff.application;
 
 import io.github.quizup.bff.infrastructure.in.api.response.MeView;
-import io.github.quizup.microservice.core.infrastructure.axon.QueryResponseTypes;
 import io.github.quizup.profile.domain.model.PlayerProgress;
 import io.github.quizup.profile.domain.model.Profile;
-import io.github.quizup.profile.domain.query.ProgressionQuery;
 import io.github.quizup.social.domain.model.UserFollowCounts;
-import org.axonframework.queryhandling.QueryGateway;
 import org.springframework.stereotype.Service;
 
 import java.util.concurrent.CompletableFuture;
 
 /**
  * Vue du joueur courant : profil, progression, compteurs d'abonnements et défis en attente.
+ * Les trois lectures passent par les lookups cachés (Caffeine) : `/api/me` est appelé sur chaque
+ * écran et en polling, on amortit les requêtes distribuées (`profile`, `profile`, `social`).
  */
 @Service
 public class MeService {
 
-    private final QueryGateway queryGateway;
     private final ProfileLookup profileLookup;
+    private final ProgressionLookup progressionLookup;
     private final FollowLookup followLookup;
 
-    public MeService(QueryGateway queryGateway, ProfileLookup profileLookup, FollowLookup followLookup) {
-        this.queryGateway = queryGateway;
+    public MeService(ProfileLookup profileLookup,
+                     ProgressionLookup progressionLookup,
+                     FollowLookup followLookup) {
         this.profileLookup = profileLookup;
+        this.progressionLookup = progressionLookup;
         this.followLookup = followLookup;
     }
 
     public CompletableFuture<MeView> me(String userId) {
         CompletableFuture<Profile> profileFuture = profileLookup.get(userId);
-        CompletableFuture<PlayerProgress> progressFuture = queryGateway.query(
-                new ProgressionQuery.GetProgressionQuery(userId),
-                QueryResponseTypes.instanceOf(PlayerProgress.class));
+        CompletableFuture<PlayerProgress> progressFuture = progressionLookup.get(userId);
         CompletableFuture<UserFollowCounts> countsFuture = followLookup.userCounts(userId);
 
         return CompletableFuture.allOf(profileFuture, progressFuture, countsFuture)
                 .thenApply(_ -> {
                     Profile profile = profileFuture.join();
+                    PlayerProgress progress = progressFuture.join();
                     UserFollowCounts counts = countsFuture.join();
                     return new MeView(
                             profile.userId(),
@@ -46,8 +46,8 @@ public class MeService {
                             profile.country(),
                             profile.avatarOptions(),
                             profile.language(),
-                            ProgressionViews.toView(progressFuture.join()),
-                            ProgressionViews.toStats(progressFuture.join()),
+                            ProgressionViews.toView(progress),
+                            ProgressionViews.toStats(progress),
                             counts.following(),
                             counts.followers());
                 });

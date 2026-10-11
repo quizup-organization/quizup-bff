@@ -1,5 +1,6 @@
 package io.github.quizup.bff.infrastructure.in.api;
 
+import io.github.quizup.bff.application.FollowLookup;
 import io.github.quizup.bff.application.ProfileUpdateService;
 import io.github.quizup.bff.application.ProfileViewService;
 import io.github.quizup.bff.infrastructure.in.api.request.PageParams;
@@ -43,13 +44,16 @@ public class ProfileController {
 
     private final ProfileViewService profileViewService;
     private final ProfileUpdateService profileUpdateService;
+    private final FollowLookup followLookup;
     private final CommandGateway commandGateway;
 
     public ProfileController(ProfileViewService profileViewService,
                              ProfileUpdateService profileUpdateService,
+                             FollowLookup followLookup,
                              CommandGateway commandGateway) {
         this.profileViewService = profileViewService;
         this.profileUpdateService = profileUpdateService;
+        this.followLookup = followLookup;
         this.commandGateway = commandGateway;
     }
 
@@ -132,7 +136,12 @@ public class ProfileController {
         String viewerId = SecurityHelper.getUserId();
         return commandGateway
                 .send(new UserFollowerCommand.FollowUserCommand(FollowerIds.user(viewerId, userId), viewerId, userId))
-                .thenApply(_ -> ResponseEntity.noContent().build());
+                .thenApply(_ -> {
+                    // Compteurs en cache (30 s) : on purge les deux côtés après l'écriture.
+                    followLookup.invalidateCounts(viewerId);
+                    followLookup.invalidateCounts(userId);
+                    return ResponseEntity.noContent().build();
+                });
     }
 
     @DeleteMapping("/{userId}/follow")
@@ -140,7 +149,11 @@ public class ProfileController {
         String viewerId = SecurityHelper.getUserId();
         return commandGateway
                 .send(new UserFollowerCommand.UnfollowUserCommand(FollowerIds.user(viewerId, userId), viewerId))
-                .thenApply(_ -> ResponseEntity.noContent().build());
+                .thenApply(_ -> {
+                    followLookup.invalidateCounts(viewerId);
+                    followLookup.invalidateCounts(userId);
+                    return ResponseEntity.noContent().build();
+                });
     }
 
     @GetMapping("/{userId}/games")

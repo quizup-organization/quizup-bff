@@ -69,10 +69,12 @@ Le `quizup-mobile` n'est **pas** branché sur cette surface (migration dédiée 
   avatars) systématiquement résolus ici, jamais côté client. Les lectures batch passent par des
   requêtes dédiées (`GetProfilesByIdsQuery`, `GetProgressionsByIdsQuery`,
   `GetPresencesByIdsQuery`…).
-- **Cache de lecture profil** (`ProfileLookup`, Caffeine 30 s) : purgé par
-  `ProfileUpdateService` après chaque écriture de profil réussie (y compris no-op) — sinon
-  `GET /api/me` sert l'ancien profil jusqu'à l'expiration du TTL. Invalidation locale : suffisante
-  avec le réplica unique du BFF en prod.
+- **Caches de lecture (Caffeine)** : `ProfileLookup` (profil, 30 s, purgé par `ProfileUpdateService`
+  après chaque écriture), `ProgressionLookup` (progression, 15 s — lue sur chaque `/api/me`/fiche/
+  enfilage) et les **compteurs de follows** (`FollowLookup.userCounts`, 30 s, purgés après un
+  follow/unfollow dans `ProfileController`). Objectif : amortir les requêtes distribuées sous
+  polling/temps réel (charge validée 1000 connexions WS). Caches **locaux par réplique** : une
+  écriture n'invalide que la réplique qui l'a traitée, le TTL court est le filet des autres.
 - **Actor** : le `userId` provient du JWT (`SecurityHelper`) ; jamais dans le body.
 - **Session périmée** : un JWT encore valide dont le `user_id` n'existe plus dans identity (base
   purgée, compte supprimé) est rejeté en `401` par `CurrentUserExistsFilter` sur `/api/**` —

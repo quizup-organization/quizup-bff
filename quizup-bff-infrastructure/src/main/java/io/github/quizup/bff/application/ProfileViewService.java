@@ -55,19 +55,22 @@ public class ProfileViewService {
 
     private final QueryGateway queryGateway;
     private final ProfileLookup profileLookup;
+    private final ProgressionLookup progressionLookup;
     private final FollowLookup followLookup;
 
-    public ProfileViewService(QueryGateway queryGateway, ProfileLookup profileLookup, FollowLookup followLookup) {
+    public ProfileViewService(QueryGateway queryGateway,
+                              ProfileLookup profileLookup,
+                              ProgressionLookup progressionLookup,
+                              FollowLookup followLookup) {
         this.queryGateway = queryGateway;
         this.profileLookup = profileLookup;
+        this.progressionLookup = progressionLookup;
         this.followLookup = followLookup;
     }
 
     public CompletableFuture<PlayerProfileView> profileView(String viewerId, String userId) {
         CompletableFuture<Profile> profileFuture = profileLookup.get(userId);
-        CompletableFuture<PlayerProgress> progressFuture = queryGateway.query(
-                new ProgressionQuery.GetProgressionQuery(userId),
-                QueryResponseTypes.instanceOf(PlayerProgress.class));
+        CompletableFuture<PlayerProgress> progressFuture = progressionLookup.get(userId);
         CompletableFuture<UserFollowCounts> countsFuture = followLookup.userCounts(userId);
         CompletableFuture<List<PlayerPresence>> presenceFuture = queryGateway.query(
                 new PresenceQuery.GetPresencesByIdsQuery(List.of(userId)),
