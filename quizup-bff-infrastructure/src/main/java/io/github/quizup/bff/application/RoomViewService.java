@@ -167,7 +167,6 @@ public class RoomViewService {
                 opponentRef(opponentId, opponent),
                 room.initiatorPresent(),
                 room.participantPresent(),
-                room.readyDeadlineAt(),
                 room.gameId(),
                 room.createdAt(),
                 room.expiresAt(),

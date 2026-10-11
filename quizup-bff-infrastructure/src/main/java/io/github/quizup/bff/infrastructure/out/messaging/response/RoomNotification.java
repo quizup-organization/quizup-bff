@@ -86,10 +86,9 @@ public interface RoomNotification {
         }
     }
 
-    /** Questions tirées : fin de préparation, compte à rebours de lancement armé. */
+    /** Questions tirées : fin de préparation, la partie est créée immédiatement. */
     record RoomQuestionsLoadedNotification(
-            String roomId,
-            Instant readyDeadlineAt
+            String roomId
     ) implements RoomNotification {
         @Override
         public RoomNotificationType type() {
