@@ -1,3 +1,9 @@
+## [11.4.0](https://github.com/quizup-organization/quizup-bff/compare/v11.3.0...v11.4.0) (2026-10-11)
+
+### Features
+
+* **bff:** notification ROOM_PLAYED_QUESTIONS_LOADED (pin matchmaking 9.2.0) ([38386ef](https://github.com/quizup-organization/quizup-bff/commit/38386ef496a000fc6ba1221dae00bb948ec27cd1))
+
 ## [11.3.0](https://github.com/quizup-organization/quizup-bff/compare/v11.2.0...v11.3.0) (2026-10-11)
 
 ### Features
