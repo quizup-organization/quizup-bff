@@ -1,3 +1,9 @@
+## [11.8.1](https://github.com/quizup-organization/quizup-bff/compare/v11.8.0...v11.8.1) (2026-10-12)
+
+### Bug Fixes
+
+* **bff:** credentials S3 média aliasés depuis le secret (QUIZUP_MEDIA_ACCESS_KEY/SECRET_KEY) ([1ef4eef](https://github.com/quizup-organization/quizup-bff/commit/1ef4eeff4c47074d97a686d8eca40836edff29a0))
+
 ## [11.8.0](https://github.com/quizup-organization/quizup-bff/compare/v11.7.1...v11.8.0) (2026-10-12)
 
 ### Features
