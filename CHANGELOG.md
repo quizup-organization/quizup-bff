@@ -1,3 +1,9 @@
+## [11.6.0](https://github.com/quizup-organization/quizup-bff/compare/v11.5.2...v11.6.0) (2026-10-12)
+
+### Features
+
+* **console:** consume quizup-sdk 4.6.0 (build-info + API interne event store/scheduled) ([51b870e](https://github.com/quizup-organization/quizup-bff/commit/51b870e2776d570418ac381eadd0be936858205f))
+
 ## [11.5.2](https://github.com/quizup-organization/quizup-bff/compare/v11.5.1...v11.5.2) (2026-10-12)
 
 ### Bug Fixes
