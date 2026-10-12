@@ -13,6 +13,9 @@ quizup:
     public-base-url: ${QUIZUP_MEDIA_PUBLIC_BASE_URL:https://media.quizup.cnadjim.fr/quizup-media/}
     s3:
       # Endpoint in-cluster (Service `minio`, port 80 → 9000). Les credentials viennent du
-      # SealedSecret `quizup-bff-media` (QUIZUP_MEDIA_ACCESS_KEY/SECRET_KEY).
+      # SealedSecret `quizup-bff-media` — noms d'env du secret, aliasés vers `quizup.media.s3.*`
+      # (sans alias, la propriété attendrait QUIZUP_MEDIA_S3_ACCESS_KEY et serait vide).
       endpoint: ${QUIZUP_MEDIA_S3_ENDPOINT:http://minio}
       bucket: ${QUIZUP_MEDIA_S3_BUCKET:quizup-media}
+      access-key: ${QUIZUP_MEDIA_ACCESS_KEY:}
+      secret-key: ${QUIZUP_MEDIA_SECRET_KEY:}

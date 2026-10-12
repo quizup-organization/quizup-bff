@@ -1,6 +1,8 @@
 package io.github.quizup.bff.infrastructure.config;
 
 import io.github.quizup.bff.infrastructure.out.media.MediaProperties;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -24,6 +26,8 @@ import java.net.URI;
 @EnableConfigurationProperties(MediaProperties.class)
 public class MediaConfiguration {
 
+    private static final Logger logger = LoggerFactory.getLogger(MediaConfiguration.class);
+
     @Bean
     public S3Client mediaS3Client(MediaProperties properties) {
         S3ClientBuilder builder = S3Client.builder()
@@ -37,6 +41,10 @@ public class MediaConfiguration {
             builder.credentialsProvider(StaticCredentialsProvider.create(AwsBasicCredentials.create(
                     properties.s3().accessKey(), properties.s3().secretKey())));
         } else {
+            // Sans credentials statiques, l'upload échouera à la première requête (chaîne AWS par
+            // défaut) : le signaler explicitement plutôt que de le découvrir sur un 503.
+            logger.warn("Stockage média sans credentials statiques (quizup.media.s3.access-key/secret-key) : "
+                    + "les uploads échoueront si aucune chaîne AWS par défaut n'est disponible");
             builder.credentialsProvider(DefaultCredentialsProvider.create());
         }
         return builder.build();
