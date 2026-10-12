@@ -1,3 +1,9 @@
+## [11.5.0](https://github.com/quizup-organization/quizup-bff/compare/v11.4.1...v11.5.0) (2026-10-12)
+
+### Features
+
+* **bff:** prépare RoomPlayer et la couverture linguistique dans les commandes ([b7fba1f](https://github.com/quizup-organization/quizup-bff/commit/b7fba1feee18c2789c2cbec472ba426690b914a4))
+
 ## [11.4.1](https://github.com/quizup-organization/quizup-bff/compare/v11.4.0...v11.4.1) (2026-10-11)
 
 ### Bug Fixes
