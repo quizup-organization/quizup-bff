@@ -1,3 +1,9 @@
+## [11.5.1](https://github.com/quizup-organization/quizup-bff/compare/v11.5.0...v11.5.1) (2026-10-12)
+
+### Bug Fixes
+
+* **bff:** invalidation cross-réplicas des caches de lecture (follows, profil) ([207b9ad](https://github.com/quizup-organization/quizup-bff/commit/207b9ad13c1bbcbed66f2f311a430564fd666255))
+
 ## [11.5.0](https://github.com/quizup-organization/quizup-bff/compare/v11.4.1...v11.5.0) (2026-10-12)
 
 ### Features
