@@ -73,8 +73,14 @@ Le `quizup-mobile` n'est **pas** branché sur cette surface (migration dédiée 
   après chaque écriture), `ProgressionLookup` (progression, 15 s — lue sur chaque `/api/me`/fiche/
   enfilage) et les **compteurs de follows** (`FollowLookup.userCounts`, 30 s, purgés après un
   follow/unfollow dans `ProfileController`). Objectif : amortir les requêtes distribuées sous
-  polling/temps réel (charge validée 1000 connexions WS). Caches **locaux par réplique** : une
-  écriture n'invalide que la réplique qui l'a traitée, le TTL court est le filet des autres.
+  polling/temps réel (charge validée 1000 connexions WS).
+  **Règle multi-réplicas** : l'invalidation locale (`ProfileController`/`ProfileUpdateService`) n'est
+  qu'un **fast-path** — `CacheInvalidationHandler` (groupe **instance-scopé** `cache-invalidation`,
+  chaque pod consomme tous les événements) purge le cache de **chaque** réplique sur les événements
+  social (`UserFollowed/UnfollowedEvent` : les deux côtés) et profile (événements de champ).
+  Toute donnée mutable mise en cache doit suivre ce modèle (événement → purge sur toutes les
+  réplicas) ou avoir un TTL volontairement borné. Après une purge, la **fenêtre no-cache** (3 s)
+  des lookups évite de mémoriser une projection encore en retard.
 - **Actor** : le `userId` provient du JWT (`SecurityHelper`) ; jamais dans le body.
 - **Session périmée** : un JWT encore valide dont le `user_id` n'existe plus dans identity (base
   purgée, compte supprimé) est rejeté en `401` par `CurrentUserExistsFilter` sur `/api/**` —

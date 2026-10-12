@@ -13,6 +13,7 @@ import org.axonframework.queryhandling.QueryGateway;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
@@ -20,7 +21,9 @@ import java.util.concurrent.CompletableFuture;
  * Lecture centralisée des follows (sujets et joueurs) pour les compositions BFF.
  * Les listes sont bornées (pas de pagination profonde côté social) ; le BFF découpe ensuite
  * ses propres pages. Les **compteurs** (lus sur chaque `/api/me` et fiche joueur) sont mis en
- * cache (Caffeine, TTL 30 s) et purgés après un follow/unfollow.
+ * cache (Caffeine, TTL 30 s) et purgés après un follow/unfollow — localement par la réplique qui
+ * a traité l'écriture (fast-path) et sur **toutes** les répliques par
+ * {@code CacheInvalidationHandler} (événements social, groupe instance-scopé).
  */
 @Service
 public class FollowLookup {
@@ -33,9 +36,20 @@ public class FollowLookup {
     private static final Duration COUNTS_TTL = Duration.ofSeconds(30);
     private static final long COUNTS_MAX_SIZE = 10_000;
 
+    /**
+     * Fenêtre no-cache après invalidation : la projection social peut être en retard de quelques
+     * millisecondes sur l'événement, on ne mémorise pas une lecture périmée (même garde que
+     * {@link ProfileLookup}).
+     */
+    private static final Duration REFRESH_GRACE = Duration.ofSeconds(3);
+
     private final QueryGateway queryGateway;
     private final Cache<String, UserFollowCounts> countsCache = Caffeine.newBuilder()
             .expireAfterWrite(COUNTS_TTL)
+            .maximumSize(COUNTS_MAX_SIZE)
+            .build();
+    private final Cache<String, Instant> recentlyInvalidated = Caffeine.newBuilder()
+            .expireAfterWrite(REFRESH_GRACE)
             .maximumSize(COUNTS_MAX_SIZE)
             .build();
 
@@ -71,15 +85,17 @@ public class FollowLookup {
     }
 
     public CompletableFuture<UserFollowCounts> userCounts(String userId) {
-        UserFollowCounts cached = countsCache.getIfPresent(userId);
-        if (cached != null) {
-            return CompletableFuture.completedFuture(cached);
+        if (recentlyInvalidated.getIfPresent(userId) == null) {
+            UserFollowCounts cached = countsCache.getIfPresent(userId);
+            if (cached != null) {
+                return CompletableFuture.completedFuture(cached);
+            }
         }
         return queryGateway.query(
                         new UserFollowerQuery.GetUserFollowCountsQuery(userId),
                         QueryResponseTypes.instanceOf(UserFollowCounts.class))
                 .thenApply(counts -> {
-                    if (counts != null) {
+                    if (counts != null && recentlyInvalidated.getIfPresent(userId) == null) {
                         countsCache.put(userId, counts);
                     }
                     return counts;
@@ -89,6 +105,7 @@ public class FollowLookup {
     /** Purge les compteurs (follow/unfollow : le follower et le suivi changent). */
     public void invalidateCounts(String userId) {
         countsCache.invalidate(userId);
+        recentlyInvalidated.put(userId, Instant.now());
     }
 
     public CompletableFuture<Boolean> userFollowed(String followerId, String followedId) {
