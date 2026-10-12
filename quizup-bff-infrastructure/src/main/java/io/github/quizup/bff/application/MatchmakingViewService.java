@@ -4,16 +4,20 @@ import io.github.quizup.bff.infrastructure.in.api.response.MatchmakingTicketView
 import io.github.quizup.matchmaking.domain.command.MatchmakingCommand;
 import io.github.quizup.matchmaking.domain.model.Matchmaking;
 import io.github.quizup.matchmaking.domain.model.MatchmakingStatus;
+import io.github.quizup.matchmaking.domain.model.TopicLanguageCoverage;
 import io.github.quizup.matchmaking.domain.query.MatchmakingQuery;
 import io.github.quizup.microservice.core.domain.model.i18n.Language;
 import io.github.quizup.microservice.core.infrastructure.axon.QueryResponseTypes;
 import io.github.quizup.profile.domain.model.PlayerProgress;
 import io.github.quizup.profile.domain.model.Profile;
+import io.github.quizup.theme.domain.model.QuestionLanguageCoverage;
+import io.github.quizup.theme.domain.query.QuestionQuery;
 import org.axonframework.commandhandling.gateway.CommandGateway;
 import org.axonframework.queryhandling.QueryGateway;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -39,10 +43,17 @@ public class MatchmakingViewService {
         this.progressionLookup = progressionLookup;
     }
 
-    /** Entre en recherche : résout niveau et langue du joueur, puis crée l'agrégat. */
+    /**
+     * Entre en recherche : résout niveau/langue du joueur et <b>photo de couverture linguistique</b>
+     * du sujet (query theme), puis crée l'agrégat. La photo voyage dans l'événement de démarrage :
+     * la saga compare localement, sans query bloquante (contrat d'auto-suffisance des événements).
+     */
     public CompletableFuture<MatchmakingTicketView> enqueue(String playerId, String topicId) {
         CompletableFuture<Profile> profileFuture = profileLookup.get(playerId);
         CompletableFuture<PlayerProgress> progressFuture = progressionLookup.get(playerId);
+        CompletableFuture<List<QuestionLanguageCoverage>> coverageFuture = queryGateway
+                .query(new QuestionQuery.GetTopicLanguageCoverageQuery(topicId),
+                        QueryResponseTypes.multipleInstancesOf(QuestionLanguageCoverage.class));
 
         return profileFuture.thenCombine(progressFuture, (profile, progress) -> {
             String matchmakingId = UUID.randomUUID().toString();
@@ -50,12 +61,19 @@ public class MatchmakingViewService {
                     ? Set.of()
                     : Set.of(profile.language());
             return new PendingCommand(matchmakingId, topicId, levelOf(progress), languages);
-        }).thenCompose(pending -> commandGateway
+        }).thenCombine(coverageFuture, (pending, coverage) ->
+                new PreparedCommand(pending, toTopicCoverage(coverage))
+        ).thenCompose(prepared -> commandGateway
                 .send(new MatchmakingCommand.CreateMatchmakingCommand(
-                        pending.matchmakingId(), playerId, pending.topicId(), pending.level(), pending.languages()))
+                        prepared.pending().matchmakingId(),
+                        playerId,
+                        prepared.pending().topicId(),
+                        prepared.pending().level(),
+                        prepared.pending().languages(),
+                        prepared.topicCoverage()))
                 .thenApply(_ -> new MatchmakingTicketView(
-                        pending.matchmakingId(),
-                        pending.topicId(),
+                        prepared.pending().matchmakingId(),
+                        prepared.pending().topicId(),
                         MatchmakingStatus.SEARCHING,
                         null,
                         null,
@@ -87,6 +105,14 @@ public class MatchmakingViewService {
         return progress == null ? 1 : Math.max(1, progress.level());
     }
 
+    /** Mapping theme → modèle local matchmaking (un {@code *-domain} ne dépend jamais d'un autre service). */
+    private static TopicLanguageCoverage toTopicCoverage(List<QuestionLanguageCoverage> coverage) {
+        return new TopicLanguageCoverage(coverage.stream()
+                .map(entry -> new TopicLanguageCoverage.LanguageCoverage(
+                        entry.languages(), entry.approvedCount()))
+                .toList());
+    }
+
     private static MatchmakingTicketView toView(Matchmaking matchmaking) {
         return new MatchmakingTicketView(
                 matchmaking.matchmakingId(),
@@ -100,5 +126,8 @@ public class MatchmakingViewService {
     }
 
     private record PendingCommand(String matchmakingId, String topicId, int level, Set<Language> languages) {
+    }
+
+    private record PreparedCommand(PendingCommand pending, TopicLanguageCoverage topicCoverage) {
     }
 }

@@ -16,11 +16,11 @@
     <properties>
         <!-- Contrats inter-services : dernières versions release des *-domain (GitHub Packages). -->
         <quizup.identity-domain.version>2.0.0</quizup.identity-domain.version>
-        <quizup.theme-domain.version>4.10.0</quizup.theme-domain.version>
+        <quizup.theme-domain.version>5.1.0</quizup.theme-domain.version>
         <quizup.social-domain.version>4.0.0</quizup.social-domain.version>
         <quizup.game-domain.version>8.0.0</quizup.game-domain.version>
         <quizup.profile-domain.version>3.2.0</quizup.profile-domain.version>
-        <quizup.matchmaking-domain.version>9.2.0</quizup.matchmaking-domain.version>
+        <quizup.matchmaking-domain.version>10.0.0</quizup.matchmaking-domain.version>
         <quizup.leaderboard-domain.version>3.0.0</quizup.leaderboard-domain.version>
         <!-- 2.5.0 : delete-all. -->
         <quizup.notification-domain.version>3.0.0</quizup.notification-domain.version>

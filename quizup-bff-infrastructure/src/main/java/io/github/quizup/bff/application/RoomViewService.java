@@ -8,9 +8,11 @@ import io.github.quizup.bff.infrastructure.in.api.response.UserRefView;
 import io.github.quizup.game.domain.model.BotDifficulty;
 import io.github.quizup.matchmaking.domain.command.RoomCommand;
 import io.github.quizup.matchmaking.domain.model.Room;
+import io.github.quizup.matchmaking.domain.model.RoomPlayer;
 import io.github.quizup.matchmaking.domain.query.RoomQuery;
 import io.github.quizup.microservice.core.domain.constant.QuizUpConstants;
 import io.github.quizup.microservice.core.infrastructure.axon.QueryResponseTypes;
+import io.github.quizup.profile.domain.model.PlayerProgress;
 import io.github.quizup.profile.domain.model.Profile;
 import io.github.quizup.theme.domain.model.Topic;
 import io.github.quizup.theme.domain.query.TopicQuery;
@@ -36,13 +38,16 @@ public class RoomViewService {
     private final QueryGateway queryGateway;
     private final CommandGateway commandGateway;
     private final ProfileLookup profileLookup;
+    private final ProgressionLookup progressionLookup;
 
     public RoomViewService(QueryGateway queryGateway,
                            CommandGateway commandGateway,
-                           ProfileLookup profileLookup) {
+                           ProfileLookup profileLookup,
+                           ProgressionLookup progressionLookup) {
         this.queryGateway = queryGateway;
         this.commandGateway = commandGateway;
         this.profileLookup = profileLookup;
+        this.progressionLookup = progressionLookup;
     }
 
     /**
@@ -86,13 +91,34 @@ public class RoomViewService {
      * Le joueur <b>apparaît</b> dans la salle : présence temps réel et, pour le second humain,
      * enregistrement comme participant. C'est la seule action d'entrée, émise par le client quand
      * l'utilisateur est réellement dans la salle.
+     * <p>
+     * Le snapshot de profil ({@code RoomPlayer}) est <b>préparé ici</b> (profils + progression,
+     * caches Caffeine) et porté par la commande : la salle ne fait aucune I/O pour résoudre les
+     * joueurs (voir {@code best-practices/.backend/command-preparation.md}).
      */
     public CompletableFuture<Void> join(String roomId, String playerId) {
         return requireRoom(roomId)
-                .thenCompose(_ -> commandGateway
-                        .send(new RoomCommand.JoinRoomCommand(roomId, playerId))
+                .thenCompose(_ -> roomPlayer(playerId))
+                .thenCompose(player -> commandGateway
+                        .send(new RoomCommand.JoinRoomCommand(roomId, playerId, player))
                         .thenAccept(_ -> {
                         }));
+    }
+
+    /**
+     * Snapshot de profil du joueur qui apparaît. Une progression absente ne bloque pas l'entrée
+     * (repli niveau 1 / XP 0, comme l'ancienne résolution côté saga) ; un profil introuvable, si.
+     */
+    private CompletableFuture<RoomPlayer> roomPlayer(String playerId) {
+        CompletableFuture<Profile> profileFuture = profileLookup.get(playerId);
+        CompletableFuture<PlayerProgress> progressFuture = progressionLookup.get(playerId)
+                .exceptionally(_ -> null);
+        return profileFuture.thenCombine(progressFuture, (profile, progress) -> new RoomPlayer(
+                profile.userId(),
+                profile.pseudonym(),
+                profile.language(),
+                progress == null ? 1 : Math.max(1, progress.level()),
+                progress == null ? 0 : Math.max(0, progress.xpTotal())));
     }
 
     public CompletableFuture<Void> leave(String roomId, String playerId) {
