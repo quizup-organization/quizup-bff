@@ -1,3 +1,9 @@
+## [11.7.0](https://github.com/quizup-organization/quizup-bff/compare/v11.6.0...v11.7.0) (2026-10-12)
+
+### Features
+
+* **console:** consume quizup-sdk 4.7.0 (lag, commandes en vol, snapshots, scheduled) ([18dc235](https://github.com/quizup-organization/quizup-bff/commit/18dc235f042531fd88a17bea32a2b037587f5c20))
+
 ## [11.6.0](https://github.com/quizup-organization/quizup-bff/compare/v11.5.2...v11.6.0) (2026-10-12)
 
 ### Features
