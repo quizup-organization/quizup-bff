@@ -7,7 +7,8 @@
     <parent>
         <groupId>io.github.quizup</groupId>
         <artifactId>quizup-parent</artifactId>
-        <version>4.4.1</version>
+        <!-- 4.5.2 : groupes instance-scopés démarrés à la queue du flux (fin du replay par pod). -->
+        <version>4.5.2</version>
         <relativePath/>
     </parent>
 
