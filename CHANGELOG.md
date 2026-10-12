@@ -1,3 +1,9 @@
+## [11.5.2](https://github.com/quizup-organization/quizup-bff/compare/v11.5.1...v11.5.2) (2026-10-12)
+
+### Bug Fixes
+
+* **bff:** SDK 4.5.2 — groupes instance-scopés démarrés à la queue du flux ([fa55cd3](https://github.com/quizup-organization/quizup-bff/commit/fa55cd3b3c8e056aea3b4c2d09455a2ae3cce120))
+
 ## [11.5.1](https://github.com/quizup-organization/quizup-bff/compare/v11.5.0...v11.5.1) (2026-10-12)
 
 ### Bug Fixes
