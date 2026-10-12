@@ -1,3 +1,9 @@
+## [11.7.1](https://github.com/quizup-organization/quizup-bff/compare/v11.7.0...v11.7.1) (2026-10-12)
+
+### Bug Fixes
+
+* **bff:** contrats domain alignés sur les versions publiées (identity 2.5, theme 5.4, social 5.2, game 8.3, profile 3.4, matchmaking 10.2, leaderboard 4.2, notification 3.4) ([095ffda](https://github.com/quizup-organization/quizup-bff/commit/095ffda5e168220e43de4df2cdc06d75f8123376))
+
 ## [11.7.0](https://github.com/quizup-organization/quizup-bff/compare/v11.6.0...v11.7.0) (2026-10-12)
 
 ### Features
