@@ -1,3 +1,9 @@
+## [11.8.0](https://github.com/quizup-organization/quizup-bff/compare/v11.7.1...v11.8.0) (2026-10-12)
+
+### Features
+
+* **bff:** upload d'images (MinIO) + bannieres sujet/profil ([c564faa](https://github.com/quizup-organization/quizup-bff/commit/c564faa26744625605e10e72b96361181fa94354))
+
 ## [11.7.1](https://github.com/quizup-organization/quizup-bff/compare/v11.7.0...v11.7.1) (2026-10-12)
 
 ### Bug Fixes
