@@ -6,6 +6,13 @@ spring:
   profiles:
     default: local
 
+  servlet:
+    multipart:
+      # Upload d'images (couvertures/questions/bannières) : marge au-dessus de la limite applicative
+      # `quizup.media.max-file-size` (5 Mo) pour que le refus soit un ProblemDetail typé, pas un 413 Tomcat.
+      max-file-size: 6MB
+      max-request-size: 8MB
+
   flyway:
     locations: classpath:db/migration/bff
 

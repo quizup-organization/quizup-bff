@@ -91,6 +91,7 @@ public class ProfileViewService {
                             profile.bio(),
                             profile.country(),
                             profile.avatarOptions(),
+                            profile.bannerUrl(),
                             profile.userId().equals(viewerId),
                             followingFuture.join(),
                             presence == null ? null : toPresence(presence),

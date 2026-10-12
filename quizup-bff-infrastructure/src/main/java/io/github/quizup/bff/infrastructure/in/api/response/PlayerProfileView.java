@@ -9,6 +9,7 @@ public record PlayerProfileView(
         String bio,
         String country,
         String avatarOptions,
+        String bannerUrl,
         boolean isMe,
         boolean following,
         PresenceView presence,

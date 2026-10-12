@@ -29,6 +29,7 @@ final class TopicViews {
                 topic.emoji(),
                 topic.color(),
                 topic.imageUrl(),
+                topic.bannerUrl(),
                 topic.followersCounter() == null ? 0 : topic.followersCounter(),
                 questionsCount,
                 followed,

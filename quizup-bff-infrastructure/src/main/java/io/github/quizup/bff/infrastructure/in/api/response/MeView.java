@@ -12,6 +12,7 @@ public record MeView(
         String bio,
         String country,
         String avatarOptions,
+        String bannerUrl,
         Language language,
         ProgressionView progression,
         DuelStatsView stats,

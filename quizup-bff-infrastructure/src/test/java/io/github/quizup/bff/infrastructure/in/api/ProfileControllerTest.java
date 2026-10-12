@@ -58,7 +58,7 @@ class ProfileControllerTest {
 
     @Test
     void profile_returns_enriched_view() throws Exception {
-        PlayerProfileView view = new PlayerProfileView("user-2", "Bravo", null, "FR", null,
+        PlayerProfileView view = new PlayerProfileView("user-2", "Bravo", null, "FR", null, null,
                 false, false, null,
                 new ProgressionView(120, 2, "Apprenti", 400, 6, List.of()),
                 new DuelStatsView(4, 3, 1, 0, 75, 160, 2, 3), 5, 7);
@@ -160,6 +160,31 @@ class ProfileControllerTest {
 
         mockMvc.perform(asyncDispatch(result)).andExpect(status().isNoContent());
         verify(profileUpdateService).updateAvatarOptions(USER_ID, USER_ID, "{\"hair\":\"full\"}");
+    }
+
+    @Test
+    void updateBanner_sendsCommandWithActor() throws Exception {
+        when(profileUpdateService.updateBanner(USER_ID, USER_ID, "https://media.example.test/banner.jpg"))
+                .thenReturn(CompletableFuture.completedFuture(null));
+
+        MvcResult result = mockMvc.perform(put("/api/profiles/user-1/banner")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"bannerUrl\":\"https://media.example.test/banner.jpg\"}"))
+                .andExpect(request().asyncStarted())
+                .andReturn();
+
+        mockMvc.perform(asyncDispatch(result)).andExpect(status().isNoContent());
+        verify(profileUpdateService).updateBanner(USER_ID, USER_ID, "https://media.example.test/banner.jpg");
+    }
+
+    @Test
+    void updateBanner_withInvalidScheme_isRejected() throws Exception {
+        mockMvc.perform(put("/api/profiles/user-1/banner")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"bannerUrl\":\"ftp://example.test/banner.jpg\"}"))
+                .andExpect(status().isBadRequest());
+
+        verifyNoInteractions(profileUpdateService);
     }
 
     @Test

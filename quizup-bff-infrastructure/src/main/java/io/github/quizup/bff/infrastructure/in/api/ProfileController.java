@@ -6,6 +6,7 @@ import io.github.quizup.bff.application.ProfileViewService;
 import io.github.quizup.bff.infrastructure.in.api.request.PageParams;
 import io.github.quizup.bff.infrastructure.in.api.request.PeopleSort;
 import io.github.quizup.bff.infrastructure.in.api.request.UpdateAvatarOptionsRequest;
+import io.github.quizup.bff.infrastructure.in.api.request.UpdateBannerRequest;
 import io.github.quizup.bff.infrastructure.in.api.request.UpdateBioRequest;
 import io.github.quizup.bff.infrastructure.in.api.request.UpdateCountryRequest;
 import io.github.quizup.bff.infrastructure.in.api.request.UpdateLanguageRequest;
@@ -97,6 +98,15 @@ public class ProfileController {
             @Valid @RequestBody UpdateAvatarOptionsRequest request) {
         return profileUpdateService
                 .updateAvatarOptions(userId, SecurityHelper.getUserId(), request.avatarOptions())
+                .thenApply(_ -> ResponseEntity.noContent().build());
+    }
+
+    @PutMapping("/{userId}/banner")
+    public CompletableFuture<ResponseEntity<Void>> updateBanner(
+            @PathVariable String userId,
+            @Valid @RequestBody UpdateBannerRequest request) {
+        return profileUpdateService
+                .updateBanner(userId, SecurityHelper.getUserId(), request.bannerUrl())
                 .thenApply(_ -> ResponseEntity.noContent().build());
     }
 

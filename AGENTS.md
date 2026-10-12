@@ -137,7 +137,7 @@ question ne connaît pas le créateur du sujet) et répondent `403` `PERMISSION`
 |---|---|---|
 | `POST /api/topics` | `201 + Location` | `{ names { fr (obligatoire), en? } ≤255 chacun, description ≤500, category, emoji?, color?, imageUrl? }` → DRAFT |
 | `PUT /api/topics/{topicId}/name` | `204` | `{ language, name ≤255 }` (nom d'une langue) |
-| `PUT /api/topics/{topicId}/description\|category\|emoji\|color\|image-url` | `204` | un champ par route (description/image/emoji/color `null` efface) |
+| `PUT /api/topics/{topicId}/description\|category\|emoji\|color\|image-url\|banner-url` | `204` | un champ par route (description/image/bannière/emoji/color `null` efface) |
 | `POST /api/topics/{topicId}/publish` | `200` | garde ≥ 7 questions approuvées |
 | `GET /api/topics/{topicId}/questions?page=&size=` | `PageResponse<QuestionEditorView>` | tous statuts, contenus FR/EN + statut + difficulté |
 | `POST /api/topics/{topicId}/questions` | `201 + Location` | contenus localisés `[{ language, text, answers[A-D] }]` + `correctAnswer` + `imageUrl?` → PENDING |
@@ -146,6 +146,25 @@ question ne connaît pas le créateur du sujet) et répondent `403` `PERMISSION`
 | `POST /api/questions/{questionId}/approve` | `200` | |
 | `POST /api/questions/{questionId}/reject` | `200` | `{ reason ≤500 }` optionnel |
 
+
+### Médias (upload d'images)
+
+Stockage objet **MinIO** (bucket `quizup-media`, app GitOps `apps/minio`, Ingress public
+`media.quizup.cnadjim.fr`) : le BFF est l'**unique voie d'écriture** (multipart), la lecture est
+publique (`GetObject` anonyme, clés non énumérables). `POST /api/media` valide et **normalise**
+l'image côté serveur (JPEG/PNG uniquement — SVG/GIF/WebP refusés —, ≤ 5 Mo, redimensionnement
+1600 px, EXIF retiré), la déduplique par sha256, applique un **quota par joueur**
+(`quizup.media.max-assets-per-user` / `max-bytes-per-user`), la dépose et journalise sa référence
+dans `media_asset` (migration `V3__media_assets.sql`). L'URL publique retournée est ensuite
+attachée aux entités via les endpoints existants (`PUT .../image-url`, `.../banner-url`,
+`/api/profiles/{id}/banner`). Erreurs : `urn:quizup:bff:media:*` — `413` taille, `429` quota,
+`503` stockage indisponible, `403` suppression par un autre joueur. Le seed des thèmes référence
+les images mirorées du workspace (`product/wikipedia/`, voir `scripts/seed-images.py`).
+
+| Endpoint | Réponse | Notes |
+|---|---|---|
+| `POST /api/media` | `201 + Location` | multipart `file` (JPEG/PNG ≤ 5 Mo) → `MediaView { id, url, contentType, sizeBytes, width, height }` ; déduplication par contenu, acteur = JWT |
+| `DELETE /api/media/{mediaId}` | `204` | propriétaire de l'image uniquement ; l'objet n'est supprimé que si plus aucune référence ne le partage |
 
 ### Joueurs / personnes (profile + social + leaderboard + game)
 
@@ -162,6 +181,7 @@ question ne connaît pas le créateur du sujet) et répondent `403` `PERMISSION`
 | `PUT /api/profiles/{userId}/bio` | `204` | `{ bio }` (`null` efface) |
 | `PUT /api/profiles/{userId}/country` | `204` | `{ country }` (`null` efface) |
 | `PUT /api/profiles/{userId}/avatar-options` | `204` | `{ avatarOptions }` (`null` efface) |
+| `PUT /api/profiles/{userId}/banner` | `204` | `{ bannerUrl }` (`null` efface) — bannière de profil (URL image http(s) ≤1024) |
 | `PUT /api/profiles/{userId}/language` | `204` | `{ language }` ∈ `fr\|en` (enum strict) |
 | `GET /api/presence/{userId}` | `PresenceView` | `404` si le joueur ne s'est jamais connecté (l'absence vaut hors ligne) ; poussé aussi en WS |
 

@@ -20,3 +20,13 @@ quizup:
       public-key: BL4_f0c1UrFgu1Hdym2XedjmA5cjTg8hDLn_AxU-MvhEf1aTauiA2Ph0_j4t89siXdF5dD4E6URhkonwHTBWxdE
       private-key: hM9-hr1OPKWJ3lpi_bl6Hax-24ovYnB1KDORMkGvnb0
       subject: mailto:dev@quizup.local
+
+  # MinIO local (docker compose : service `minio`, bucket initialisé par `minio-init`).
+  # Envoyer les images du seed : `make seed-images ACTION=publish ARGS="--endpoint http://localhost:9000 --bucket quizup-media"`.
+  media:
+    public-base-url: ${QUIZUP_MEDIA_PUBLIC_BASE_URL:http://localhost:9000/quizup-media/}
+    s3:
+      endpoint: ${QUIZUP_MEDIA_S3_ENDPOINT:http://localhost:9000}
+      bucket: ${QUIZUP_MEDIA_S3_BUCKET:quizup-media}
+      access-key: ${QUIZUP_MEDIA_ACCESS_KEY:quizup}
+      secret-key: ${QUIZUP_MEDIA_SECRET_KEY:quizup-minio}

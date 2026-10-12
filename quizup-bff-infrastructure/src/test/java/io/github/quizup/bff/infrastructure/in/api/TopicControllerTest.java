@@ -26,6 +26,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.asyncDispatch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -143,6 +144,31 @@ class TopicControllerTest {
         mockMvc.perform(asyncDispatch(result))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.type").value("urn:quizup:bff:topic:notOwner"));
+    }
+
+    @Test
+    void update_banner_url_sends_command_and_returns_204() throws Exception {
+        when(topicAuthoringService.updateBannerUrl(eq("topic-1"), eq(USER_ID), any()))
+                .thenReturn(CompletableFuture.completedFuture(null));
+
+        MvcResult result = mockMvc.perform(put("/api/topics/topic-1/banner-url")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"bannerUrl\":\"https://media.example.test/quizup-media/uploads/abc.jpg\"}"))
+                .andExpect(request().asyncStarted())
+                .andReturn();
+
+        mockMvc.perform(asyncDispatch(result)).andExpect(status().isNoContent());
+        verify(topicAuthoringService).updateBannerUrl(eq("topic-1"), eq(USER_ID), any());
+    }
+
+    @Test
+    void update_banner_url_with_invalid_scheme_is_rejected() throws Exception {
+        mockMvc.perform(put("/api/topics/topic-1/banner-url")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"bannerUrl\":\"ftp://example.test/banner.jpg\"}"))
+                .andExpect(status().isBadRequest());
+
+        verifyNoInteractions(topicAuthoringService);
     }
 
     @Test

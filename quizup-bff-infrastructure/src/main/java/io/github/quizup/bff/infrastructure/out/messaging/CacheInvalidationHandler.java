@@ -65,6 +65,11 @@ public class CacheInvalidationHandler {
     }
 
     @EventHandler
+    public void on(ProfileEvent.ProfileBannerUpdatedEvent event) {
+        invalidateProfile(event.userId());
+    }
+
+    @EventHandler
     public void on(ProfileEvent.ProfileLanguageUpdatedEvent event) {
         invalidateProfile(event.userId());
     }

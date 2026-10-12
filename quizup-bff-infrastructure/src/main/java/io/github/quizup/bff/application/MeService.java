@@ -45,6 +45,7 @@ public class MeService {
                             profile.bio(),
                             profile.country(),
                             profile.avatarOptions(),
+                            profile.bannerUrl(),
                             profile.language(),
                             ProgressionViews.toView(progress),
                             ProgressionViews.toStats(progress),

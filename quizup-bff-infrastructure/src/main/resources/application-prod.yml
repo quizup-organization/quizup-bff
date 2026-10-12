@@ -6,3 +6,13 @@ spring:
     import: optional:classpath:quizup-prod.yml
     activate:
       on-profile: prod
+
+quizup:
+  media:
+    # URL publique des objets (Ingress `media.` → MinIO, namespace quizup-prod).
+    public-base-url: ${QUIZUP_MEDIA_PUBLIC_BASE_URL:https://media.quizup.cnadjim.fr/quizup-media/}
+    s3:
+      # Endpoint in-cluster (Service `minio`, port 80 → 9000). Les credentials viennent du
+      # SealedSecret `quizup-bff-media` (QUIZUP_MEDIA_ACCESS_KEY/SECRET_KEY).
+      endpoint: ${QUIZUP_MEDIA_S3_ENDPOINT:http://minio}
+      bucket: ${QUIZUP_MEDIA_S3_BUCKET:quizup-media}

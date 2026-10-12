@@ -8,6 +8,7 @@ import io.github.quizup.bff.infrastructure.in.api.request.LeaderboardMonth;
 import io.github.quizup.bff.infrastructure.in.api.request.LeaderboardPeriod;
 import io.github.quizup.bff.infrastructure.in.api.request.LeaderboardScope;
 import io.github.quizup.bff.infrastructure.in.api.request.PageParams;
+import io.github.quizup.bff.infrastructure.in.api.request.UpdateTopicBannerUrlRequest;
 import io.github.quizup.bff.infrastructure.in.api.request.UpdateTopicCategoryRequest;
 import io.github.quizup.bff.infrastructure.in.api.request.UpdateTopicColorRequest;
 import io.github.quizup.bff.infrastructure.in.api.request.UpdateTopicDescriptionRequest;
@@ -184,6 +185,15 @@ public class TopicController {
             @Valid @RequestBody UpdateTopicImageUrlRequest request) {
         return topicAuthoringService
                 .updateImageUrl(topicId, SecurityHelper.getUserId(), request)
+                .thenApply(_ -> ResponseEntity.noContent().build());
+    }
+
+    @PutMapping("/{topicId}/banner-url")
+    public CompletableFuture<ResponseEntity<Void>> updateBannerUrl(
+            @PathVariable String topicId,
+            @Valid @RequestBody UpdateTopicBannerUrlRequest request) {
+        return topicAuthoringService
+                .updateBannerUrl(topicId, SecurityHelper.getUserId(), request)
                 .thenApply(_ -> ResponseEntity.noContent().build());
     }
 

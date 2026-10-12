@@ -94,4 +94,92 @@ public final class BffProblems {
                     Map.of());
         }
     }
+
+    /** Aucun fichier fourni (part manquante ou vide). */
+    public static class MediaFileMissingProblem extends BaseProblem {
+        public MediaFileMissingProblem() {
+            super("urn:quizup:bff:media:fileMissing",
+                    ProblemCategory.VALIDATION,
+                    "Missing media file",
+                    "The multipart part 'file' is required and must not be empty",
+                    Map.of());
+        }
+    }
+
+    /** Format non supporté : seuls JPEG et PNG sont acceptés (détection par contenu). */
+    public static class MediaUnsupportedFormatProblem extends BaseProblem {
+        public MediaUnsupportedFormatProblem() {
+            super("urn:quizup:bff:media:unsupportedFormat",
+                    ProblemCategory.VALIDATION,
+                    "Unsupported media format",
+                    "Only JPEG and PNG images are supported",
+                    Map.of());
+        }
+    }
+
+    /** Contenu indécodable ou dimensions/pixels hors bornes. */
+    public static class MediaInvalidImageProblem extends BaseProblem {
+        public MediaInvalidImageProblem(String detail) {
+            super("urn:quizup:bff:media:invalidImage",
+                    ProblemCategory.VALIDATION,
+                    "Invalid media image",
+                    detail,
+                    Map.of());
+        }
+    }
+
+    /** Fichier au-delà de {@code quizup.media.max-file-size} (mappé 413). */
+    public static class MediaTooLargeProblem extends BaseProblem {
+        public MediaTooLargeProblem(String detail) {
+            super("urn:quizup:bff:media:tooLarge",
+                    ProblemCategory.VALIDATION,
+                    "Media file too large",
+                    detail,
+                    Map.of());
+        }
+    }
+
+    /** Quota d'images de l'utilisateur atteint (mappé 429). */
+    public static class MediaQuotaExceededProblem extends BaseProblem {
+        public MediaQuotaExceededProblem(String detail) {
+            super("urn:quizup:bff:media:quotaExceeded",
+                    ProblemCategory.VALIDATION,
+                    "Media quota exceeded",
+                    detail,
+                    Map.of());
+        }
+    }
+
+    /** Stockage objet injoignable ou non configuré (mappé 503). */
+    public static class MediaStorageUnavailableProblem extends BaseProblem {
+        public MediaStorageUnavailableProblem(String detail) {
+            super("urn:quizup:bff:media:storageUnavailable",
+                    ProblemCategory.TECHNICAL,
+                    "Media storage unavailable",
+                    detail,
+                    Map.of());
+        }
+    }
+
+    /** Image inconnue du catalogue média (`404`). */
+    public static class MediaNotFoundProblem extends BaseProblem {
+        public MediaNotFoundProblem(String mediaId) {
+            super("urn:quizup:bff:media:notFound",
+                    ProblemCategory.BUSINESS_RESOURCE_MISSING,
+                    "Media not found",
+                    "No media with id " + mediaId,
+                    Map.of("mediaId", mediaId));
+        }
+    }
+
+    /** Suppression d'une image dont l'utilisateur n'est pas l'auteur (`403`). */
+    public static class MediaNotOwnerProblem extends BaseProblem {
+        public MediaNotOwnerProblem(String mediaId) {
+            super("urn:quizup:bff:media:notOwner",
+                    ProblemCategory.PERMISSION,
+                    "Media deletion not allowed",
+                    "Only the uploader can delete the media " + mediaId,
+                    Map.of("mediaId", mediaId));
+        }
+    }
 }

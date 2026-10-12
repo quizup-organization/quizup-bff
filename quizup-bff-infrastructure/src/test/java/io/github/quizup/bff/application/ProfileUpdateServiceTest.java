@@ -44,6 +44,15 @@ class ProfileUpdateServiceTest {
     }
 
     @Test
+    void updateBannerInvalidatesCacheOnSuccess() {
+        when(commandGateway.send(any())).thenReturn(CompletableFuture.completedFuture(null));
+
+        service.updateBanner("u1", "u1", "https://media.example.test/banner.jpg").join();
+
+        verify(profileLookup).invalidate("u1");
+    }
+
+    @Test
     void failedCommandDoesNotInvalidateCache() {
         CompletableFuture<Object> failed = new CompletableFuture<>();
         failed.completeExceptionally(new IllegalStateException("boom"));

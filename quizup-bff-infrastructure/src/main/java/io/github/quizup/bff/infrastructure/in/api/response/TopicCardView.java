@@ -18,6 +18,7 @@ public record TopicCardView(
         String emoji,
         String color,
         String imageUrl,
+        String bannerUrl,
         int followersCount,
         int questionsCount,
         boolean followed,

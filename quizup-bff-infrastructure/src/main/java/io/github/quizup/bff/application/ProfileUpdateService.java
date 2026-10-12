@@ -45,6 +45,11 @@ public class ProfileUpdateService {
                 new ProfileCommand.UpdateProfileAvatarCommand(userId, requestedBy, avatarOptions));
     }
 
+    public CompletableFuture<Void> updateBanner(String userId, String requestedBy, String bannerUrl) {
+        return dispatch(userId,
+                new ProfileCommand.UpdateProfileBannerCommand(userId, requestedBy, bannerUrl));
+    }
+
     public CompletableFuture<Void> updateLanguage(String userId, String requestedBy, Language language) {
         return dispatch(userId,
                 new ProfileCommand.UpdateProfileLanguageCommand(userId, requestedBy, language));

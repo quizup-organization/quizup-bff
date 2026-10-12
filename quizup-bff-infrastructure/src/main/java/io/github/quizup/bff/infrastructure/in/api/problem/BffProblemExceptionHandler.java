@@ -9,6 +9,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 /**
  * Mappe les {@link BaseProblem} émis par la façade (garde propriétaire, validation de liste) sur
@@ -22,7 +23,40 @@ public class BffProblemExceptionHandler {
 
     @ExceptionHandler(BaseProblem.class)
     public ResponseEntity<ExceptionResponse> handle(BaseProblem problem, HttpServletRequest request) {
-        HttpStatus status = statusFor(problem.getCategory());
+        return respond(problem, request, statusFor(problem.getCategory()));
+    }
+
+    /** Fichier refusé par le conteneur/Spring avant d'atteindre le contrôleur (limite multipart). */
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ExceptionResponse> handleMaxUploadSize(MaxUploadSizeExceededException exception,
+                                                                 HttpServletRequest request) {
+        return respond(new BffProblems.MediaTooLargeProblem("fichier au-delà de la taille maximale autorisée"),
+                request, HttpStatus.PAYLOAD_TOO_LARGE);
+    }
+
+    /** Fichier au-delà de la limite applicative média : 413 plutôt que 400. */
+    @ExceptionHandler(BffProblems.MediaTooLargeProblem.class)
+    public ResponseEntity<ExceptionResponse> handleMediaTooLarge(BffProblems.MediaTooLargeProblem problem,
+                                                                 HttpServletRequest request) {
+        return respond(problem, request, HttpStatus.PAYLOAD_TOO_LARGE);
+    }
+
+    /** Quota d'images de l'utilisateur atteint : 429 (réessayer après suppression). */
+    @ExceptionHandler(BffProblems.MediaQuotaExceededProblem.class)
+    public ResponseEntity<ExceptionResponse> handleMediaQuota(BffProblems.MediaQuotaExceededProblem problem,
+                                                              HttpServletRequest request) {
+        return respond(problem, request, HttpStatus.TOO_MANY_REQUESTS);
+    }
+
+    /** Stockage objet injoignable : 503 (dépendance externe, pas une faute du client). */
+    @ExceptionHandler(BffProblems.MediaStorageUnavailableProblem.class)
+    public ResponseEntity<ExceptionResponse> handleMediaStorage(BffProblems.MediaStorageUnavailableProblem problem,
+                                                                HttpServletRequest request) {
+        return respond(problem, request, HttpStatus.SERVICE_UNAVAILABLE);
+    }
+
+    private static ResponseEntity<ExceptionResponse> respond(BaseProblem problem, HttpServletRequest request,
+                                                             HttpStatus status) {
         ExceptionResponse response = new ExceptionResponse(
                 problem.getType(),
                 problem.getCategory(),

@@ -9,6 +9,7 @@ import io.github.quizup.bff.infrastructure.in.api.request.UpdateQuestionAnswersR
 import io.github.quizup.bff.infrastructure.in.api.request.UpdateQuestionCorrectAnswerRequest;
 import io.github.quizup.bff.infrastructure.in.api.request.UpdateQuestionImageUrlRequest;
 import io.github.quizup.bff.infrastructure.in.api.request.UpdateQuestionTextRequest;
+import io.github.quizup.bff.infrastructure.in.api.request.UpdateTopicBannerUrlRequest;
 import io.github.quizup.bff.infrastructure.in.api.request.UpdateTopicCategoryRequest;
 import io.github.quizup.bff.infrastructure.in.api.request.UpdateTopicColorRequest;
 import io.github.quizup.bff.infrastructure.in.api.request.UpdateTopicDescriptionRequest;
@@ -99,6 +100,13 @@ public class TopicAuthoringService {
                                                   UpdateTopicImageUrlRequest request) {
         return dispatchTopicField(topicId, userId,
                 new TopicCommand.UpdateTopicImageUrlCommand(topicId, userId, request.imageUrl()));
+    }
+
+    public CompletableFuture<Void> updateBannerUrl(String topicId,
+                                                   String userId,
+                                                   UpdateTopicBannerUrlRequest request) {
+        return dispatchTopicField(topicId, userId,
+                new TopicCommand.UpdateTopicBannerUrlCommand(topicId, userId, request.bannerUrl()));
     }
 
     public CompletableFuture<Void> publish(String topicId, String userId) {
