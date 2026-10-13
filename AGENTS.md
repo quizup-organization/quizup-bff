@@ -166,6 +166,27 @@ les images mirorées du workspace (`product/wikipedia/`, voir `scripts/seed-imag
 | `POST /api/media` | `201 + Location` | multipart `file` (JPEG/PNG ≤ 5 Mo) → `MediaView { id, url, contentType, sizeBytes, width, height }` ; déduplication par contenu, acteur = JWT |
 | `DELETE /api/media/{mediaId}` | `204` | propriétaire de l'image uniquement ; l'objet n'est supprimé que si plus aucune référence ne le partage |
 
+#### Administration média (console d'exploitation)
+
+Surface **admin** `/api/admin/media` (`ROLE_ADMIN`, `@EnableMethodSecurity` via
+`AdminSecurityConfiguration`), consommée **en direct** par `quizup-web-console`
+(cross-origin `VITE_BFF_URL`, CORS SDK) : listing du bucket (uploads `uploads/` + seed
+`wikipedia/`), statistiques, usage par joueur (quota), orphelins S3 ↔ `media_asset` et
+suppression/purge. Les suppressions vérifient les **références métier** (nouvelles queries
+`TopicQuery.CountImageReferencesQuery` et `ProfileQuery.CountImageReferencesQuery` — cover/bannière
+de sujet, illustration de question, bannière de profil) : objet référencé ⇒ `409` sauf
+`force=true` ; vérification indisponible ⇒ `503` (fail-closed). Pas d'audit persistant (logs).
+
+| Endpoint | Réponse | Notes |
+|---|---|---|
+| `GET /api/admin/media/objects?origin=&q=&cursor=&size=` | `AdminMediaObjectsView` | pagination par curseur S3 (`nextCursor`), enrichi lignes `media_asset` + `referenceCount` (`null` si vérification indisponible) |
+| `GET /api/admin/media/stats` | `AdminMediaStatsView` | volumes par origine, catalogue (count/bytes/owners), orphelins (`truncated` si scan borné) |
+| `GET /api/admin/media/orphans` | `AdminMediaOrphansView` | objets `uploads/` sans ligne + lignes sans objet |
+| `GET /api/admin/media/usage?page=&size=` | `PageResponse<AdminMediaUsageView>` | usage par joueur, octets décroissants |
+| `DELETE /api/admin/media/objects?key=&force=` | `AdminMediaDeleteResultView` | supprime l'objet S3 + toutes les lignes de la clé ; `409` si référencé sans `force` |
+| `DELETE /api/admin/media/assets/{mediaId}` | `AdminMediaDeleteResultView` | supprime une ligne fantôme (sans objet S3) |
+| `POST /api/admin/media/purge-orphans` | `AdminMediaPurgeView` | purge les orphelins non référencés (`skippedReferenced`) |
+
 ### Joueurs / personnes (profile + social + leaderboard + game)
 
 | Endpoint | Réponse | Notes |
@@ -308,7 +329,8 @@ l'`EventEnvelope` du SDK (payload typé via `eventType`, sans annotation), mapp�
 - Pas d'event store propre (seul le token store Axon, fourni par le SDK).
 - Pas de back-office global : la surface d'**auteur** (`/api/topics` écriture, `/api/questions`)
   est ouverte à tout joueur pour **ses propres** sujets ; les use cases de recherche génériques
-  restent réservés aux futures surfaces d'administration.
+  restent réservés aux futures surfaces d'administration. **Exception actée** : la surface
+  `/api/admin/media` (console média, `ROLE_ADMIN`) — voir § Médias.
 - Erreurs de façade : les `BaseProblem` levés hors handlers Axon (gardes propriétaire, chaînage
   asynchrone) sont mappés par `BffProblemExceptionHandler` (RFC 7807, `PERMISSION` → 403).
 

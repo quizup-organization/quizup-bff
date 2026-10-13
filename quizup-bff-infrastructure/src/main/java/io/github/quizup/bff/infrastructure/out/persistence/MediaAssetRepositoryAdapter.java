@@ -2,9 +2,13 @@ package io.github.quizup.bff.infrastructure.out.persistence;
 
 import io.github.quizup.bff.application.MediaAsset;
 import io.github.quizup.bff.application.MediaAssetRepository;
+import io.github.quizup.bff.application.UploaderUsage;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -60,6 +64,54 @@ public class MediaAssetRepositoryAdapter implements MediaAssetRepository {
     @Transactional
     public void delete(MediaAsset asset) {
         repository.deleteById(asset.id());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<MediaAsset> findByObjectKey(String objectKey) {
+        return repository.findByObjectKey(objectKey).stream()
+                .map(MediaAssetRepositoryAdapter::toDomain)
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<MediaAsset> findByObjectKeys(Collection<String> objectKeys) {
+        if (objectKeys == null || objectKeys.isEmpty()) {
+            return List.of();
+        }
+        return repository.findByObjectKeyIn(objectKeys).stream()
+                .map(MediaAssetRepositoryAdapter::toDomain)
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<MediaAsset> findAllOrdered() {
+        return repository.findAllByOrderByCreatedAtAsc().stream()
+                .map(MediaAssetRepositoryAdapter::toDomain)
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<UploaderUsage> usageByUploader(int page, int size) {
+        return repository.usageByUploader(PageRequest.of(page, size)).stream()
+                .map(row -> new UploaderUsage((String) row[0], ((Number) row[1]).longValue(),
+                        ((Number) row[2]).longValue()))
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public long countUploaders() {
+        return repository.countUploaders();
+    }
+
+    @Override
+    @Transactional
+    public long deleteByObjectKey(String objectKey) {
+        return repository.deleteByObjectKey(objectKey);
     }
 
     private static MediaAssetEntity toEntity(MediaAsset asset) {

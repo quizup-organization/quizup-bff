@@ -1,5 +1,7 @@
 package io.github.quizup.bff.application;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -20,4 +22,22 @@ public interface MediaAssetRepository {
     long countByObjectKey(String objectKey);
 
     void delete(MediaAsset asset);
+
+    /** Toutes les lignes partageant une clé d'objet (déduplication inter-utilisateurs). */
+    List<MediaAsset> findByObjectKey(String objectKey);
+
+    /** Résolution batch par clés d'objet (une même clé peut porter plusieurs lignes). */
+    List<MediaAsset> findByObjectKeys(Collection<String> objectKeys);
+
+    /** Catalogue complet, du plus ancien au plus récent (stats et détection d'orphelins). */
+    List<MediaAsset> findAllOrdered();
+
+    /** Usage agrégé par joueur, trié par octets décroissants. */
+    List<UploaderUsage> usageByUploader(int page, int size);
+
+    /** Nombre de joueurs possédant au moins une image. */
+    long countUploaders();
+
+    /** Suppression de toutes les lignes d'une clé d'objet (purge d'administration). */
+    long deleteByObjectKey(String objectKey);
 }

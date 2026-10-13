@@ -99,11 +99,7 @@ public class MediaService {
     }
 
     private String urlFor(String objectKey) {
-        String base = properties.publicBaseUrl();
-        if (base == null || base.isBlank()) {
-            throw new BffProblems.MediaStorageUnavailableProblem("URL publique des médias non configurée");
-        }
-        return base.endsWith("/") ? base + objectKey : base + "/" + objectKey;
+        return MediaPublicUrl.urlFor(properties, objectKey);
     }
 
     private static MediaView toView(MediaAsset asset) {

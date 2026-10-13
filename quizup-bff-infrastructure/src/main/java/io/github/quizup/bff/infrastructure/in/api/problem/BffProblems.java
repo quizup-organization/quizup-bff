@@ -182,4 +182,49 @@ public final class BffProblems {
                     Map.of("mediaId", mediaId));
         }
     }
+
+    /** Paramètres invalides d'une requête d'administration média (`400`). */
+    public static class InvalidMediaAdminRequestProblem extends BaseProblem {
+        public InvalidMediaAdminRequestProblem(String detail) {
+            super("urn:quizup:bff:media:invalidAdminRequest",
+                    ProblemCategory.VALIDATION,
+                    "Invalid media admin request",
+                    detail,
+                    Map.of());
+        }
+    }
+
+    /** Aucun objet S3 ni ligne {@code media_asset} pour cette clé (`404`). */
+    public static class MediaObjectNotFoundProblem extends BaseProblem {
+        public MediaObjectNotFoundProblem(String objectKey) {
+            super("urn:quizup:bff:media:objectNotFound",
+                    ProblemCategory.BUSINESS_RESOURCE_MISSING,
+                    "Media object not found",
+                    "No stored object or asset matches key " + objectKey,
+                    Map.of("objectKey", objectKey));
+        }
+    }
+
+    /** Objet encore référencé par une entité métier : suppression refusée sans `force` (`409`). */
+    public static class MediaObjectReferencedProblem extends BaseProblem {
+        public MediaObjectReferencedProblem(String objectKey, long references) {
+            super("urn:quizup:bff:media:referenced",
+                    ProblemCategory.BUSINESS_INVALID_COMMAND,
+                    "Media object referenced",
+                    "The object " + objectKey + " is referenced by " + references
+                            + " entity(ies); use force=true to delete it anyway",
+                    Map.of("objectKey", objectKey, "references", references));
+        }
+    }
+
+    /** Vérification des références inter-services indisponible : purge refusée (`503`). */
+    public static class MediaReferenceUnavailableProblem extends BaseProblem {
+        public MediaReferenceUnavailableProblem(String detail) {
+            super("urn:quizup:bff:media:referenceCheckUnavailable",
+                    ProblemCategory.TECHNICAL,
+                    "Media reference check unavailable",
+                    detail,
+                    Map.of());
+        }
+    }
 }

@@ -55,6 +55,20 @@ public class BffProblemExceptionHandler {
         return respond(problem, request, HttpStatus.SERVICE_UNAVAILABLE);
     }
 
+    /** Objet encore référencé : 409 (l'admin doit confirmer avec {@code force=true}). */
+    @ExceptionHandler(BffProblems.MediaObjectReferencedProblem.class)
+    public ResponseEntity<ExceptionResponse> handleMediaReferenced(BffProblems.MediaObjectReferencedProblem problem,
+                                                                   HttpServletRequest request) {
+        return respond(problem, request, HttpStatus.CONFLICT);
+    }
+
+    /** Vérification des références indisponible : 503, la suppression est refusée (fail-closed). */
+    @ExceptionHandler(BffProblems.MediaReferenceUnavailableProblem.class)
+    public ResponseEntity<ExceptionResponse> handleMediaReferenceCheck(BffProblems.MediaReferenceUnavailableProblem problem,
+                                                                       HttpServletRequest request) {
+        return respond(problem, request, HttpStatus.SERVICE_UNAVAILABLE);
+    }
+
     private static ResponseEntity<ExceptionResponse> respond(BaseProblem problem, HttpServletRequest request,
                                                              HttpStatus status) {
         ExceptionResponse response = new ExceptionResponse(
