@@ -197,6 +197,7 @@ de sujet, illustration de question, bannière de profil) : objet référencé �
 | `PUT /api/profiles/{userId}/follow` | `204` | Idempotent |
 | `DELETE /api/profiles/{userId}/follow` | `204` | |
 | `GET /api/profiles/{userId}/games?topicId=&opponentId=&page=&size=` | `PageResponse<GameHistoryItemView>` | Historique enrichi (adversaire, sujet, résultat, XP) |
+| `GET /api/profiles/{userId}/topics` | `List<TopicStatView>` | Répartition des **parties humaines** par sujet (donut « Sujets joués ») : `names`, `emoji`, `color`, `imageUrl`, `games`, `xp`, `level` ; tri par parties décroissantes, sujets supprimés ignorés |
 | `GET /api/profiles/{userId}/head-to-head?against=` | `HeadToHeadView` | V/N/D entre deux joueurs |
 | `PUT /api/profiles/{userId}/pseudonym` | `204` | `{ pseudonym }` |
 | `PUT /api/profiles/{userId}/bio` | `204` | `{ bio }` (`null` efface) |

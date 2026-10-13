@@ -16,6 +16,7 @@ import io.github.quizup.bff.infrastructure.in.api.response.HeadToHeadView;
 import io.github.quizup.bff.infrastructure.in.api.response.PageResponse;
 import io.github.quizup.bff.infrastructure.in.api.response.PlayerCardView;
 import io.github.quizup.bff.infrastructure.in.api.response.PlayerProfileView;
+import io.github.quizup.bff.infrastructure.in.api.response.TopicStatView;
 import io.github.quizup.microservice.security.SecurityHelper;
 import io.github.quizup.social.domain.command.UserFollowerCommand;
 import io.github.quizup.social.domain.model.FollowDirection;
@@ -32,6 +33,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -175,6 +177,11 @@ public class ProfileController {
             @RequestParam(defaultValue = "20") int size) {
         PageParams.validate(page, size, MAX_PAGE_SIZE);
         return profileViewService.games(userId, topicId, opponentId, page, size).thenApply(ResponseEntity::ok);
+    }
+
+    @GetMapping("/{userId}/topics")
+    public CompletableFuture<ResponseEntity<List<TopicStatView>>> topics(@PathVariable String userId) {
+        return profileViewService.topics(userId).thenApply(ResponseEntity::ok);
     }
 
     @GetMapping("/{userId}/head-to-head")

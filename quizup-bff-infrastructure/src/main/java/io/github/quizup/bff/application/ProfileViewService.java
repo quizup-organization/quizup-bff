@@ -9,6 +9,7 @@ import io.github.quizup.bff.infrastructure.in.api.response.PlayerProfileView;
 import io.github.quizup.bff.infrastructure.in.api.response.PresenceView;
 import io.github.quizup.bff.infrastructure.in.api.response.ProgressionView;
 import io.github.quizup.bff.infrastructure.in.api.response.TopicRefView;
+import io.github.quizup.bff.infrastructure.in.api.response.TopicStatView;
 import io.github.quizup.bff.infrastructure.in.api.response.UserRefView;
 import io.github.quizup.game.domain.model.Game;
 import io.github.quizup.game.domain.model.GameStatus;
@@ -19,6 +20,7 @@ import io.github.quizup.profile.domain.model.GameXp;
 import io.github.quizup.profile.domain.model.PlayerPresence;
 import io.github.quizup.profile.domain.model.PlayerProgress;
 import io.github.quizup.profile.domain.model.Profile;
+import io.github.quizup.profile.domain.model.TopicProgress;
 import io.github.quizup.profile.domain.query.PresenceQuery;
 import io.github.quizup.profile.domain.query.ProgressionQuery;
 import io.github.quizup.social.domain.model.FollowDirection;
@@ -195,6 +197,36 @@ public class ProfileViewService {
                         }
                     }
                     return new HeadToHeadView(games.size(), wins, losses, draws);
+                });
+    }
+
+    /**
+     * Répartition des parties humaines par sujet (donut « Sujets joués » du profil) : progression
+     * par thème (parties, XP, niveau) enrichie des informations éditoriales du sujet. Les sujets
+     * introuvables (supprimés) sont ignorés.
+     */
+    public CompletableFuture<List<TopicStatView>> topics(String userId) {
+        return queryGateway.query(
+                        new ProgressionQuery.GetTopicProgressionsQuery(userId),
+                        QueryResponseTypes.multipleInstancesOf(TopicProgress.class))
+                .thenCompose(progressions -> {
+                    List<String> topicIds = progressions.stream().map(TopicProgress::topicId).toList();
+                    CompletableFuture<List<Topic>> topicsFuture = topicIds.isEmpty()
+                            ? CompletableFuture.completedFuture(List.of())
+                            : queryGateway.query(new TopicQuery.GetTopicsByIdsQuery(topicIds),
+                                    QueryResponseTypes.multipleInstancesOf(Topic.class));
+                    return topicsFuture.thenApply(topics -> {
+                        Map<String, Topic> topicById = byKey(topics, Topic::topicId);
+                        return progressions.stream()
+                                .filter(progress -> topicById.containsKey(progress.topicId()))
+                                .map(progress -> {
+                                    Topic topic = topicById.get(progress.topicId());
+                                    return new TopicStatView(topic.topicId(), topic.names(), topic.emoji(),
+                                            topic.color(), topic.imageUrl(),
+                                            progress.games(), progress.xp(), progress.level());
+                                })
+                                .toList();
+                    });
                 });
     }
 

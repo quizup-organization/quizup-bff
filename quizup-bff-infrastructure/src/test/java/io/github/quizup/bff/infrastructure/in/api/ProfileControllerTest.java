@@ -7,6 +7,7 @@ import io.github.quizup.bff.infrastructure.in.api.response.DuelStatsView;
 import io.github.quizup.bff.infrastructure.in.api.response.PageResponse;
 import io.github.quizup.bff.infrastructure.in.api.response.PlayerProfileView;
 import io.github.quizup.bff.infrastructure.in.api.response.ProgressionView;
+import io.github.quizup.bff.infrastructure.in.api.response.TopicStatView;
 import io.github.quizup.microservice.core.domain.model.i18n.Language;
 import io.github.quizup.social.domain.command.UserFollowerCommand;
 import org.axonframework.commandhandling.gateway.CommandGateway;
@@ -19,6 +20,7 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -88,6 +90,25 @@ class ProfileControllerTest {
         mockMvc.perform(asyncDispatch(result))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.totalElements").value(0));
+    }
+
+    @Test
+    void topics_returns_topic_stats() throws Exception {
+        when(profileViewService.topics("user-2"))
+                .thenReturn(CompletableFuture.completedFuture(List.of(
+                        new TopicStatView("topic-1", Map.of(Language.FR, "DotA"), "🎮", "#f00",
+                                "https://example.com/img.png", 7, 200, 2))));
+
+        MvcResult result = mockMvc.perform(get("/api/profiles/user-2/topics"))
+                .andExpect(request().asyncStarted())
+                .andReturn();
+
+        mockMvc.perform(asyncDispatch(result))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].topicId").value("topic-1"))
+                .andExpect(jsonPath("$[0].games").value(7))
+                .andExpect(jsonPath("$[0].xp").value(200))
+                .andExpect(jsonPath("$[0].level").value(2));
     }
 
     @Test
