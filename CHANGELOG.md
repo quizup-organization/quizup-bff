@@ -1,3 +1,9 @@
+## [11.10.0](https://github.com/quizup-organization/quizup-bff/compare/v11.9.0...v11.10.0) (2026-10-13)
+
+### Features
+
+* **bff:** répartition des parties par sujet (GET /api/profiles/{id}/topics) ([c1ee9dc](https://github.com/quizup-organization/quizup-bff/commit/c1ee9dc75f7b50caaf4156da5329cd7961cb01c2))
+
 ## [11.9.0](https://github.com/quizup-organization/quizup-bff/compare/v11.8.1...v11.9.0) (2026-10-13)
 
 ### Features
