@@ -1,6 +1,7 @@
 package io.github.quizup.bff.application;
 
 import io.github.quizup.bff.infrastructure.in.api.request.PeopleSort;
+import io.github.quizup.bff.infrastructure.in.api.response.BadgeCollectionView;
 import io.github.quizup.bff.infrastructure.in.api.response.GameHistoryItemView;
 import io.github.quizup.bff.infrastructure.in.api.response.HeadToHeadView;
 import io.github.quizup.bff.infrastructure.in.api.response.PageResponse;
@@ -18,6 +19,9 @@ import io.github.quizup.game.domain.model.PlayerGamesPage;
 import io.github.quizup.game.domain.query.GameQuery;
 import io.github.quizup.microservice.core.domain.model.i18n.Language;
 import io.github.quizup.microservice.core.infrastructure.axon.QueryResponseTypes;
+import io.github.quizup.profile.domain.model.Badge;
+import io.github.quizup.profile.domain.model.BadgeFamily;
+import io.github.quizup.profile.domain.model.BadgeMetric;
 import io.github.quizup.profile.domain.model.GameXp;
 import io.github.quizup.profile.domain.model.MasteryGrade;
 import io.github.quizup.profile.domain.model.PlayerPresence;
@@ -38,6 +42,7 @@ import org.springframework.stereotype.Service;
 
 import java.text.Normalizer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -156,8 +161,58 @@ public class ProfileViewService {
         });
     }
 
-    private static TitlesView.TitleView toTitle(String topicId, int topicXp, Topic topic) {
-        MasteryGrade grade = MasteryGrade.gradeFor(topicXp);
+    /**
+     * Collection de badges d'un joueur : **tout le catalogue** (paliers verrouillés compris)
+     * groupé par famille, avec la progression de chaque compteur — le client affiche « 7/10 » et
+     * l'objectif suivant sans requête supplémentaire.
+     */
+    public CompletableFuture<BadgeCollectionView> badges(String userId) {
+        return progressionLookup.get(userId).thenApply(progress -> {
+            List<BadgeCollectionView.FamilyView> families = Arrays.stream(BadgeFamily.values())
+                    .map(family -> new BadgeCollectionView.FamilyView(
+                            family.name(),
+                            Badge.ofFamily(family).stream()
+                                    .map(badge -> toBadgeItem(badge, progress))
+                                    .toList()))
+                    .toList();
+
+            return new BadgeCollectionView(
+                    progress.badges().size(), Badge.values().length, families);
+        });
+    }
+
+    private static BadgeCollectionView.BadgeItemView toBadgeItem(Badge badge, PlayerProgress progress) {
+        boolean earned = progress.badges().contains(badge);
+        int target = badge.target();
+        int current = earned && badge.isOneShot()
+                ? target
+                : metricValue(badge.metric(), progress);
+
+        return new BadgeCollectionView.BadgeItemView(
+                badge.name(),
+                badge.label(),
+                badge.tier().name(),
+                badge.metric().name(),
+                target,
+                earned,
+                Math.min(current, target));
+    }
+
+    /** Valeur courante du compteur d'un badge, telle que la mesure le read model de progression. */
+    private static int metricValue(BadgeMetric metric, PlayerProgress progress) {
+        return switch (metric) {
+            case HUMAN_DUELS -> progress.gamesPlayed();
+            case HUMAN_WINS -> progress.wins();
+            case TOPIC_MASTERY -> progress.xpByTopic().values().stream()
+                    .mapToInt(Integer::intValue)
+                    .max()
+                    .orElse(0);
+            case EARNED_BADGES -> progress.badges().size();
+            case ONE_SHOT -> 0;
+        };
+    }
+
+    private static TitlesView.TitleView toTitle(String topicId, int topicXp, Topic topic) {        MasteryGrade grade = MasteryGrade.gradeFor(topicXp);
         return new TitlesView.TitleView(
                 new PlayerTitle(topicId, grade).key(),
                 topicId,

@@ -70,10 +70,11 @@ Le `quizup-mobile` n'est **pas** branché sur cette surface (migration dédiée 
   requêtes dédiées (`GetProfilesByIdsQuery`, `GetProgressionsByIdsQuery`,
   `GetPresencesByIdsQuery`…).
 - **Progression** : `ProgressionView.badges` liste les badges **acquis**, chacun avec sa
-  **famille** et son **palier** (`BadgeFamily` / `BadgeTier`). Le catalogue complet (paliers
-  verrouillés + progression « 7/10 ») viendra avec l'écran de collection : il se compose depuis le
-  catalogue `Badge` et les compteurs du read model (`gamesPlayed`, `wins`, `badges`, `xpByTopic`),
-  **sans nouvelle requête**. `ProgressionView.title` (titre de **compte**) et le `level`/`title` de
+  **famille** et son **palier** (`BadgeFamily` / `BadgeTier`) ; la **collection complète**
+  (paliers verrouillés + progression « 7/10 ») est exposée par
+  `GET /api/profiles/{userId}/badges`, composée depuis le catalogue `Badge` et les compteurs du
+  read model (`gamesPlayed`, `wins`, `badges`, `xpByTopic`), **sans requête supplémentaire**.
+  `ProgressionView.title` (titre de **compte**) et le `level`/`title` de
   `TopicOverviewView.myProgress` sont **transitoires** : les titres affichés sont thématiques
   (`equippedTitle` + `GET …/titles`), l'UI devant basculer dans un lot dédié.
 - **Titres thématiques** : le serveur ne compose **jamais** le libellé (« Confirmé · Histoire ») —
@@ -203,6 +204,7 @@ de sujet, illustration de question, bannière de profil) : objet référencé �
 | Endpoint | Réponse | Notes |
 |---|---|---|
 | `GET /api/profiles/{userId}` | `PlayerProfileView` | Profil + progression + stats + counts + présence + `follow` + `isMe` + `equippedTitle` (clé du titre porté, `null` si aucun) |
+| `GET /api/profiles/{userId}/badges` | `BadgeCollectionView` | **Collection** : tout le catalogue groupé par famille (`VOLUME`, `MASTERY`, `EXPLOIT`, `COLLECTION`), chaque badge avec `code`, `label`, `tier`, `metric`, `target`, `earned` et `progress` (compteur courant **plafonné** à `target` : « 7/10 »). Les compteurs viennent du read model de progression (`gamesPlayed`, `wins`, `max(xpByTopic)`, `badges`, fait ponctuel) — aucune requête supplémentaire |
 | `GET /api/profiles/{userId}/titles` | `TitlesView` | Titres thématiques **débloqués** (un par sujet où le premier grade est atteint) + `equippedKey` : `key` (`topicId:GRADE`), `grade`, `gradeProgressPercent`, `gradeRemainingXp`, `nextGrade`, `topic` (`TopicRefView`). Le libellé est composé par le client (grade traduit + `topic.names`) — aucun texte figé côté serveur |
 | `PUT /api/profiles/{userId}/title` | `204` | Titre **porté** : `{ titleKey }` (`topicId:GRADE`) ou `null` pour n'en afficher aucun. Propriétaire uniquement (invariant d'agrégat, 403) ; titre **réellement débloqué** exigé — la progression est lue avant l'envoi et un grade insuffisant répond `400` (`urn:quizup:bff:profile:titleNotEarned`), une clé mal formée `400` (`…:invalidTitle`) |
 | `GET /api/profiles/{userId}/following?q=&sort=&page=&size=` | `PageResponse<PlayerCardView>` | `sort` ∈ `RECENT\|LEVEL\|ALPHA` |

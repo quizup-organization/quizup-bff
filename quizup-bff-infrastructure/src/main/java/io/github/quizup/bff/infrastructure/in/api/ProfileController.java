@@ -14,6 +14,7 @@ import io.github.quizup.bff.infrastructure.in.api.request.UpdatePseudonymRequest
 import io.github.quizup.bff.infrastructure.in.api.request.UpdateTitleRequest;
 import io.github.quizup.bff.infrastructure.in.api.response.GameHistoryItemView;
 import io.github.quizup.bff.infrastructure.in.api.response.HeadToHeadView;
+import io.github.quizup.bff.infrastructure.in.api.response.BadgeCollectionView;
 import io.github.quizup.bff.infrastructure.in.api.response.PageResponse;
 import io.github.quizup.bff.infrastructure.in.api.response.PlayerCardView;
 import io.github.quizup.bff.infrastructure.in.api.response.PlayerProfileView;
@@ -121,6 +122,15 @@ public class ProfileController {
         return profileUpdateService
                 .updateLanguage(userId, SecurityHelper.getUserId(), request.language())
                 .thenApply(_ -> ResponseEntity.noContent().build());
+    }
+
+    /**
+     * Collection de badges d'un joueur : tout le catalogue (paliers verrouillés compris) avec la
+     * progression de chaque compteur.
+     */
+    @GetMapping("/{userId}/badges")
+    public CompletableFuture<ResponseEntity<BadgeCollectionView>> badges(@PathVariable String userId) {
+        return profileViewService.badges(userId).thenApply(ResponseEntity::ok);
     }
 
     /**

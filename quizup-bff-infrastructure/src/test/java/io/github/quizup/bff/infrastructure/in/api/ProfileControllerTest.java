@@ -3,6 +3,7 @@ package io.github.quizup.bff.infrastructure.in.api;
 import io.github.quizup.bff.application.FollowLookup;
 import io.github.quizup.bff.application.ProfileUpdateService;
 import io.github.quizup.bff.application.ProfileViewService;
+import io.github.quizup.bff.infrastructure.in.api.response.BadgeCollectionView;
 import io.github.quizup.bff.infrastructure.in.api.response.DuelStatsView;
 import io.github.quizup.bff.infrastructure.in.api.response.PageResponse;
 import io.github.quizup.bff.infrastructure.in.api.response.PlayerProfileView;
@@ -123,6 +124,27 @@ class ProfileControllerTest {
 
         mockMvc.perform(asyncDispatch(result)).andExpect(status().isNoContent());
         verify(commandGateway).send(new UserFollowerCommand.UnfollowUserCommand("user-1:user-2", "user-1"));
+    }
+
+    @Test
+    void badges_returns_the_whole_catalogue_with_progress() throws Exception {
+        when(profileViewService.badges("user-2")).thenReturn(CompletableFuture.completedFuture(
+                new BadgeCollectionView(2, 16, List.of(new BadgeCollectionView.FamilyView(
+                        "VOLUME", List.of(new BadgeCollectionView.BadgeItemView(
+                                "DUELIST_BRONZE", "Duelliste", "BRONZE", "HUMAN_DUELS", 10,
+                                true, 10)))))));
+
+        MvcResult result = mockMvc.perform(get("/api/profiles/user-2/badges"))
+                .andExpect(request().asyncStarted())
+                .andReturn();
+
+        mockMvc.perform(asyncDispatch(result))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.earnedCount").value(2))
+                .andExpect(jsonPath("$.families[0].family").value("VOLUME"))
+                .andExpect(jsonPath("$.families[0].badges[0].code").value("DUELIST_BRONZE"))
+                .andExpect(jsonPath("$.families[0].badges[0].earned").value(true))
+                .andExpect(jsonPath("$.families[0].badges[0].progress").value(10));
     }
 
     @Test

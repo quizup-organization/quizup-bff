@@ -1,8 +1,10 @@
 package io.github.quizup.bff.application;
 
+import io.github.quizup.bff.infrastructure.in.api.response.BadgeCollectionView;
 import io.github.quizup.bff.infrastructure.in.api.response.TitlesView;
 import io.github.quizup.bff.infrastructure.in.api.response.TopicStatView;
 import io.github.quizup.microservice.core.domain.model.i18n.Language;
+import io.github.quizup.profile.domain.model.Badge;
 import io.github.quizup.profile.domain.model.PlayerProgress;
 import io.github.quizup.profile.domain.model.Profile;
 import io.github.quizup.profile.domain.model.TopicProgress;
@@ -16,6 +18,7 @@ import org.mockito.ArgumentMatchers;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -120,5 +123,46 @@ class ProfileViewServiceTest {
 
         assertThat(view.equippedKey()).isNull();
         assertThat(view.titles()).isEmpty();
+    }
+
+    @Test
+    void badges_expose_the_whole_catalogue_with_capped_progress() {
+        when(progressionLookup.get("user-1")).thenReturn(CompletableFuture.completedFuture(
+                PlayerProgress.empty("user-1").toBuilder()
+                        .gamesPlayed(12)
+                        .wins(3)
+                        .xpByTopic(Map.of("topic-1", 2_600))
+                        .badges(Set.of(Badge.FIRST_WIN, Badge.DUELIST_BRONZE))
+                        .build()));
+
+        BadgeCollectionView view = service.badges("user-1").join();
+
+        assertThat(view.earnedCount()).isEqualTo(2);
+        assertThat(view.totalCount()).isEqualTo(Badge.values().length);
+        assertThat(view.families()).extracting(BadgeCollectionView.FamilyView::family)
+                .containsExactly("VOLUME", "MASTERY", "EXPLOIT", "COLLECTION");
+
+        // Volume : acquis au palier bronze (plafonné), en cours pour l'argent.
+        assertThat(item(view, Badge.DUELIST_BRONZE).earned()).isTrue();
+        assertThat(item(view, Badge.DUELIST_BRONZE).progress()).isEqualTo(10);
+        assertThat(item(view, Badge.DUELIST_ARGENT).earned()).isFalse();
+        assertThat(item(view, Badge.DUELIST_ARGENT).progress()).isEqualTo(12);
+        assertThat(item(view, Badge.WINNER_BRONZE).progress()).isEqualTo(3);
+
+        // Maîtrise : meilleur sujet du joueur (2 600 XP), plafonné au seuil de Confirmé.
+        assertThat(item(view, Badge.MASTER_BRONZE).progress()).isEqualTo(2_500);
+
+        // Collection : nombre de badges acquis ; exploits : faits ponctuels.
+        assertThat(item(view, Badge.COLLECTOR_BRONZE).progress()).isEqualTo(2);
+        assertThat(item(view, Badge.FIRST_WIN).progress()).isEqualTo(1);
+        assertThat(item(view, Badge.PERFECT).progress()).isZero();
+    }
+
+    private static BadgeCollectionView.BadgeItemView item(BadgeCollectionView view, Badge badge) {
+        return view.families().stream()
+                .flatMap(family -> family.badges().stream())
+                .filter(candidate -> candidate.code().equals(badge.name()))
+                .findFirst()
+                .orElseThrow();
     }
 }
