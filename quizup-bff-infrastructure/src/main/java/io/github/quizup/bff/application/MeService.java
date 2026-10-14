@@ -46,9 +46,9 @@ public class MeService {
                             profile.country(),
                             profile.avatarOptions(),
                             profile.bannerUrl(),
+                            profile.equippedTitle(),
                             profile.language(),
-                            ProgressionViews.toView(progress),
-                            ProgressionViews.toStats(progress),
+                            ProgressionViews.toView(progress),                            ProgressionViews.toStats(progress),
                             counts.following(),
                             counts.followers());
                 });

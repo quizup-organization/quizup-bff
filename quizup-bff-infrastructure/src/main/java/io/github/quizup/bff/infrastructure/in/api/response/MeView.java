@@ -13,6 +13,8 @@ public record MeView(
         String country,
         String avatarOptions,
         String bannerUrl,
+        /** Clé du titre thématique **porté** (`topicId:GRADE`) ; {@code null} = aucun titre. */
+        String equippedTitle,
         Language language,
         ProgressionView progression,
         DuelStatsView stats,

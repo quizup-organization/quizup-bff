@@ -26,7 +26,11 @@ public final class ProgressionViews {
                 levelProgressPercent(progress.xpTotal(), level),
                 progress.badges().stream()
                         .sorted(Comparator.comparing(Enum::name))
-                        .map(badge -> new ProgressionView.BadgeView(badge.name(), badge.label()))
+                        .map(badge -> new ProgressionView.BadgeView(
+                                badge.name(),
+                                badge.label(),
+                                badge.family().name(),
+                                badge.tier().name()))
                         .toList());
     }
 

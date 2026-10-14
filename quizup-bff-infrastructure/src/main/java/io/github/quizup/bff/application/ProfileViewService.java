@@ -10,15 +10,19 @@ import io.github.quizup.bff.infrastructure.in.api.response.PresenceView;
 import io.github.quizup.bff.infrastructure.in.api.response.ProgressionView;
 import io.github.quizup.bff.infrastructure.in.api.response.TopicRefView;
 import io.github.quizup.bff.infrastructure.in.api.response.TopicStatView;
+import io.github.quizup.bff.infrastructure.in.api.response.TitlesView;
 import io.github.quizup.bff.infrastructure.in.api.response.UserRefView;
 import io.github.quizup.game.domain.model.Game;
 import io.github.quizup.game.domain.model.GameStatus;
 import io.github.quizup.game.domain.model.PlayerGamesPage;
 import io.github.quizup.game.domain.query.GameQuery;
+import io.github.quizup.microservice.core.domain.model.i18n.Language;
 import io.github.quizup.microservice.core.infrastructure.axon.QueryResponseTypes;
 import io.github.quizup.profile.domain.model.GameXp;
+import io.github.quizup.profile.domain.model.MasteryGrade;
 import io.github.quizup.profile.domain.model.PlayerPresence;
 import io.github.quizup.profile.domain.model.PlayerProgress;
+import io.github.quizup.profile.domain.model.PlayerTitle;
 import io.github.quizup.profile.domain.model.Profile;
 import io.github.quizup.profile.domain.model.TopicProgress;
 import io.github.quizup.profile.domain.query.PresenceQuery;
@@ -94,6 +98,7 @@ public class ProfileViewService {
                             profile.country(),
                             profile.avatarOptions(),
                             profile.bannerUrl(),
+                            profile.equippedTitle(),
                             profile.userId().equals(viewerId),
                             followingFuture.join(),
                             presence == null ? null : toPresence(presence),
@@ -109,6 +114,69 @@ public class ProfileViewService {
                         new PresenceQuery.GetPresencesByIdsQuery(List.of(userId)),
                         QueryResponseTypes.multipleInstancesOf(PlayerPresence.class))
                 .thenApply(presences -> presences.stream().findFirst().map(ProfileViewService::toPresence));
+    }
+
+    /**
+     * Titres thématiques débloqués par un joueur : un titre par sujet où il a atteint au moins le
+     * premier grade, plus la clé de son **titre porté**. Le libellé est composé par le client
+     * (grade traduit + nom du sujet dans sa langue) — le serveur ne fige pas de texte.
+     */
+    public CompletableFuture<TitlesView> titles(String userId) {
+        CompletableFuture<Profile> profileFuture = profileLookup.get(userId);
+        CompletableFuture<PlayerProgress> progressFuture = progressionLookup.get(userId);
+
+        return CompletableFuture.allOf(profileFuture, progressFuture).thenCompose(_ -> {
+            Map<String, Integer> xpByTopic = progressFuture.join().xpByTopic();
+            List<String> earnedTopicIds = xpByTopic.entrySet().stream()
+                    .filter(entry -> MasteryGrade.gradeFor(entry.getValue()) != MasteryGrade.NOVICE)
+                    .map(Map.Entry::getKey)
+                    .sorted()
+                    .toList();
+
+            CompletableFuture<List<Topic>> topicsFuture = earnedTopicIds.isEmpty()
+                    ? CompletableFuture.completedFuture(List.of())
+                    : queryGateway.query(
+                            new TopicQuery.GetTopicsByIdsQuery(earnedTopicIds),
+                            QueryResponseTypes.multipleInstancesOf(Topic.class));
+
+            return topicsFuture.thenApply(topics -> {
+                Map<String, Topic> topicById = topics.stream().collect(Collectors.toMap(
+                        Topic::topicId, Function.identity(), (left, right) -> left));
+                List<TitlesView.TitleView> titles = earnedTopicIds.stream()
+                        .map(topicId -> toTitle(topicId, xpByTopic.getOrDefault(topicId, 0),
+                                topicById.get(topicId)))
+                        .sorted(Comparator
+                                .comparing((TitlesView.TitleView title) -> MasteryGrade.valueOf(title.grade()))
+                                .reversed()
+                                .thenComparing(title -> displayName(title.topic())))
+                        .toList();
+
+                return new TitlesView(profileFuture.join().equippedTitle(), titles);
+            });
+        });
+    }
+
+    private static TitlesView.TitleView toTitle(String topicId, int topicXp, Topic topic) {
+        MasteryGrade grade = MasteryGrade.gradeFor(topicXp);
+        return new TitlesView.TitleView(
+                new PlayerTitle(topicId, grade).key(),
+                topicId,
+                grade.name(),
+                grade.progressPercent(topicXp),
+                grade.remainingXp(topicXp),
+                grade.next() == null ? null : grade.next().name(),
+                TopicViews.toRef(topicId, topic));
+    }
+
+    /** Nom d'affichage d'un sujet pour le tri serveur : FR d'abord (convention de repli du web). */
+    private static String displayName(TopicRefView topic) {
+        Map<Language, String> names = topic.names();
+        if (names == null || names.isEmpty()) {
+            return topic.topicId();
+        }
+
+        return Optional.ofNullable(names.get(Language.FR))
+                .orElseGet(() -> names.values().iterator().next());
     }
 
     /**

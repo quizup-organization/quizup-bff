@@ -10,6 +10,8 @@ public record PlayerProfileView(
         String country,
         String avatarOptions,
         String bannerUrl,
+        /** Clé du titre thématique **porté** par le joueur (`topicId:GRADE`) ; {@code null} = aucun. */
+        String equippedTitle,
         boolean isMe,
         boolean following,
         PresenceView presence,

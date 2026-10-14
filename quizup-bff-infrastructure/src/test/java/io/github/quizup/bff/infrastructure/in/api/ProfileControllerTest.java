@@ -7,6 +7,8 @@ import io.github.quizup.bff.infrastructure.in.api.response.DuelStatsView;
 import io.github.quizup.bff.infrastructure.in.api.response.PageResponse;
 import io.github.quizup.bff.infrastructure.in.api.response.PlayerProfileView;
 import io.github.quizup.bff.infrastructure.in.api.response.ProgressionView;
+import io.github.quizup.bff.infrastructure.in.api.response.TitlesView;
+import io.github.quizup.bff.infrastructure.in.api.response.TopicRefView;
 import io.github.quizup.bff.infrastructure.in.api.response.TopicStatView;
 import io.github.quizup.microservice.core.domain.model.i18n.Language;
 import io.github.quizup.social.domain.command.UserFollowerCommand;
@@ -61,6 +63,7 @@ class ProfileControllerTest {
     @Test
     void profile_returns_enriched_view() throws Exception {
         PlayerProfileView view = new PlayerProfileView("user-2", "Bravo", null, "FR", null, null,
+                null,
                 false, false, null,
                 new ProgressionView(120, 2, "Apprenti", 400, 6, List.of()),
                 new DuelStatsView(4, 3, 1, 0, 75, 160, 2, 3), 5, 7);
@@ -79,8 +82,7 @@ class ProfileControllerTest {
     }
 
     @Test
-    void games_returns_page() throws Exception {
-        when(profileViewService.games("user-2", null, null, 0, 20))
+    void games_returns_page() throws Exception {        when(profileViewService.games("user-2", null, null, 0, 20))
                 .thenReturn(CompletableFuture.completedFuture(PageResponse.of(List.of(), 0, 20, 0)));
 
         MvcResult result = mockMvc.perform(get("/api/profiles/user-2/games"))
@@ -121,6 +123,56 @@ class ProfileControllerTest {
 
         mockMvc.perform(asyncDispatch(result)).andExpect(status().isNoContent());
         verify(commandGateway).send(new UserFollowerCommand.UnfollowUserCommand("user-1:user-2", "user-1"));
+    }
+
+    @Test
+    void titles_returns_equipped_key_and_unlocked_titles() throws Exception {
+        when(profileViewService.titles("user-2")).thenReturn(CompletableFuture.completedFuture(
+                new TitlesView("topic-1:CONFIRME", List.of(new TitlesView.TitleView(
+                        "topic-1:CONFIRME", "topic-1", "CONFIRME", 40, 1_400, "EXPERT",
+                        new TopicRefView("topic-1", Map.of(Language.FR, "Histoire"),
+                                null, null, null, null))))));
+
+        MvcResult result = mockMvc.perform(get("/api/profiles/user-2/titles"))
+                .andExpect(request().asyncStarted())
+                .andReturn();
+
+        mockMvc.perform(asyncDispatch(result))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.equippedKey").value("topic-1:CONFIRME"))
+                .andExpect(jsonPath("$.titles[0].grade").value("CONFIRME"))
+                .andExpect(jsonPath("$.titles[0].key").value("topic-1:CONFIRME"))
+                .andExpect(jsonPath("$.titles[0].topic.names.fr").value("Histoire"));
+    }
+
+    @Test
+    void updateTitle_sendsCommandWithActor() throws Exception {
+        when(profileUpdateService.updateEquippedTitle(USER_ID, USER_ID, "topic-1:CONFIRME"))
+                .thenReturn(CompletableFuture.completedFuture(null));
+
+        MvcResult result = mockMvc.perform(put("/api/profiles/user-1/title")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"titleKey\":\"topic-1:CONFIRME\"}"))
+                .andExpect(request().asyncStarted())
+                .andReturn();
+
+        mockMvc.perform(asyncDispatch(result)).andExpect(status().isNoContent());
+        verify(profileUpdateService).updateEquippedTitle(USER_ID, USER_ID, "topic-1:CONFIRME");
+    }
+
+    @Test
+    void updateTitle_withoutKey_clearsIt() throws Exception {
+        when(profileUpdateService.updateEquippedTitle(USER_ID, USER_ID, null))
+                .thenReturn(CompletableFuture.completedFuture(null));
+
+        MvcResult result = mockMvc.perform(put("/api/profiles/user-1/title")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(request().asyncStarted())
+                .andReturn();
+
+        mockMvc.perform(asyncDispatch(result)).andExpect(status().isNoContent());
+        verify(profileUpdateService).updateEquippedTitle(USER_ID, USER_ID, null);
     }
 
     @Test

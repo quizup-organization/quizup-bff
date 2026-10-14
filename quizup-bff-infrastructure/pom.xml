@@ -20,8 +20,9 @@
         <quizup.theme-domain.version>5.10.0</quizup.theme-domain.version>
         <quizup.social-domain.version>5.2.0</quizup.social-domain.version>
         <quizup.game-domain.version>8.3.0</quizup.game-domain.version>
-        <!-- 3.7.0 : comptage des références de bannière (console média). -->
-        <quizup.profile-domain.version>3.8.0</quizup.profile-domain.version>
+        <!-- 3.9.0 : grades de maîtrise (MasteryGrade), catalogue de badges (familles/paliers) et
+             titre porté (Profile.equippedTitle). -->
+        <quizup.profile-domain.version>3.9.0</quizup.profile-domain.version>
         <quizup.matchmaking-domain.version>10.2.0</quizup.matchmaking-domain.version>
         <quizup.leaderboard-domain.version>4.2.0</quizup.leaderboard-domain.version>
         <!-- 2.5.0 : delete-all. -->

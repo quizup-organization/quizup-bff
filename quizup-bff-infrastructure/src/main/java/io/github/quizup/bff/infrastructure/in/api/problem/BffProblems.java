@@ -227,4 +227,29 @@ public final class BffProblems {
                     Map.of());
         }
     }
+
+    /** Clé de titre mal formée (`400`) : attendu {@code topicId:GRADE}. */
+    public static class InvalidEquippedTitleProblem extends BaseProblem {
+        public InvalidEquippedTitleProblem(String titleKey) {
+            super("urn:quizup:bff:profile:invalidTitle",
+                    ProblemCategory.VALIDATION,
+                    "Invalid title",
+                    "The title key must be formatted as 'topicId:GRADE'",
+                    Map.of("titleKey", String.valueOf(titleKey)));
+        }
+    }
+
+    /**
+     * Titre non débloqué par le joueur (`400`) : le grade demandé n'est pas atteint dans ce sujet.
+     * La progression ne se contourne pas côté client.
+     */
+    public static class TitleNotEarnedProblem extends BaseProblem {
+        public TitleNotEarnedProblem(String titleKey, String reachedGrade) {
+            super("urn:quizup:bff:profile:titleNotEarned",
+                    ProblemCategory.VALIDATION,
+                    "Title not earned",
+                    "The title " + titleKey + " has not been unlocked (reached grade: " + reachedGrade + ")",
+                    Map.of("titleKey", titleKey, "reachedGrade", reachedGrade));
+        }
+    }
 }

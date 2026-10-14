@@ -1,9 +1,13 @@
 package io.github.quizup.bff.application;
 
+import io.github.quizup.bff.infrastructure.in.api.problem.BffProblems;
 import io.github.quizup.microservice.core.domain.model.i18n.Language;
+import io.github.quizup.profile.domain.command.ProfileCommand;
+import io.github.quizup.profile.domain.model.PlayerProgress;
 import org.axonframework.commandhandling.gateway.CommandGateway;
 import org.junit.jupiter.api.Test;
 
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 
@@ -23,7 +27,9 @@ class ProfileUpdateServiceTest {
 
     private final CommandGateway commandGateway = mock(CommandGateway.class);
     private final ProfileLookup profileLookup = mock(ProfileLookup.class);
-    private final ProfileUpdateService service = new ProfileUpdateService(commandGateway, profileLookup);
+    private final ProgressionLookup progressionLookup = mock(ProgressionLookup.class);
+    private final ProfileUpdateService service =
+            new ProfileUpdateService(commandGateway, profileLookup, progressionLookup);
 
     @Test
     void updatePseudonymInvalidatesCacheOnSuccess() {
@@ -61,5 +67,61 @@ class ProfileUpdateServiceTest {
         assertThatThrownBy(() -> service.updateBio("u1", "u1", "bio").join())
                 .isInstanceOf(CompletionException.class);
         verifyNoInteractions(profileLookup);
+    }
+
+    @Test
+    void equippedTitle_sendsTheCommandAndInvalidatesCacheWhenEarned() {
+        stubProgress(Map.of("topic-1", 2_600));
+        when(commandGateway.send(any())).thenReturn(CompletableFuture.completedFuture(null));
+
+        service.updateEquippedTitle("u1", "u1", "topic-1:CONFIRME").join();
+
+        verify(commandGateway).send(new ProfileCommand.UpdateEquippedTitleCommand(
+                "u1", "u1", "topic-1:CONFIRME"));
+        verify(profileLookup).invalidate("u1");
+    }
+
+    @Test
+    void equippedTitle_isRejectedAndNoCommandIsSentWhenTheGradeIsNotReached() {
+        stubProgress(Map.of("topic-1", 2_600));
+
+        assertThatThrownBy(() -> service.updateEquippedTitle("u1", "u1", "topic-1:EXPERT").join())
+                .isInstanceOf(CompletionException.class)
+                .hasCauseInstanceOf(BffProblems.TitleNotEarnedProblem.class);
+        verifyNoInteractions(commandGateway);
+        verifyNoInteractions(profileLookup);
+    }
+
+    @Test
+    void equippedTitle_withUnknownTopic_isRejectedAsNotEarned() {
+        stubProgress(Map.of("topic-1", 30_000));
+
+        assertThatThrownBy(() -> service.updateEquippedTitle("u1", "u1", "topic-9:LEGENDE").join())
+                .isInstanceOf(CompletionException.class)
+                .hasCauseInstanceOf(BffProblems.TitleNotEarnedProblem.class);
+        verifyNoInteractions(commandGateway);
+    }
+
+    @Test
+    void equippedTitle_withMalformedKey_isRejectedWithoutReadingProgression() {
+        assertThatThrownBy(() -> service.updateEquippedTitle("u1", "u1", "topic-1").join())
+                .isInstanceOf(BffProblems.InvalidEquippedTitleProblem.class);
+        verifyNoInteractions(progressionLookup);
+        verifyNoInteractions(commandGateway);
+    }
+
+    @Test
+    void equippedTitle_withNull_clearsItWithoutReadingProgression() {
+        when(commandGateway.send(any())).thenReturn(CompletableFuture.completedFuture(null));
+
+        service.updateEquippedTitle("u1", "u1", null).join();
+
+        verify(commandGateway).send(new ProfileCommand.UpdateEquippedTitleCommand("u1", "u1", null));
+        verifyNoInteractions(progressionLookup);
+    }
+
+    private void stubProgress(Map<String, Integer> xpByTopic) {
+        when(progressionLookup.get("u1")).thenReturn(CompletableFuture.completedFuture(
+                PlayerProgress.empty("u1").toBuilder().xpByTopic(xpByTopic).build()));
     }
 }

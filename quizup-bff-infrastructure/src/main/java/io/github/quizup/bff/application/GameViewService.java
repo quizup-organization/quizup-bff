@@ -158,9 +158,11 @@ public class GameViewService {
             return CompletableFuture.allOf(topicsFuture, opponentFuture, xpFuture).thenApply(_ -> {
                 GameXp gameXp = xpFuture.join().stream().findFirst().orElse(null);
                 Integer xp = gameXp == null ? null : gameXp.xp();
+                // Entraînement (duel bot) : XP nulle par construction, donc aucun bonus de victoire
+                // à dériver — `xp - score` produirait un bonus négatif.
                 GameResultView.RewardView reward = xp == null
                         ? null
-                        : new GameResultView.RewardView(xp, xp - gameResult.myScore());
+                        : new GameResultView.RewardView(xp, gameResult.botGame() ? 0 : xp - gameResult.myScore());
 
                 int xpTotal = gameResult.myXpTotal() + (xp == null ? 0 : xp);
                 int level = ProgressionRules.levelFor(xpTotal);

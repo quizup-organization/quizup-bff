@@ -16,6 +16,7 @@ import io.github.quizup.leaderboard.domain.model.LeaderboardRules;
 import io.github.quizup.leaderboard.domain.model.TopicLeaderboardEntry;
 import io.github.quizup.leaderboard.domain.query.LeaderboardQuery;
 import io.github.quizup.microservice.core.infrastructure.axon.QueryResponseTypes;
+import io.github.quizup.profile.domain.model.MasteryGrade;
 import io.github.quizup.profile.domain.model.ProgressionRules;
 import io.github.quizup.profile.domain.model.TopicProgress;
 import io.github.quizup.profile.domain.query.ProgressionQuery;
@@ -176,6 +177,7 @@ public class TopicViewService {
                     TopicCardView card = TopicViews.toCard(topic, followedFuture.join());
                     int xp = progressFuture.join().xp();
                     int level = ProgressionRules.levelFor(xp);
+                    MasteryGrade grade = MasteryGrade.gradeFor(xp);
                     int totalQuestions = card.questionsCount();
                     Integer answered = completedFuture.join();
                     int completedQuestions = Math.min(answered == null ? 0 : answered, totalQuestions);
@@ -188,6 +190,10 @@ public class TopicViewService {
                             ProgressionRules.titleFor(level),
                             ProgressionRules.xpForNextLevel(level),
                             ProgressionViews.levelProgressPercent(xp, level),
+                            grade.name(),
+                            grade.progressPercent(xp),
+                            grade.remainingXp(xp),
+                            grade.next() == null ? null : grade.next().name(),
                             completedQuestions,
                             totalQuestions,
                             completionPercent);

@@ -74,6 +74,16 @@ class GameViewServiceTest {
         assertThat(view.progression().xpTotal()).isEqualTo(100);
     }
 
+    @Test
+    void result_training_bot_game_has_zero_reward_without_negative_victory_bonus() {
+        stubResult(gameResult(120, 90, true), List.of(new GameXp("game-1", 0)));
+
+        GameResultView view = service.result("game-1", "player-1").join();
+
+        assertThat(view.botGame()).isTrue();
+        assertThat(view.reward()).isEqualTo(new GameResultView.RewardView(0, 0));
+    }
+
     private void stubResult(GameResult result, List<GameXp> xp) {
         when(queryGateway.query(
                 any(GameQuery.GetGameResultQuery.class),
@@ -91,13 +101,17 @@ class GameViewServiceTest {
     }
 
     private static GameResult gameResult(int myScore, int opponentScore) {
+        return gameResult(myScore, opponentScore, false);
+    }
+
+    private static GameResult gameResult(int myScore, int opponentScore, boolean botGame) {
         return new GameResult(
                 "game-1", "topic-1",
                 "player-1", "Alice", "player-2", "Bob",
                 "player-1", "player-2",
                 myScore, opponentScore,
                 myScore > opponentScore ? "player-1" : "player-2",
-                false,
+                botGame,
                 null,
                 100, 20, 6, 3, 7, 7,
                 2, 100, 3, 400);

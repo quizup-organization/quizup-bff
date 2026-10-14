@@ -11,11 +11,13 @@ import io.github.quizup.bff.infrastructure.in.api.request.UpdateBioRequest;
 import io.github.quizup.bff.infrastructure.in.api.request.UpdateCountryRequest;
 import io.github.quizup.bff.infrastructure.in.api.request.UpdateLanguageRequest;
 import io.github.quizup.bff.infrastructure.in.api.request.UpdatePseudonymRequest;
+import io.github.quizup.bff.infrastructure.in.api.request.UpdateTitleRequest;
 import io.github.quizup.bff.infrastructure.in.api.response.GameHistoryItemView;
 import io.github.quizup.bff.infrastructure.in.api.response.HeadToHeadView;
 import io.github.quizup.bff.infrastructure.in.api.response.PageResponse;
 import io.github.quizup.bff.infrastructure.in.api.response.PlayerCardView;
 import io.github.quizup.bff.infrastructure.in.api.response.PlayerProfileView;
+import io.github.quizup.bff.infrastructure.in.api.response.TitlesView;
 import io.github.quizup.bff.infrastructure.in.api.response.TopicStatView;
 import io.github.quizup.microservice.security.SecurityHelper;
 import io.github.quizup.social.domain.command.UserFollowerCommand;
@@ -118,6 +120,30 @@ public class ProfileController {
             @Valid @RequestBody UpdateLanguageRequest request) {
         return profileUpdateService
                 .updateLanguage(userId, SecurityHelper.getUserId(), request.language())
+                .thenApply(_ -> ResponseEntity.noContent().build());
+    }
+
+    /**
+     * Titres thématiques d'un joueur : le **titre porté** et les titres débloqués (un par sujet
+     * où il a atteint au moins le premier grade). Le libellé est composé par le client (grade
+     * traduit + nom du sujet dans sa langue).
+     */
+    @GetMapping("/{userId}/titles")
+    public CompletableFuture<ResponseEntity<TitlesView>> titles(@PathVariable String userId) {
+        return profileViewService.titles(userId).thenApply(ResponseEntity::ok);
+    }
+
+    /**
+     * Titre thématique **porté** (affiché sur le profil). {@code null} efface le titre.
+     * Propriétaire uniquement (invariant de l'agrégat) et titre **réellement débloqué**
+     * (vérifié ici, avant l'envoi de la commande).
+     */
+    @PutMapping("/{userId}/title")
+    public CompletableFuture<ResponseEntity<Void>> updateTitle(
+            @PathVariable String userId,
+            @Valid @RequestBody UpdateTitleRequest request) {
+        return profileUpdateService
+                .updateEquippedTitle(userId, SecurityHelper.getUserId(), request.titleKey())
                 .thenApply(_ -> ResponseEntity.noContent().build());
     }
 

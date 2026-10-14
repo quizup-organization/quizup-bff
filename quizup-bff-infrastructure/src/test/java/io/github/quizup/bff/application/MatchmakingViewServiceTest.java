@@ -74,6 +74,7 @@ class MatchmakingViewServiceTest {
                 "FR",
                 null,
                 null,
+                null,
                 Language.FR,
                 Instant.now(),
                 Instant.now());

@@ -1,7 +1,10 @@
 package io.github.quizup.bff.application;
 
+import io.github.quizup.bff.infrastructure.in.api.problem.BffProblems;
 import io.github.quizup.microservice.core.domain.model.i18n.Language;
 import io.github.quizup.profile.domain.command.ProfileCommand;
+import io.github.quizup.profile.domain.model.MasteryGrade;
+import io.github.quizup.profile.domain.model.PlayerTitle;
 import org.axonframework.commandhandling.gateway.CommandGateway;
 import org.springframework.stereotype.Service;
 
@@ -19,10 +22,14 @@ public class ProfileUpdateService {
 
     private final CommandGateway commandGateway;
     private final ProfileLookup profileLookup;
+    private final ProgressionLookup progressionLookup;
 
-    public ProfileUpdateService(CommandGateway commandGateway, ProfileLookup profileLookup) {
+    public ProfileUpdateService(CommandGateway commandGateway,
+                                ProfileLookup profileLookup,
+                                ProgressionLookup progressionLookup) {
         this.commandGateway = commandGateway;
         this.profileLookup = profileLookup;
+        this.progressionLookup = progressionLookup;
     }
 
     public CompletableFuture<Void> updatePseudonym(String userId, String requestedBy, String pseudonym) {
@@ -53,6 +60,32 @@ public class ProfileUpdateService {
     public CompletableFuture<Void> updateLanguage(String userId, String requestedBy, Language language) {
         return dispatch(userId,
                 new ProfileCommand.UpdateProfileLanguageCommand(userId, requestedBy, language));
+    }
+
+    /**
+     * Titre thématique porté. La commande ne porte que la clé : la **légitimité** du titre
+     * (grade réellement atteint dans ce sujet) est vérifiée **ici**, avant l'envoi — l'agrégat
+     * ne connaît pas la progression (`best-practices/.backend/command-preparation.md`).
+     * {@code titleKey} {@code null} efface le titre porté.
+     */
+    public CompletableFuture<Void> updateEquippedTitle(String userId, String requestedBy, String titleKey) {
+        if (titleKey == null) {
+            return dispatch(userId,
+                    new ProfileCommand.UpdateEquippedTitleCommand(userId, requestedBy, null));
+        }
+
+        PlayerTitle title = PlayerTitle.parse(titleKey)
+                .orElseThrow(() -> new BffProblems.InvalidEquippedTitleProblem(titleKey));
+
+        return progressionLookup.get(userId).thenCompose(progress -> {
+            MasteryGrade reached = MasteryGrade.gradeFor(progress.xpForTopic(title.topicId()));
+            if (reached.ordinal() < title.grade().ordinal()) {
+                throw new BffProblems.TitleNotEarnedProblem(titleKey, reached.name());
+            }
+
+            return dispatch(userId,
+                    new ProfileCommand.UpdateEquippedTitleCommand(userId, requestedBy, titleKey));
+        });
     }
 
     private CompletableFuture<Void> dispatch(String userId, ProfileCommand command) {

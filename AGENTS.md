@@ -69,6 +69,17 @@ Le `quizup-mobile` n'est **pas** branché sur cette surface (migration dédiée 
   avatars) systématiquement résolus ici, jamais côté client. Les lectures batch passent par des
   requêtes dédiées (`GetProfilesByIdsQuery`, `GetProgressionsByIdsQuery`,
   `GetPresencesByIdsQuery`…).
+- **Progression** : `ProgressionView.badges` liste les badges **acquis**, chacun avec sa
+  **famille** et son **palier** (`BadgeFamily` / `BadgeTier`). Le catalogue complet (paliers
+  verrouillés + progression « 7/10 ») viendra avec l'écran de collection : il se compose depuis le
+  catalogue `Badge` et les compteurs du read model (`gamesPlayed`, `wins`, `badges`, `xpByTopic`),
+  **sans nouvelle requête**. `ProgressionView.title` (titre de **compte**) et le `level`/`title` de
+  `TopicOverviewView.myProgress` sont **transitoires** : les titres affichés sont thématiques
+  (`equippedTitle` + `GET …/titles`), l'UI devant basculer dans un lot dédié.
+- **Titres thématiques** : le serveur ne compose **jamais** le libellé (« Confirmé · Histoire ») —
+  il expose le grade (`MasteryGrade`, à traduire côté client) et le sujet (`names`), le client
+  combine. Le **titre porté** (`Profile.equippedTitle`) est validé à l'écriture : le BFF vérifie
+  que le grade est réellement atteint **avant** d'envoyer la commande (`command-preparation`).
 - **Caches de lecture (Caffeine)** : `ProfileLookup` (profil, 30 s, purgé par `ProfileUpdateService`
   après chaque écriture), `ProgressionLookup` (progression, 15 s — lue sur chaque `/api/me`/fiche/
   enfilage) et les **compteurs de follows** (`FollowLookup.userCounts`, 30 s, purgés après un
@@ -104,7 +115,7 @@ Le `quizup-mobile` n'est **pas** branché sur cette surface (migration dédiée 
 
 | Endpoint | Réponse | Notes |
 |---|---|---|
-| `GET /api/me` | `MeView` | Profil (+ `language` fr/en) + progression + stats de duel + `followingCount` + `followersCount` |
+| `GET /api/me` | `MeView` | Profil (+ `language` fr/en, + `equippedTitle` = clé du titre porté) + progression + stats de duel + `followingCount` + `followersCount` |
 | `GET /api/suggestions?q=&limit=` | `List<SuggestionView>` | Palette ⌘K : sujets + joueurs (`type`, `id`, libellé, visuel) |
 | `GET /api/clock` | `ServerTimeView` | `serverTime`, `epochMillis` |
 
@@ -121,7 +132,7 @@ Le `quizup-mobile` n'est **pas** branché sur cette surface (migration dédiée 
 | `GET /api/topics?q=&category=&followed=&mine=&sort=&page=&size=` | `PageResponse<TopicCardView>` | `sort` ∈ `POPULAR\|MOST_PLAYED\|ALPHA\|RECENT` (défaut `POPULAR` ; `MOST_PLAYED` = compteur communautaire de parties du thème) ; `followed=true` filtre côté serveur ; `mine=true` = sujets créés par le joueur courant (brouillons + publiés, tri `updatedAt desc`), exclusif de `followed`/`q`/`category`/`sort` (400 sinon). `TopicCardView.status` expose le statut |
 | `GET /api/topics/facets?q=&followed=` | `TopicFacetsView` | `total` + `categories[{ category, label, count }]` |
 | `GET /api/topic-categories` | `List<TopicCategoryView>` | `category`, `label` |
-| `GET /api/topics/{topicId}/overview` | `TopicOverviewView` | `topic`, `follow`, `followersCount`, `myRank`, `myProgress`, `canManage` (créateur) |
+| `GET /api/topics/{topicId}/overview` | `TopicOverviewView` | `topic`, `follow`, `followersCount`, `myRank`, `myProgress`, `canManage` (créateur). `myProgress` porte la **maîtrise du sujet** : `grade` (`MasteryGrade`), `gradeProgressPercent`, `gradeRemainingXp`, `nextGrade` — le `level`/`title` de compte y reste **transitoire** (l'UI basculera sur le grade) |
 | `PUT /api/topics/{topicId}/follow` | `204` | Idempotent |
 | `DELETE /api/topics/{topicId}/follow` | `204` | |
 | `GET /api/topics/{topicId}/leaderboard?period=&month=&scope=&page=&size=` | `TopicLeaderboardView` | `entries` paginées + `me` ; `period` ∈ `ALL_TIME\|MONTHLY`, `month` (`YYYY-MM`, mensuel uniquement, défaut = mois courant), `scope` ∈ `WORLD\|FOLLOWING\|COUNTRY` |
@@ -191,7 +202,9 @@ de sujet, illustration de question, bannière de profil) : objet référencé �
 
 | Endpoint | Réponse | Notes |
 |---|---|---|
-| `GET /api/profiles/{userId}` | `PlayerProfileView` | Profil + progression + stats + counts + présence + `follow` + `isMe` |
+| `GET /api/profiles/{userId}` | `PlayerProfileView` | Profil + progression + stats + counts + présence + `follow` + `isMe` + `equippedTitle` (clé du titre porté, `null` si aucun) |
+| `GET /api/profiles/{userId}/titles` | `TitlesView` | Titres thématiques **débloqués** (un par sujet où le premier grade est atteint) + `equippedKey` : `key` (`topicId:GRADE`), `grade`, `gradeProgressPercent`, `gradeRemainingXp`, `nextGrade`, `topic` (`TopicRefView`). Le libellé est composé par le client (grade traduit + `topic.names`) — aucun texte figé côté serveur |
+| `PUT /api/profiles/{userId}/title` | `204` | Titre **porté** : `{ titleKey }` (`topicId:GRADE`) ou `null` pour n'en afficher aucun. Propriétaire uniquement (invariant d'agrégat, 403) ; titre **réellement débloqué** exigé — la progression est lue avant l'envoi et un grade insuffisant répond `400` (`urn:quizup:bff:profile:titleNotEarned`), une clé mal formée `400` (`…:invalidTitle`) |
 | `GET /api/profiles/{userId}/following?q=&sort=&page=&size=` | `PageResponse<PlayerCardView>` | `sort` ∈ `RECENT\|LEVEL\|ALPHA` |
 | `GET /api/profiles/{userId}/followers?q=&sort=&page=&size=` | `PageResponse<PlayerCardView>` | idem |
 | `PUT /api/profiles/{userId}/follow` | `204` | Idempotent |
@@ -292,7 +305,7 @@ invitations d'un même défi/salon. Configuration `quizup.push.vapid.*`
 | `POST /api/games/{gameId}/answer` | `200` | Body `{ choice }` |
 | `POST /api/games/{gameId}/abandon` | `200` | Forfait en cours (`ForfeitGameCommand`) — l'adversaire gagne |
 | `POST /api/games/{gameId}/cancel` | `200` | Annulation avant démarrage |
-| `GET /api/games/{gameId}/result` | `GameResultView` | Résultat après `GAME_ENDED` : scores, détail (`basePoints`, `speedBonus`, `correctAnswers`…), `reward` XP de la partie (`null` tant que la projection n'est pas disponible), progression **à l'instant de la partie** (snapshot `game` + XP gagnée), `opponentLevel/Title` et **enrichissements autosuffisants** : `topic`, `opponent`, `opponentId`, `botDifficulty` (la page web ne fait qu'un GET + l'historique de revue) |
+| `GET /api/games/{gameId}/result` | `GameResultView` | Résultat après `GAME_ENDED` : scores, détail (`basePoints`, `speedBonus`, `correctAnswers`…), `reward` XP de la partie (`null` tant que la projection n'est pas disponible ; `{ xp: 0, victoryBonus: 0 }` pour un **entraînement** — duel bot, sans XP), progression **à l'instant de la partie** (snapshot `game` + XP gagnée), `opponentLevel/Title` et **enrichissements autosuffisants** : `topic`, `opponent`, `opponentId`, `botDifficulty` (la page web ne fait qu'un GET + l'historique de revue) |
 | `GET /api/games/{gameId}/notifications` | `List<EventEnvelopeResponse>` (payload `GameNotification`) | Même contrat que le push WS |
 
 ---

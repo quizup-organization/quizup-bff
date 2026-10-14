@@ -100,6 +100,7 @@ class RoomViewServiceTest {
                 "FR",
                 null,
                 null,
+                null,
                 Language.FR,
                 Instant.now(),
                 Instant.now());
