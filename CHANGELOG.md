@@ -1,3 +1,9 @@
+## [11.12.0](https://github.com/quizup-organization/quizup-bff/compare/v11.11.0...v11.12.0) (2026-10-14)
+
+### Features
+
+* **progression:** maîtrise par sujet, titres thématiques et badges enrichis ([46fcc14](https://github.com/quizup-organization/quizup-bff/commit/46fcc14f715fea58b1df6cde53a450b74d4697d9))
+
 ## [11.11.0](https://github.com/quizup-organization/quizup-bff/compare/v11.10.0...v11.11.0) (2026-10-14)
 
 ### Features
