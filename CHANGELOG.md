@@ -1,3 +1,9 @@
+## [11.13.0](https://github.com/quizup-organization/quizup-bff/compare/v11.12.0...v11.13.0) (2026-10-14)
+
+### Features
+
+* **progression:** collection de badges (catalogue complet et progression) ([4d3f035](https://github.com/quizup-organization/quizup-bff/commit/4d3f035a5aa8c83392fcd471dcb75c5fb283e5bd))
+
 ## [11.12.0](https://github.com/quizup-organization/quizup-bff/compare/v11.11.0...v11.12.0) (2026-10-14)
 
 ### Features
