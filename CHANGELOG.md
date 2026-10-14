@@ -1,3 +1,9 @@
+## [11.11.0](https://github.com/quizup-organization/quizup-bff/compare/v11.10.0...v11.11.0) (2026-10-14)
+
+### Features
+
+* **bff:** accueil « les plus joués en ce moment » sur 24 h + tri MOST_PLAYED ([7e89204](https://github.com/quizup-organization/quizup-bff/commit/7e8920403c6fb42b5f80e1ac6c4815018a7e4a15))
+
 ## [11.10.0](https://github.com/quizup-organization/quizup-bff/compare/v11.9.0...v11.10.0) (2026-10-13)
 
 ### Features
