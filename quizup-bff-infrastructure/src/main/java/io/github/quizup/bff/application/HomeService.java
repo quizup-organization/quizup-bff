@@ -19,8 +19,9 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * Composition de l'accueil : sujets suivis (récents) + sujets les plus joués (30 derniers jours) +
- * sujets récemment publiés / mis à jour (nouvelles questions).
+ * Composition de l'accueil : sujets suivis (récents) + sujets **les plus joués en ce moment**
+ * (24 h, toutes les parties de la communauté — aucun filtre joueur) + sujets récemment publiés /
+ * mis à jour (nouvelles questions).
  */
 @Service
 public class HomeService {
@@ -28,7 +29,7 @@ public class HomeService {
     private static final int FOLLOWED_LIMIT = 10;
     private static final int TRENDING_LIMIT = 10;
     private static final int NEW_LIMIT = 10;
-    private static final Duration TRENDING_WINDOW = Duration.ofDays(30);
+    private static final Duration TRENDING_WINDOW = Duration.ofHours(24);
 
     private final QueryGateway queryGateway;
     private final FollowLookup followLookup;
