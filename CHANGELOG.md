@@ -1,3 +1,9 @@
+## [11.16.0](https://github.com/quizup-organization/quizup-bff/compare/v11.15.0...v11.16.0) (2026-10-15)
+
+### Features
+
+* **bff:** expose les titres thématiques du sujet (TopicRefView.titles) ([52deb54](https://github.com/quizup-organization/quizup-bff/commit/52deb544357ef49048c7153e8ef2058669229a52))
+
 ## [11.15.0](https://github.com/quizup-organization/quizup-bff/compare/v11.14.1...v11.15.0) (2026-10-15)
 
 ### Features
