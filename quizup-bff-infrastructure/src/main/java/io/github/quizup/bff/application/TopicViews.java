@@ -38,13 +38,14 @@ final class TopicViews {
 
     static TopicRefView toRef(String topicId, Topic topic) {
         return topic == null
-                ? new TopicRefView(topicId, Map.of(Language.FR, topicId), null, null, null, null)
+                ? new TopicRefView(topicId, Map.of(Language.FR, topicId), null, null, null, null, null)
                 : new TopicRefView(
                         topic.topicId(),
                         topic.names(),
                         topic.category() == null ? null : topic.category().name(),
                         topic.emoji(),
                         topic.color(),
-                        topic.imageUrl());
+                        topic.imageUrl(),
+                        topic.titles());
     }
 }

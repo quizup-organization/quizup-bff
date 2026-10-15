@@ -62,7 +62,7 @@ public class TopicAuthoringService {
         return commandGateway
                 .send(new TopicCommand.CreateTopicCommand(
                         topicId, request.names(), request.description(), request.category(),
-                        request.emoji(), request.color(), request.imageUrl(), userId))
+                        request.emoji(), request.color(), request.imageUrl(), null, userId))
                 .thenApply(_ -> topicId);
     }
 

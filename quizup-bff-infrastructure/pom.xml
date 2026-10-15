@@ -17,7 +17,7 @@
         <!-- Contrats inter-services : dernières versions release des *-domain (GitHub Packages). -->
         <quizup.identity-domain.version>2.5.0</quizup.identity-domain.version>
         <!-- 5.9.0 : comptage des références d'images (console média). -->
-        <quizup.theme-domain.version>5.10.0</quizup.theme-domain.version>
+        <quizup.theme-domain.version>6.8.0</quizup.theme-domain.version>
         <quizup.social-domain.version>5.2.0</quizup.social-domain.version>
         <quizup.game-domain.version>8.3.0</quizup.game-domain.version>
         <!-- 3.9.0 : grades de maîtrise (MasteryGrade), catalogue de badges (familles/paliers) et

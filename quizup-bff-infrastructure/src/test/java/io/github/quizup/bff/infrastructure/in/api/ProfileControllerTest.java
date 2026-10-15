@@ -153,7 +153,7 @@ class ProfileControllerTest {
                 new TitlesView("topic-1:CONFIRME", List.of(new TitlesView.TitleView(
                         "topic-1:CONFIRME", "topic-1", "CONFIRME", 40, 1_400, "EXPERT",
                         new TopicRefView("topic-1", Map.of(Language.FR, "Histoire"),
-                                null, null, null, null))))));
+                                null, null, null, null, null))))));
 
         MvcResult result = mockMvc.perform(get("/api/profiles/user-2/titles"))
                 .andExpect(request().asyncStarted())

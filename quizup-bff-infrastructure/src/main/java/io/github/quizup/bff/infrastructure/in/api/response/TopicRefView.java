@@ -13,6 +13,8 @@ public record TopicRefView(
         String category,
         String emoji,
         String color,
-        String imageUrl
+        String imageUrl,
+        /** Titres thématiques par grade et par langue (null → repli « grade · nom »). */
+        Map<Language, Map<String, String>> titles
 ) {
 }
