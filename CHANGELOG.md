@@ -1,3 +1,9 @@
+## [11.17.0](https://github.com/quizup-organization/quizup-bff/compare/v11.16.0...v11.17.0) (2026-10-15)
+
+### Features
+
+* **bff:** badge de serie (metrique WIN_STREAK) ([50e0f32](https://github.com/quizup-organization/quizup-bff/commit/50e0f322d0f114e6d6d3de7d7a765fd6ba2ab68e))
+
 ## [11.16.0](https://github.com/quizup-organization/quizup-bff/compare/v11.15.0...v11.16.0) (2026-10-15)
 
 ### Features
