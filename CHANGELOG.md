@@ -1,3 +1,9 @@
+## [11.14.1](https://github.com/quizup-organization/quizup-bff/compare/v11.14.0...v11.14.1) (2026-10-15)
+
+### Bug Fixes
+
+* **bff:** pin quizup-matchmaking-domain 10.4.0 -> 11.0.0 ([e5294cb](https://github.com/quizup-organization/quizup-bff/commit/e5294cbfe2a9c6100878db16ee6d0a8815efc09b))
+
 ## [11.14.0](https://github.com/quizup-organization/quizup-bff/compare/v11.13.0...v11.14.0) (2026-10-15)
 
 ### Features
