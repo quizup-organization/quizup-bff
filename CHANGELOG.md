@@ -1,3 +1,9 @@
+## [11.24.0](https://github.com/quizup-organization/quizup-bff/compare/v11.23.0...v11.24.0) (2026-10-15)
+
+### Features
+
+* **bff:** fan-out ephemere des deblocages (badge, niveau, titre) ([34c5805](https://github.com/quizup-organization/quizup-bff/commit/34c58053a43cb3174011e1f39233916da56b98df))
+
 ## [11.23.0](https://github.com/quizup-organization/quizup-bff/compare/v11.22.0...v11.23.0) (2026-10-15)
 
 ### Features
