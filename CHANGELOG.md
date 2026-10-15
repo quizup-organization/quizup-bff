@@ -1,3 +1,9 @@
+## [11.15.0](https://github.com/quizup-organization/quizup-bff/compare/v11.14.1...v11.15.0) (2026-10-15)
+
+### Features
+
+* **bff:** badges d'exploration (métrique DISTINCT_TOPICS) ([cfe9f51](https://github.com/quizup-organization/quizup-bff/commit/cfe9f5194f7921e1c3b40e38d8bfc7102e7302f0))
+
 ## [11.14.1](https://github.com/quizup-organization/quizup-bff/compare/v11.14.0...v11.14.1) (2026-10-15)
 
 ### Bug Fixes
