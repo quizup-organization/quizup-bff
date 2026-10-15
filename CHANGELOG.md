@@ -1,3 +1,9 @@
+## [11.20.0](https://github.com/quizup-organization/quizup-bff/compare/v11.19.0...v11.20.0) (2026-10-15)
+
+### Features
+
+* **bff:** badges Social et Defis ([bb6ea57](https://github.com/quizup-organization/quizup-bff/commit/bb6ea572e5b88070266883471bcce0a71f12b85b))
+
 ## [11.19.0](https://github.com/quizup-organization/quizup-bff/compare/v11.18.0...v11.19.0) (2026-10-15)
 
 ### Features
