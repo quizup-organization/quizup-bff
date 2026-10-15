@@ -1,3 +1,9 @@
+## [11.23.0](https://github.com/quizup-organization/quizup-bff/compare/v11.22.0...v11.23.0) (2026-10-15)
+
+### Features
+
+* **bff:** six paliers de badges (pin profile-domain 4.3.0) ([2b3da47](https://github.com/quizup-organization/quizup-bff/commit/2b3da4786b1dc7f2f52f10de81d8abf3dcf1484b))
+
 ## [11.22.0](https://github.com/quizup-organization/quizup-bff/compare/v11.21.0...v11.22.0) (2026-10-15)
 
 ### Features
