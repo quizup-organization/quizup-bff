@@ -199,6 +199,7 @@ public class TopicViewService {
                             completionPercent);
                     return new TopicOverviewView(
                             card,
+                            topic.titles() == null ? Map.of() : topic.titles(),
                             rankFuture.join().map(LeaderboardRank::rank).orElse(null),
                             progress,
                             Objects.equals(topic.creatorId(), viewerId));

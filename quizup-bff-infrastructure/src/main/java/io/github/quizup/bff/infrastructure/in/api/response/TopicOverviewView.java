@@ -1,11 +1,21 @@
 package io.github.quizup.bff.infrastructure.in.api.response;
 
+import io.github.quizup.microservice.core.domain.model.i18n.Language;
+
+import java.util.Map;
+
 /**
  * Vue agrégée de la fiche sujet : carte (dont l'état de suivi) + rang réel + progression.
  * {@code canManage} indique au client que le joueur courant est le créateur du sujet.
  */
 public record TopicOverviewView(
         TopicCardView topic,
+        /**
+         * Titres **thématiques** du sujet par langue puis grade de maîtrise (ex.
+         * `{ fr: { CONFIRME: "Historien" } }`) : alimente l'onglet « Titres » de la fiche sujet.
+         * Le libellé affiché est composé côté client (grade traduit + nom du sujet).
+         */
+        Map<Language, Map<String, String>> titles,
         Integer myRank,
         MyProgressView myProgress,
         boolean canManage
