@@ -17,7 +17,8 @@
   vers un socket client unique (`/topic/games/{id}`, `/topic/rooms/{id}`,
   `/topic/notifications/{userId}`, `/topic/presence/{userId}`). **Multi-réplique** : les groupes de
   fan-out (`game-notification`, `room-notification`, `matchmaking-notification`,
-  `presence-notification`, `follow-presence-notification`, `notification-ws`) sont
+  `presence-notification`, `follow-presence-notification`, `achievement-notification`,
+  `notification-ws`) sont
   **instance-scopés** (`quizup.axon.instance-scoped-groups`) — chaque pod consomme tous les
   événements avec son propre token (suffixé par `HOSTNAME`, token initial à la queue du flux) —
   sinon les clients STOMP d'une réplique ne recevraient pas les événements consommés par une autre.
@@ -327,6 +328,7 @@ déclenche la déconnexion de session côté présence.
 | `/topic/notifications/{userId}` | `EventEnvelopeResponse` (payload `NotificationView`) — inbox personnelle (invitations de défi, follows) ; suppression poussée sous `NOTIFICATION_DELETED` (payload `{ notificationId }`) |
 | `/topic/presence/{userId}` | `PresenceView` — **exception assumée** : événements de session non séquencés, pas d'enveloppe |
 | `/topic/follow-presence/{userId}` | `FollowPresenceView` (`actorId`, `pseudonym`, `avatarOptions`, `at`) — **fan-out éphémère** : quand un joueur passe en ligne, chaque **abonné** reçoit « X est en ligne » ; jamais persisté (pas d'inbox), poussé par le groupe `follow-presence-notification` |
+| `/topic/achievements/{userId}` | `AchievementView` (`kind` ∈ `BADGE\|LEVEL\|TITLE`, badge `code`/`label`/`family`/`tier`, `level`+`accountTitle`, `topicId`+`grade`, `at`) — **fan-out éphémère des déblocages** (badge gagné, niveau franchi, titre thématique débloqué) : le client fête l'acquisition où qu'il soit (popup + son), hors écran immersif où elle est reportée ; jamais persisté (pas d'inbox), groupe `achievement-notification` **instance-scopé** |
 
 `EventEnvelopeResponse` : `aggregateId`, `sequenceNumber`, `timestamp`, `eventType` (type web),
 `payload` (DTO de notification). L'historique REST (`GET .../notifications`) et le push WS
