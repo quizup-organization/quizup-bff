@@ -15,6 +15,7 @@ import java.time.Instant;
         @JsonSubTypes.Type(value = MatchmakingNotification.SearchingNotification.class, name = "SEARCHING"),
         @JsonSubTypes.Type(value = MatchmakingNotification.MatchedNotification.class, name = "MATCHED"),
         @JsonSubTypes.Type(value = MatchmakingNotification.CancelledNotification.class, name = "CANCELLED"),
+        @JsonSubTypes.Type(value = MatchmakingNotification.ExpiredNotification.class, name = "EXPIRED"),
         @JsonSubTypes.Type(value = MatchmakingNotification.FailedNotification.class, name = "FAILED")
 })
 public interface MatchmakingNotification {
@@ -28,6 +29,7 @@ public interface MatchmakingNotification {
         SEARCHING,
         MATCHED,
         CANCELLED,
+        EXPIRED,
         FAILED
     }
 
@@ -60,6 +62,16 @@ public interface MatchmakingNotification {
         @Override
         public MatchmakingNotificationType type() {
             return MatchmakingNotificationType.CANCELLED;
+        }
+    }
+
+    /** Fenêtre de recherche écoulée sans adversaire : le client propose relance ou entraînement. */
+    record ExpiredNotification(
+            String ticketId
+    ) implements MatchmakingNotification {
+        @Override
+        public MatchmakingNotificationType type() {
+            return MatchmakingNotificationType.EXPIRED;
         }
     }
 

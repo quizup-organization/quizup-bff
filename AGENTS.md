@@ -226,8 +226,8 @@ de sujet, illustration de question, bannière de profil) : objet référencé �
 
 | Endpoint | Réponse | Notes |
 |---|---|---|
-| `POST /api/matchmaking/tickets` | `201 + Location` | Body `{ topicId }` — lance la recherche ; l'appariement crée une **salle** (nominative ou bot), jamais la partie. Le BFF prépare la **photo de couverture linguistique** du sujet (`GetTopicLanguageCoverageQuery`) et la porte dans la commande : la saga compare localement |
-| `GET /api/matchmaking/tickets/{ticketId}` | `MatchmakingTicketView` | Statut `SEARCHING\|COMPLETED\|CANCELLED\|FAILED`, `roomId`, `opponentId`, `vsBot` |
+| `POST /api/matchmaking/tickets` | `201 + Location` | Body `{ topicId }` — lance la recherche ; l'appariement crée une **salle** nominative (jamais la partie, jamais de repli bot : à l'échéance **10 s** le ticket expire et le client propose relance ou entraînement). Le BFF prépare la **photo de couverture linguistique** du sujet (`GetTopicLanguageCoverageQuery`) et la porte dans la commande : la saga compare localement |
+| `GET /api/matchmaking/tickets/{ticketId}` | `MatchmakingTicketView` | Statut `SEARCHING\|COMPLETED\|CANCELLED\|EXPIRED\|FAILED`, `roomId`, `opponentId`, `vsBot` |
 | `POST /api/matchmaking/tickets/{ticketId}/cancel` | `200` | Annule la recherche |
 | `GET /api/matchmaking/tickets/{ticketId}/notifications` | `List<EventEnvelopeResponse>` (payload `MatchmakingNotification`) | Même contrat que le push WS |
 
@@ -323,7 +323,7 @@ déclenche la déconnexion de session côté présence.
 |---|---|
 | `/topic/games/{gameId}` | `EventEnvelopeResponse` (payload `GameNotification`) (`GAME_CREATED`, `GAME_STARTED`, `ROUND_STARTED`, `QUESTION_REVEALED`, `PLAYER_ANSWERED`, `ROUND_CLOSED`, `GAME_FORFEITED`, `GAME_ENDED`, `GAME_CANCELLED`) |
 | `/topic/rooms/{roomId}` | `EventEnvelopeResponse` (payload `RoomNotification`) (`ROOM_CREATED`, `ROOM_ENTERED`, `ROOM_ALL_PRESENT`, `ROOM_PLAYERS_LOADED`, `ROOM_PLAYED_QUESTIONS_LOADED`, `ROOM_QUESTIONS_LOADED`, `ROOM_GAME_CREATED`, `ROOM_LEFT`, `ROOM_COMPLETED`, `ROOM_CANCELLED`, `ROOM_EXPIRED`, `ROOM_FAILED`) |
-| `/topic/matchmaking/tickets/{ticketId}` | `EventEnvelopeResponse` (payload `MatchmakingNotification`) (`SEARCHING`, `MATCHED`, `CANCELLED`, `FAILED`) |
+| `/topic/matchmaking/tickets/{ticketId}` | `EventEnvelopeResponse` (payload `MatchmakingNotification`) (`SEARCHING`, `MATCHED`, `CANCELLED`, `EXPIRED`, `FAILED`) |
 | `/topic/notifications/{userId}` | `EventEnvelopeResponse` (payload `NotificationView`) — inbox personnelle (invitations de défi, follows) ; suppression poussée sous `NOTIFICATION_DELETED` (payload `{ notificationId }`) |
 | `/topic/presence/{userId}` | `PresenceView` — **exception assumée** : événements de session non séquencés, pas d'enveloppe |
 | `/topic/follow-presence/{userId}` | `FollowPresenceView` (`actorId`, `pseudonym`, `avatarOptions`, `at`) — **fan-out éphémère** : quand un joueur passe en ligne, chaque **abonné** reçoit « X est en ligne » ; jamais persisté (pas d'inbox), poussé par le groupe `follow-presence-notification` |
