@@ -1,3 +1,9 @@
+## [11.21.0](https://github.com/quizup-organization/quizup-bff/compare/v11.20.0...v11.21.0) (2026-10-15)
+
+### Features
+
+* **bff:** badge Vision (metrique IMAGE_CORRECT) ([056dc0f](https://github.com/quizup-organization/quizup-bff/commit/056dc0f28ea5965cbcde8ea96700ec198e51dded))
+
 ## [11.20.0](https://github.com/quizup-organization/quizup-bff/compare/v11.19.0...v11.20.0) (2026-10-15)
 
 ### Features
