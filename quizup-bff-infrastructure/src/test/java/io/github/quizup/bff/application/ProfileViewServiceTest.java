@@ -134,6 +134,8 @@ class ProfileViewServiceTest {
                         .perfectDuels(4)
                         .fastAnswersTotal(80)
                         .bestDayStreak(5)
+                        .followersGained(7)
+                        .challengesSent(2)
                         .xpByTopic(Map.of("topic-1", 2_600))
                         .badges(Set.of(Badge.FIRST_WIN, Badge.DUELIST_BRONZE))
                         .build()));
@@ -143,8 +145,8 @@ class ProfileViewServiceTest {
         assertThat(view.earnedCount()).isEqualTo(2);
         assertThat(view.totalCount()).isEqualTo(Badge.values().length);
         assertThat(view.families()).extracting(BadgeCollectionView.FamilyView::family)
-                .containsExactly("VOLUME", "MASTERY", "EXPLOIT", "SERIES", "ASSIDUITY",
-                        "PRECISION", "SPEED", "EXPLORATION", "COLLECTION");
+                .containsExactly("VOLUME", "MASTERY", "EXPLOIT", "SERIES", "ASSIDUITY", "SOCIAL",
+                        "CHALLENGES", "PRECISION", "SPEED", "EXPLORATION", "COLLECTION");
 
         // Volume : acquis au palier bronze (plafonné), en cours pour l'argent.
         assertThat(item(view, Badge.DUELIST_BRONZE).earned()).isTrue();
@@ -167,6 +169,10 @@ class ProfileViewServiceTest {
 
         // Assiduité : meilleure série de jours joués, plafonnée au seuil du palier (3).
         assertThat(item(view, Badge.ASSIDUITY_BRONZE).progress()).isEqualTo(3);
+
+        // Social / Défis : compteurs alimentés par les autres services (abonnés, défis lancés).
+        assertThat(item(view, Badge.SOCIAL_BRONZE).progress()).isEqualTo(5);
+        assertThat(item(view, Badge.CHALLENGES_ARGENT).progress()).isEqualTo(2);
     }
 
     private static BadgeCollectionView.BadgeItemView item(BadgeCollectionView view, Badge badge) {

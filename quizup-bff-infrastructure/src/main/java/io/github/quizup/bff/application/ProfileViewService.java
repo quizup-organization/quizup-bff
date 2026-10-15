@@ -214,6 +214,8 @@ public class ProfileViewService {
             case PERFECT_DUELS -> progress.perfectDuels();
             case FAST_ANSWERS -> progress.fastAnswersTotal();
             case DAILY_STREAK -> progress.bestDayStreak();
+            case FOLLOWERS_GAINED -> progress.followersGained();
+            case CHALLENGES_SENT -> progress.challengesSent();
             case EARNED_BADGES -> progress.badges().size();
             case ONE_SHOT -> 0;
         };
