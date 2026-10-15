@@ -213,6 +213,7 @@ public class ProfileViewService {
             case WIN_STREAK -> progress.bestWinStreak();
             case PERFECT_DUELS -> progress.perfectDuels();
             case FAST_ANSWERS -> progress.fastAnswersTotal();
+            case DAILY_STREAK -> progress.bestDayStreak();
             case EARNED_BADGES -> progress.badges().size();
             case ONE_SHOT -> 0;
         };
