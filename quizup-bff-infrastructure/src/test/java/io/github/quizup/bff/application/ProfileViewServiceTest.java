@@ -140,7 +140,7 @@ class ProfileViewServiceTest {
         assertThat(view.earnedCount()).isEqualTo(2);
         assertThat(view.totalCount()).isEqualTo(Badge.values().length);
         assertThat(view.families()).extracting(BadgeCollectionView.FamilyView::family)
-                .containsExactly("VOLUME", "MASTERY", "EXPLOIT", "EXPLORATION", "COLLECTION");
+                .containsExactly("VOLUME", "MASTERY", "EXPLOIT", "SERIES", "EXPLORATION", "COLLECTION");
 
         // Volume : acquis au palier bronze (plafonné), en cours pour l'argent.
         assertThat(item(view, Badge.DUELIST_BRONZE).earned()).isTrue();

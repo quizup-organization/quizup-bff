@@ -210,6 +210,7 @@ public class ProfileViewService {
             case DISTINCT_TOPICS -> (int) progress.xpByTopic().values().stream()
                     .filter(xp -> xp > 0)
                     .count();
+            case WIN_STREAK -> progress.bestWinStreak();
             case EARNED_BADGES -> progress.badges().size();
             case ONE_SHOT -> 0;
         };
