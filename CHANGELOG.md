@@ -1,3 +1,9 @@
+## [11.22.0](https://github.com/quizup-organization/quizup-bff/compare/v11.21.0...v11.22.0) (2026-10-15)
+
+### Features
+
+* **bff:** categorie des sujets dans les suggestions de la palette ([cf66979](https://github.com/quizup-organization/quizup-bff/commit/cf66979d03aa1a1a1928a8a9b442e66fc8295942))
+
 ## [11.21.0](https://github.com/quizup-organization/quizup-bff/compare/v11.20.0...v11.21.0) (2026-10-15)
 
 ### Features
