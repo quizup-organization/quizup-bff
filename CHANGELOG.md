@@ -1,3 +1,9 @@
+## [11.19.0](https://github.com/quizup-organization/quizup-bff/compare/v11.18.0...v11.19.0) (2026-10-15)
+
+### Features
+
+* **bff:** badge Assiduite (metrique DAILY_STREAK) ([dfbe6bf](https://github.com/quizup-organization/quizup-bff/commit/dfbe6bf6e70d1ff7faba992f1bc241e5c84180a5))
+
 ## [11.18.0](https://github.com/quizup-organization/quizup-bff/compare/v11.17.0...v11.18.0) (2026-10-15)
 
 ### Features
