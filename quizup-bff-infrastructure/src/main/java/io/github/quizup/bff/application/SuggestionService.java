@@ -60,6 +60,7 @@ public class SuggestionService {
                         topic.topicId(),
                         topic.name(),
                         topic.category() == null ? null : topic.category().label(),
+                        topic.category() == null ? null : topic.category().name(),
                         topic.emoji(),
                         topic.color(),
                         topic.imageUrl(),
@@ -72,6 +73,7 @@ public class SuggestionService {
                         "Niveau " + ProgressionViews.toView(
                                 progressById.getOrDefault(profile.userId(),
                                         PlayerProgress.empty(profile.userId()))).level(),
+                        null,
                         null,
                         null,
                         null,

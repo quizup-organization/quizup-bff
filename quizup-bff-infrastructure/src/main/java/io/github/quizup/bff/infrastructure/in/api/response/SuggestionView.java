@@ -13,6 +13,8 @@ public record SuggestionView(
         String id,
         String label,
         String subtitle,
+        /** Catégorie du sujet (enum `TopicCategory`, `null` pour un joueur) : couleur côté web. */
+        String category,
         String emoji,
         String color,
         String imageUrl,
