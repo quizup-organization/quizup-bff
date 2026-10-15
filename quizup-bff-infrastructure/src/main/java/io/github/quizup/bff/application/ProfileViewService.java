@@ -207,6 +207,9 @@ public class ProfileViewService {
                     .mapToInt(Integer::intValue)
                     .max()
                     .orElse(0);
+            case DISTINCT_TOPICS -> (int) progress.xpByTopic().values().stream()
+                    .filter(xp -> xp > 0)
+                    .count();
             case EARNED_BADGES -> progress.badges().size();
             case ONE_SHOT -> 0;
         };
