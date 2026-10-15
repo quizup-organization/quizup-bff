@@ -1,3 +1,9 @@
+## [11.14.0](https://github.com/quizup-organization/quizup-bff/compare/v11.13.0...v11.14.0) (2026-10-15)
+
+### Features
+
+* **bff:** ticket d'appariement EXPIRED (fin de recherche à 10 s) ([59a4035](https://github.com/quizup-organization/quizup-bff/commit/59a4035432f2e0b6608e46e0d5392f715ee5a232))
+
 ## [11.13.0](https://github.com/quizup-organization/quizup-bff/compare/v11.12.0...v11.13.0) (2026-10-14)
 
 ### Features
