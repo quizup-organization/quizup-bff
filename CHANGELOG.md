@@ -1,3 +1,9 @@
+## [11.18.0](https://github.com/quizup-organization/quizup-bff/compare/v11.17.0...v11.18.0) (2026-10-15)
+
+### Features
+
+* **bff:** badges Precision et Rapidite ([1f741bc](https://github.com/quizup-organization/quizup-bff/commit/1f741bcc2883dac3f8c004c1b7554b2fe63f3fce))
+
 ## [11.17.0](https://github.com/quizup-organization/quizup-bff/compare/v11.16.0...v11.17.0) (2026-10-15)
 
 ### Features
