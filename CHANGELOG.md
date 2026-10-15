@@ -1,3 +1,9 @@
+## [11.25.0](https://github.com/quizup-organization/quizup-bff/compare/v11.24.0...v11.25.0) (2026-10-15)
+
+### Features
+
+* **bff:** titres thematiques de la fiche sujet dans l apercu ([45254ab](https://github.com/quizup-organization/quizup-bff/commit/45254ab29fc2de29ba47419f2f9fd26da777cf71))
+
 ## [11.24.0](https://github.com/quizup-organization/quizup-bff/compare/v11.23.0...v11.24.0) (2026-10-15)
 
 ### Features
