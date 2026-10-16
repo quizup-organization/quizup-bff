@@ -92,6 +92,14 @@ public class RoomController {
                 .thenApply(_ -> ResponseEntity.ok().build());
     }
 
+    /** Relance (« wizz ») de l'adversaire absent — cadence 10 s par joueur, gardée par l'agrégat. */
+    @PostMapping("/{roomId}/wizz")
+    public CompletableFuture<ResponseEntity<Void>> wizz(@PathVariable String roomId) {
+        return roomViewService
+                .wizz(roomId, SecurityHelper.getUserId())
+                .thenApply(_ -> ResponseEntity.ok().build());
+    }
+
     @GetMapping("/{roomId}/notifications")
     public CompletableFuture<ResponseEntity<List<EventEnvelopeResponse>>> notifications(@PathVariable String roomId) {
         return queryGateway

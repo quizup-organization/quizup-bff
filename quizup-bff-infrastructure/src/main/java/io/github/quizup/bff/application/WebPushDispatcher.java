@@ -74,6 +74,10 @@ public class WebPushDispatcher {
             case ROOM_ACCEPTED -> event.gameId() != null
                     ? "/game/" + event.gameId()
                     : (event.sourceId() != null ? "/rooms/" + event.sourceId() : "/notifications");
+            // Relance (« wizz ») : la salle d'attente (sourceId = roomId).
+            case WIZZ -> event.sourceId() != null
+                    ? "/rooms/" + event.sourceId()
+                    : "/notifications";
             case FOLLOW -> event.actorId() != null ? "/players/" + event.actorId() : "/notifications";
             default -> "/notifications";
         };

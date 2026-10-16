@@ -42,10 +42,14 @@ public class WebPushSender implements WebPushGateway {
     /** Notifications time-sensitive : haute priorité, sinon FCM diffère le push en Doze. */
     private static final Set<String> URGENT_TYPES = Set.of(
             NotificationType.CHALLENGE_RECEIVED.name(),
-            NotificationType.ROOM_ACCEPTED.name());
+            NotificationType.ROOM_ACCEPTED.name(),
+            NotificationType.WIZZ.name());
     /** Invitations d'un même défi : collapsées par le header Topic. */
     private static final Set<String> INVITATION_TYPES = Set.of(
             NotificationType.CHALLENGE_RECEIVED.name());
+    /** Relances d'une même salle : collapsées aussi (une seule notification OS par salle). */
+    private static final Set<String> WIZZ_TYPES = Set.of(
+            NotificationType.WIZZ.name());
 
     private final ObjectMapper objectMapper;
     private final PushService pushService;
@@ -125,11 +129,17 @@ public class WebPushSender implements WebPushGateway {
                 : Notification.Urgency.NORMAL;
     }
 
-    /** Collapse des invitations d'un même défi — le header Topic est limité à 32 caractères. */
+    /** Collapse des invitations d'un même défi / relances d'une même salle — header Topic ≤ 32 car. */
     static String topic(WebPushMessage message) {
-        if (!INVITATION_TYPES.contains(message.type()) || message.sourceId() == null) {
+        if (message.sourceId() == null) {
             return null;
         }
-        return "challenge-" + Integer.toHexString(message.sourceId().hashCode());
+        if (INVITATION_TYPES.contains(message.type())) {
+            return "challenge-" + Integer.toHexString(message.sourceId().hashCode());
+        }
+        if (WIZZ_TYPES.contains(message.type())) {
+            return "room-wizz-" + Integer.toHexString(message.sourceId().hashCode());
+        }
+        return null;
     }
 }

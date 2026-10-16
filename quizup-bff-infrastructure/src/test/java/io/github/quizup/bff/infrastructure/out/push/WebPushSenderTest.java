@@ -49,6 +49,8 @@ class WebPushSenderTest {
                 .isEqualTo(Notification.Urgency.HIGH);
         assertThat(WebPushSender.urgency(message("ROOM_ACCEPTED", "room-1")))
                 .isEqualTo(Notification.Urgency.HIGH);
+        assertThat(WebPushSender.urgency(message("WIZZ", "room-1")))
+                .isEqualTo(Notification.Urgency.HIGH);
         assertThat(WebPushSender.urgency(message("FOLLOW", "follow-1")))
                 .isEqualTo(Notification.Urgency.NORMAL);
     }
@@ -59,6 +61,13 @@ class WebPushSenderTest {
                 .startsWith("challenge-");
         assertThat(WebPushSender.topic(message("FOLLOW", "follow-1"))).isNull();
         assertThat(WebPushSender.topic(message("CHALLENGE_RECEIVED", null))).isNull();
+    }
+
+    @Test
+    void wizz_notifications_collapse_per_room() {
+        assertThat(WebPushSender.topic(message("WIZZ", "room-1")))
+                .startsWith("room-wizz-");
+        assertThat(WebPushSender.topic(message("WIZZ", null))).isNull();
     }
 
     private static WebPushMessage message(String type, String sourceId) {

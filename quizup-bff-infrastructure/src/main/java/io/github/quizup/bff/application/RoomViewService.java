@@ -138,6 +138,19 @@ public class RoomViewService {
     }
 
     /**
+     * Relance (« wizz ») de l'adversaire absent : pur temps réel (aucune préparation déclenchée).
+     * Les invariants (émetteur présent, cible humaine absente, cadence 10 s) vivent dans l'agrégat
+     * — une relance refusée remonte le {@code Problem} métier mappé par le SDK.
+     */
+    public CompletableFuture<Void> wizz(String roomId, String playerId) {
+        return requireRoom(roomId)
+                .thenCompose(_ -> commandGateway
+                        .send(new RoomCommand.WizzRoomCommand(roomId, playerId))
+                        .thenAccept(_ -> {
+                        }));
+    }
+
+    /**
      * Pré-vérification : une salle purgée (état terminal + rétention) doit répondre 404,
      * pas une {@code AggregateDeletedException} non mappée par le SDK.
      */

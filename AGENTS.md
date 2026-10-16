@@ -260,6 +260,7 @@ Intention **asynchrone** (TTL 1 h) distincte de la salle temps réel : l'accepta
 | `POST /api/rooms/{roomId}/join` | `200` | **Apparition** (idempotente) : présence et, pour le second joueur, enregistrement du participant ; nominatif : invité uniquement (403 sinon). Émise par le client quand l'utilisateur est dans la salle ; le BFF prépare le **snapshot `RoomPlayer`** (profil + progression, caches Caffeine) et le porte dans `JoinRoomCommand` — la salle ne résout jamais les joueurs (préparation ensuite non bloquante : profils portés par l'apparition, historique/tirage par requêtes async) |
 | `POST /api/rooms/{roomId}/leave` | `200` | Sortie **non destructive** (idempotente) tant que la préparation n'est pas engagée ; refusée (400) dès que les deux joueurs sont présents — seul `cancel` ferme la salle |
 | `POST /api/rooms/{roomId}/cancel` | `200` | Annulation par l'initiateur, possible tant que la salle n'est pas terminale |
+| `POST /api/rooms/{roomId}/wizz` | `200` | **Relance** de l'adversaire humain **absent** (salle nominative, émetteur présent) — pur temps réel, aucune préparation déclenchée ; cadence **10 s par joueur** (le refus métier remonte le `Problem` mappé 4xx) |
 | `GET /api/rooms/{roomId}/notifications` | `List<EventEnvelopeResponse>` (payload `RoomNotification`) | Même contrat que le push WS |
 
 > Un état terminal (`COMPLETED`/`CANCELLED`/`EXPIRED`/`FAILED`) est conservé le temps de la rétention (2 min)
@@ -280,6 +281,11 @@ Intention **asynchrone** (TTL 1 h) distincte de la salle temps réel : l'accepta
 | `GET /api/notification-preferences` | `List<{ category, enabled }>` | `category` ∈ `FOLLOW\|ROOM` (défaut activé) |
 | `PUT /api/notification-preferences/{category}` | `204` | `{ enabled }` |
 
+Types ingérés (Kafka → inbox) : `FOLLOW`, `CHALLENGE_RECEIVED`, `CHALLENGE_DECLINED`,
+`ROOM_ACCEPTED` et **`WIZZ`** (relance de salle — une seule entrée par salle, remplacée à chaque
+relance, expirée quand la cible rejoint ou à la fin de la salle) ; le BFF pousse chaque
+`NotificationCreatedEvent` sur `/topic/notifications/{userId}` et en Web Push.
+
 ### Web Push (navigateur)
 
 Abonnements par navigateur portés par le BFF (`push_subscription`, migration `V2__push_subscriptions.sql`) :
@@ -288,9 +294,9 @@ instance-scopé : une seule notification OS par événement, même avec plusieur
 fan-out STOMP de l'inbox vit dans `notification-ws`, instance-scopé), hors thread du processor.
 Payload structuré (`type`, `actorPseudonym`, `sourceId`, `path`…) ;
 le Service Worker web compose le texte et route le clic. **Urgence `high`** pour les notifications
-time-sensitive (`CHALLENGE_RECEIVED`, `ROOM_ACCEPTED`) : en `normal`, FCM
+time-sensitive (`CHALLENGE_RECEIVED`, `ROOM_ACCEPTED`, `WIZZ`) : en `normal`, FCM
 diffère la livraison quand l'appareil est verrouillé/en Doze ; le header `Topic` collapse les
-invitations d'un même défi/salon. Configuration `quizup.push.vapid.*`
+invitations d'un même défi et les **relances** d'une même salle. Configuration `quizup.push.vapid.*`
 (clé publique dans le ConfigMap, privée dans le secret sealed) : clés absentes ⇒ push désactivé.
 
 | Endpoint | Réponse | Notes |
@@ -326,7 +332,7 @@ déclenche la déconnexion de session côté présence.
 | Destination | Payload |
 |---|---|
 | `/topic/games/{gameId}` | `EventEnvelopeResponse` (payload `GameNotification`) (`GAME_CREATED`, `GAME_STARTED`, `ROUND_STARTED`, `QUESTION_REVEALED`, `PLAYER_ANSWERED`, `ROUND_CLOSED`, `GAME_FORFEITED`, `GAME_ENDED`, `GAME_CANCELLED`) |
-| `/topic/rooms/{roomId}` | `EventEnvelopeResponse` (payload `RoomNotification`) (`ROOM_CREATED`, `ROOM_ENTERED`, `ROOM_ALL_PRESENT`, `ROOM_PLAYERS_LOADED`, `ROOM_PLAYED_QUESTIONS_LOADED`, `ROOM_QUESTIONS_LOADED`, `ROOM_GAME_CREATED`, `ROOM_LEFT`, `ROOM_COMPLETED`, `ROOM_CANCELLED`, `ROOM_EXPIRED`, `ROOM_FAILED`) |
+| `/topic/rooms/{roomId}` | `EventEnvelopeResponse` (payload `RoomNotification`) (`ROOM_CREATED`, `ROOM_ENTERED`, `ROOM_ALL_PRESENT`, `ROOM_PLAYERS_LOADED`, `ROOM_PLAYED_QUESTIONS_LOADED`, `ROOM_QUESTIONS_LOADED`, `ROOM_GAME_CREATED`, `ROOM_LEFT`, `ROOM_WIZZED`, `ROOM_COMPLETED`, `ROOM_CANCELLED`, `ROOM_EXPIRED`, `ROOM_FAILED`) |
 | `/topic/matchmaking/tickets/{ticketId}` | `EventEnvelopeResponse` (payload `MatchmakingNotification`) (`SEARCHING`, `MATCHED`, `CANCELLED`, `EXPIRED`, `FAILED`) |
 | `/topic/notifications/{userId}` | `EventEnvelopeResponse` (payload `NotificationView`) — inbox personnelle (invitations de défi, follows) ; suppression poussée sous `NOTIFICATION_DELETED` (payload `{ notificationId }`) |
 | `/topic/presence/{userId}` | `PresenceView` — **exception assumée** : événements de session non séquencés, pas d'enveloppe |

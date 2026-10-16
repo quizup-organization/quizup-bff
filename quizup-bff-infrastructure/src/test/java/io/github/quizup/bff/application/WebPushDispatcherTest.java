@@ -72,6 +72,16 @@ class WebPushDispatcherTest {
     }
 
     @Test
+    void wizz_targets_the_waiting_room() {
+        dispatcher.dispatch(event(NotificationType.WIZZ, "room-1", "actor-1"));
+
+        WebPushMessage message = capturedMessage();
+        assertThat(message.type()).isEqualTo("WIZZ");
+        assertThat(message.path()).isEqualTo("/rooms/room-1");
+        assertThat(message.sourceId()).isEqualTo("room-1");
+    }
+
+    @Test
     void challenge_decline_targets_the_inbox() {
         dispatcher.dispatch(event(NotificationType.CHALLENGE_DECLINED, "challenge-1", "actor-1"));
 

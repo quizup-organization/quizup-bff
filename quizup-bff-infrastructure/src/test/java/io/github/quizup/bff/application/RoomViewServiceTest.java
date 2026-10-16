@@ -78,6 +78,21 @@ class RoomViewServiceTest {
         assertThat(captor.getValue().player().xpTotal()).isZero();
     }
 
+    @Test
+    void wizz_checksRoomExistenceAndSendsTheCommand() {
+        stubRoom();
+        when(commandGateway.send(any(RoomCommand.WizzRoomCommand.class)))
+                .thenReturn(CompletableFuture.completedFuture(null));
+
+        service.wizz("room-1", "user-1").join();
+
+        ArgumentCaptor<RoomCommand.WizzRoomCommand> captor =
+                ArgumentCaptor.forClass(RoomCommand.WizzRoomCommand.class);
+        verify(commandGateway).send(captor.capture());
+        assertThat(captor.getValue().roomId()).isEqualTo("room-1");
+        assertThat(captor.getValue().playerId()).isEqualTo("user-1");
+    }
+
     private void stubRoom() {
         when(queryGateway.query(any(RoomQuery.GetRoomById.class), any(ResponseType.class)))
                 .thenReturn(CompletableFuture.completedFuture(Room.builder()

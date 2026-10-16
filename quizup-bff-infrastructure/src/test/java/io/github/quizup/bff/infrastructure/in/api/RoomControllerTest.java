@@ -102,4 +102,15 @@ class RoomControllerTest {
         verify(roomViewService).leave("room-1", USER_ID);
         verify(roomViewService).cancel("room-1", USER_ID);
     }
+
+    @Test
+    void wizz_delegates_to_service() throws Exception {
+        when(roomViewService.wizz("room-1", USER_ID)).thenReturn(CompletableFuture.completedFuture(null));
+
+        MvcResult wizz = mockMvc.perform(post("/api/rooms/room-1/wizz"))
+                .andExpect(request().asyncStarted()).andReturn();
+        mockMvc.perform(asyncDispatch(wizz)).andExpect(status().isOk());
+
+        verify(roomViewService).wizz("room-1", USER_ID);
+    }
 }

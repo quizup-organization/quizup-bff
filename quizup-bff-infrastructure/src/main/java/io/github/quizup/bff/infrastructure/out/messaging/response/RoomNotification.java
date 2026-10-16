@@ -19,6 +19,7 @@ import java.time.Instant;
         @JsonSubTypes.Type(value = RoomNotification.RoomQuestionsLoadedNotification.class, name = "ROOM_QUESTIONS_LOADED"),
         @JsonSubTypes.Type(value = RoomNotification.RoomGameCreatedNotification.class, name = "ROOM_GAME_CREATED"),
         @JsonSubTypes.Type(value = RoomNotification.RoomLeftNotification.class, name = "ROOM_LEFT"),
+        @JsonSubTypes.Type(value = RoomNotification.RoomWizzedNotification.class, name = "ROOM_WIZZED"),
         @JsonSubTypes.Type(value = RoomNotification.RoomCompletedNotification.class, name = "ROOM_COMPLETED"),
         @JsonSubTypes.Type(value = RoomNotification.RoomCancelledNotification.class, name = "ROOM_CANCELLED"),
         @JsonSubTypes.Type(value = RoomNotification.RoomExpiredNotification.class, name = "ROOM_EXPIRED"),
@@ -40,6 +41,7 @@ public interface RoomNotification {
         ROOM_QUESTIONS_LOADED,
         ROOM_GAME_CREATED,
         ROOM_LEFT,
+        ROOM_WIZZED,
         ROOM_COMPLETED,
         ROOM_CANCELLED,
         ROOM_EXPIRED,
@@ -138,6 +140,22 @@ public interface RoomNotification {
         @Override
         public RoomNotificationType type() {
             return RoomNotificationType.ROOM_COMPLETED;
+        }
+    }
+
+    /**
+     * Relance (« wizz ») d'un adversaire absent : le client affiche la relance et cale la cadence
+     * (anti-spam) du joueur émetteur sur {@code wizzedAt}.
+     */
+    record RoomWizzedNotification(
+            String roomId,
+            String playerId,
+            String targetId,
+            Instant wizzedAt
+    ) implements RoomNotification {
+        @Override
+        public RoomNotificationType type() {
+            return RoomNotificationType.ROOM_WIZZED;
         }
     }
 
