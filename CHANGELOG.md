@@ -1,3 +1,9 @@
+## [11.26.1](https://github.com/quizup-organization/quizup-bff/compare/v11.26.0...v11.26.1) (2026-10-16)
+
+### Bug Fixes
+
+* **bff:** pin profile 4.5.0 (famille de badges VICTORY) ([2fbea37](https://github.com/quizup-organization/quizup-bff/commit/2fbea37eaaad91f75a3d1ff0a2bcac944a821667))
+
 ## [11.26.0](https://github.com/quizup-organization/quizup-bff/compare/v11.25.0...v11.26.0) (2026-10-16)
 
 ### Features
