@@ -1,3 +1,9 @@
+## [11.27.0](https://github.com/quizup-organization/quizup-bff/compare/v11.26.1...v11.27.0) (2026-10-16)
+
+### Features
+
+* **bff:** titre Novice des le premier duel joue ([fd379e7](https://github.com/quizup-organization/quizup-bff/commit/fd379e78fa0670abc601a44fae03b320ddc7cc44))
+
 ## [11.26.1](https://github.com/quizup-organization/quizup-bff/compare/v11.26.0...v11.26.1) (2026-10-16)
 
 ### Bug Fixes
