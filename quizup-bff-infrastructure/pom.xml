@@ -22,7 +22,7 @@
         <quizup.game-domain.version>8.6.0</quizup.game-domain.version>
         <!-- 3.9.0 : grades de maîtrise (MasteryGrade), catalogue de badges (familles/paliers) et
              titre porté (Profile.equippedTitle). -->
-        <quizup.profile-domain.version>4.4.0</quizup.profile-domain.version>
+        <quizup.profile-domain.version>4.5.0</quizup.profile-domain.version>
         <quizup.matchmaking-domain.version>11.0.0</quizup.matchmaking-domain.version>
         <quizup.leaderboard-domain.version>4.2.0</quizup.leaderboard-domain.version>
         <!-- 2.5.0 : delete-all. -->
