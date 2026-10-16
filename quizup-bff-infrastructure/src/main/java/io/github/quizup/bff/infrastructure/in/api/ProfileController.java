@@ -20,6 +20,9 @@ import io.github.quizup.bff.infrastructure.in.api.response.PlayerCardView;
 import io.github.quizup.bff.infrastructure.in.api.response.PlayerProfileView;
 import io.github.quizup.bff.infrastructure.in.api.response.TitlesView;
 import io.github.quizup.bff.infrastructure.in.api.response.TopicStatView;
+import io.github.quizup.game.domain.model.GameHistoryOutcome;
+import io.github.quizup.game.domain.model.GameHistorySort;
+import io.github.quizup.game.domain.model.GamePlayerType;
 import io.github.quizup.microservice.security.SecurityHelper;
 import io.github.quizup.social.domain.command.UserFollowerCommand;
 import io.github.quizup.social.domain.model.FollowDirection;
@@ -204,15 +207,25 @@ public class ProfileController {
                 });
     }
 
+    /**
+     * Historique des parties d'un joueur : filtres optionnels (sujet, adversaire, type
+     * d'adversaire, issue) et tri, tous appliqués **côté service game** — la pagination reste
+     * exacte quelle que soit la combinaison.
+     */
     @GetMapping("/{userId}/games")
     public CompletableFuture<ResponseEntity<PageResponse<GameHistoryItemView>>> games(
             @PathVariable String userId,
             @RequestParam(required = false) String topicId,
             @RequestParam(required = false) String opponentId,
+            @RequestParam(required = false) GamePlayerType opponentType,
+            @RequestParam(required = false) GameHistoryOutcome outcome,
+            @RequestParam(defaultValue = "RECENT") GameHistorySort sort,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
         PageParams.validate(page, size, MAX_PAGE_SIZE);
-        return profileViewService.games(userId, topicId, opponentId, page, size).thenApply(ResponseEntity::ok);
+        return profileViewService
+                .games(userId, topicId, opponentId, opponentType, outcome, sort, page, size)
+                .thenApply(ResponseEntity::ok);
     }
 
     @GetMapping("/{userId}/topics")

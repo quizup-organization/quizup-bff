@@ -14,6 +14,9 @@ import io.github.quizup.bff.infrastructure.in.api.response.TopicStatView;
 import io.github.quizup.bff.infrastructure.in.api.response.TitlesView;
 import io.github.quizup.bff.infrastructure.in.api.response.UserRefView;
 import io.github.quizup.game.domain.model.Game;
+import io.github.quizup.game.domain.model.GameHistoryOutcome;
+import io.github.quizup.game.domain.model.GameHistorySort;
+import io.github.quizup.game.domain.model.GamePlayerType;
 import io.github.quizup.game.domain.model.GameStatus;
 import io.github.quizup.game.domain.model.PlayerGamesPage;
 import io.github.quizup.game.domain.query.GameQuery;
@@ -303,10 +306,14 @@ public class ProfileViewService {
     public CompletableFuture<PageResponse<GameHistoryItemView>> games(String userId,
                                                                       String topicId,
                                                                       String opponentId,
+                                                                      GamePlayerType opponentType,
+                                                                      GameHistoryOutcome outcome,
+                                                                      GameHistorySort sort,
                                                                       int page,
                                                                       int size) {
         return queryGateway.query(
-                        new GameQuery.GetPlayerGamesQuery(userId, topicId, opponentId, page, size),
+                        new GameQuery.GetPlayerGamesQuery(userId, topicId, opponentId, opponentType,
+                                outcome, sort, page, size),
                         QueryResponseTypes.instanceOf(PlayerGamesPage.class))
                 .thenCompose(gamesPage -> enrichGames(userId, gamesPage.games())
                         .thenApply(items -> PageResponse.of(items, gamesPage.page(), gamesPage.size(),
@@ -400,7 +407,8 @@ public class ProfileViewService {
                                                           int page,
                                                           List<Game> accumulator) {
         return queryGateway.query(
-                        new GameQuery.GetPlayerGamesQuery(userId, null, against, page, HEAD_TO_HEAD_PAGE_SIZE),
+                        new GameQuery.GetPlayerGamesQuery(userId, null, against, null, null,
+                                GameHistorySort.RECENT, page, HEAD_TO_HEAD_PAGE_SIZE),
                         QueryResponseTypes.instanceOf(PlayerGamesPage.class))
                 .thenCompose(gamesPage -> {
                     accumulator.addAll(gamesPage.games());

@@ -11,6 +11,9 @@ import io.github.quizup.bff.infrastructure.in.api.response.ProgressionView;
 import io.github.quizup.bff.infrastructure.in.api.response.TitlesView;
 import io.github.quizup.bff.infrastructure.in.api.response.TopicRefView;
 import io.github.quizup.bff.infrastructure.in.api.response.TopicStatView;
+import io.github.quizup.game.domain.model.GameHistoryOutcome;
+import io.github.quizup.game.domain.model.GameHistorySort;
+import io.github.quizup.game.domain.model.GamePlayerType;
 import io.github.quizup.microservice.core.domain.model.i18n.Language;
 import io.github.quizup.social.domain.command.UserFollowerCommand;
 import org.axonframework.commandhandling.gateway.CommandGateway;
@@ -83,7 +86,8 @@ class ProfileControllerTest {
     }
 
     @Test
-    void games_returns_page() throws Exception {        when(profileViewService.games("user-2", null, null, 0, 20))
+    void games_returns_page() throws Exception {
+        when(profileViewService.games("user-2", null, null, null, null, GameHistorySort.RECENT, 0, 20))
                 .thenReturn(CompletableFuture.completedFuture(PageResponse.of(List.of(), 0, 20, 0)));
 
         MvcResult result = mockMvc.perform(get("/api/profiles/user-2/games"))
@@ -93,6 +97,27 @@ class ProfileControllerTest {
         mockMvc.perform(asyncDispatch(result))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.totalElements").value(0));
+    }
+
+    @Test
+    void games_forwards_filters_and_sort() throws Exception {
+        when(profileViewService.games("user-2", "topic-1", null, GamePlayerType.BOT,
+                GameHistoryOutcome.WIN, GameHistorySort.SCORE, 2, 10))
+                .thenReturn(CompletableFuture.completedFuture(PageResponse.of(List.of(), 2, 10, 0)));
+
+        MvcResult result = mockMvc.perform(get("/api/profiles/user-2/games")
+                        .param("topicId", "topic-1")
+                        .param("opponentType", "BOT")
+                        .param("outcome", "WIN")
+                        .param("sort", "SCORE")
+                        .param("page", "2")
+                        .param("size", "10"))
+                .andExpect(request().asyncStarted())
+                .andReturn();
+
+        mockMvc.perform(asyncDispatch(result)).andExpect(status().isOk());
+        verify(profileViewService).games("user-2", "topic-1", null, GamePlayerType.BOT,
+                GameHistoryOutcome.WIN, GameHistorySort.SCORE, 2, 10);
     }
 
     @Test
