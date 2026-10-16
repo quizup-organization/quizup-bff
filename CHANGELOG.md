@@ -1,3 +1,9 @@
+## [11.28.0](https://github.com/quizup-organization/quizup-bff/compare/v11.27.0...v11.28.0) (2026-10-16)
+
+### Features
+
+* **bff:** relance « wizz » de l'adversaire absent (endpoint, push, temps reel) ([1492361](https://github.com/quizup-organization/quizup-bff/commit/1492361e0b9ca30e571cf839e9e65c264e8a711d))
+
 ## [11.27.0](https://github.com/quizup-organization/quizup-bff/compare/v11.26.1...v11.27.0) (2026-10-16)
 
 ### Features
