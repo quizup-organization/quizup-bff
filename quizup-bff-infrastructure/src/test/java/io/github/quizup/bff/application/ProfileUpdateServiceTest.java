@@ -93,6 +93,28 @@ class ProfileUpdateServiceTest {
     }
 
     @Test
+    void equippedTitle_noviceIsAllowedOnceTheTopicHasBeenPlayed() {
+        stubProgress(Map.of("topic-1", 120));
+        when(commandGateway.send(any())).thenReturn(CompletableFuture.completedFuture(null));
+
+        service.updateEquippedTitle("u1", "u1", "topic-1:NOVICE").join();
+
+        verify(commandGateway).send(new ProfileCommand.UpdateEquippedTitleCommand(
+                "u1", "u1", "topic-1:NOVICE"));
+        verify(profileLookup).invalidate("u1");
+    }
+
+    @Test
+    void equippedTitle_noviceOnUnplayedTopic_isRejectedAsNotEarned() {
+        stubProgress(Map.of("topic-1", 0));
+
+        assertThatThrownBy(() -> service.updateEquippedTitle("u1", "u1", "topic-9:NOVICE").join())
+                .isInstanceOf(CompletionException.class)
+                .hasCauseInstanceOf(BffProblems.TitleNotEarnedProblem.class);
+        verifyNoInteractions(commandGateway);
+    }
+
+    @Test
     void equippedTitle_withUnknownTopic_isRejectedAsNotEarned() {
         stubProgress(Map.of("topic-1", 30_000));
 

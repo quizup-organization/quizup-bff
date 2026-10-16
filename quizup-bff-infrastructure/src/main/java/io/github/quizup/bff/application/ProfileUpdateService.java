@@ -64,8 +64,9 @@ public class ProfileUpdateService {
 
     /**
      * Titre thématique porté. La commande ne porte que la clé : la **légitimité** du titre
-     * (grade réellement atteint dans ce sujet) est vérifiée **ici**, avant l'envoi — l'agrégat
-     * ne connaît pas la progression (`best-practices/.backend/command-preparation.md`).
+     * (sujet **joué** — XP > 0, l'entraînement bot n'ouvre rien — et grade réellement atteint
+     * dans ce sujet) est vérifiée **ici**, avant l'envoi — l'agrégat ne connaît pas la progression
+     * (`best-practices/.backend/command-preparation.md`).
      * {@code titleKey} {@code null} efface le titre porté.
      */
     public CompletableFuture<Void> updateEquippedTitle(String userId, String requestedBy, String titleKey) {
@@ -78,8 +79,9 @@ public class ProfileUpdateService {
                 .orElseThrow(() -> new BffProblems.InvalidEquippedTitleProblem(titleKey));
 
         return progressionLookup.get(userId).thenCompose(progress -> {
-            MasteryGrade reached = MasteryGrade.gradeFor(progress.xpForTopic(title.topicId()));
-            if (reached.ordinal() < title.grade().ordinal()) {
+            int topicXp = progress.xpForTopic(title.topicId());
+            MasteryGrade reached = MasteryGrade.gradeFor(topicXp);
+            if (topicXp <= 0 || reached.ordinal() < title.grade().ordinal()) {
                 throw new BffProblems.TitleNotEarnedProblem(titleKey, reached.name());
             }
 

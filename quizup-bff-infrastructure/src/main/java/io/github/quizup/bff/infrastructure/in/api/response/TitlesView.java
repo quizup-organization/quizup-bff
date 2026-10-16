@@ -4,7 +4,8 @@ import java.util.List;
 
 /**
  * Titres thématiques d'un joueur : le **titre porté** ({@code equippedKey}) et les titres qu'il a
- * débloqués — un par sujet où il a atteint au moins le premier grade. Le libellé n'est pas
+ * débloqués — un par sujet **joué**, le grade d'entrée Novice compris dès la première XP (un
+ * entraînement bot, à 0 XP, ne débloque rien). Le libellé n'est pas
  * composé côté serveur : le client combine le grade ({@code grade}, à traduire) et le nom du
  * sujet ({@code topic.names}, dans la langue du lecteur).
  */

@@ -80,8 +80,11 @@ Le `quizup-mobile` n'est **pas** branché sur cette surface (migration dédiée 
   (`equippedTitle` + `GET …/titles`), l'UI devant basculer dans un lot dédié.
 - **Titres thématiques** : le serveur ne compose **jamais** le libellé (« Confirmé · Histoire ») —
   il expose le grade (`MasteryGrade`, à traduire côté client) et le sujet (`names`), le client
-  combine. Le **titre porté** (`Profile.equippedTitle`) est validé à l'écriture : le BFF vérifie
-  que le grade est réellement atteint **avant** d'envoyer la commande (`command-preparation`).
+  combine. Un titre est débloqué par **sujet joué** — le grade d'entrée **Novice compris** dès la
+  première XP (un entraînement bot, à 0 XP, ne débloque rien). Le **titre porté**
+  (`Profile.equippedTitle`) est validé à l'écriture : le BFF vérifie que le sujet est joué
+  (XP > 0) et que le grade est réellement atteint **avant** d'envoyer la commande
+  (`command-preparation`).
 - **Caches de lecture (Caffeine)** : `ProfileLookup` (profil, 30 s, purgé par `ProfileUpdateService`
   après chaque écriture), `ProgressionLookup` (progression, 15 s — lue sur chaque `/api/me`/fiche/
   enfilage) et les **compteurs de follows** (`FollowLookup.userCounts`, 30 s, purgés après un
@@ -206,8 +209,8 @@ de sujet, illustration de question, bannière de profil) : objet référencé �
 |---|---|---|
 | `GET /api/profiles/{userId}` | `PlayerProfileView` | Profil + progression + stats + counts + présence + `follow` + `isMe` + `equippedTitle` (clé du titre porté, `null` si aucun) |
 | `GET /api/profiles/{userId}/badges` | `BadgeCollectionView` | **Collection** : tout le catalogue groupé par famille — **13 familles, une seule échelle (métrique) par famille** (`VOLUME` = duels joués, **`VICTORY`** = duels gagnés, `MASTERY`, `EXPLOIT` = exploits ponctuels, `SERIES`, `ASSIDUITY`, `SOCIAL`, `CHALLENGES`, `VISION`, `PRECISION`, `SPEED`, `EXPLORATION`, `COLLECTION`), chaque badge avec `code`, `label`, `tier`, `metric`, `target`, `earned` et `progress` (compteur courant **plafonné** à `target` : « 7/10 »). Les compteurs viennent du read model de progression (`gamesPlayed`, `wins`, `max(xpByTopic)`, `badges`, fait ponctuel) — aucune requête supplémentaire |
-| `GET /api/profiles/{userId}/titles` | `TitlesView` | Titres thématiques **débloqués** (un par sujet où le premier grade est atteint) + `equippedKey` : `key` (`topicId:GRADE`), `grade`, `gradeProgressPercent`, `gradeRemainingXp`, `nextGrade`, `topic` (`TopicRefView`). Le libellé est composé par le client (grade traduit + `topic.names`) — aucun texte figé côté serveur |
-| `PUT /api/profiles/{userId}/title` | `204` | Titre **porté** : `{ titleKey }` (`topicId:GRADE`) ou `null` pour n'en afficher aucun. Propriétaire uniquement (invariant d'agrégat, 403) ; titre **réellement débloqué** exigé — la progression est lue avant l'envoi et un grade insuffisant répond `400` (`urn:quizup:bff:profile:titleNotEarned`), une clé mal formée `400` (`…:invalidTitle`) |
+| `GET /api/profiles/{userId}/titles` | `TitlesView` | Titres thématiques **débloqués** (un par sujet **joué** — grade d'entrée **Novice compris** dès la première XP ; un entraînement bot, à 0 XP, ne débloque rien) + `equippedKey` : `key` (`topicId:GRADE`), `grade`, `gradeProgressPercent`, `gradeRemainingXp`, `nextGrade`, `topic` (`TopicRefView`). Le libellé est composé par le client (grade traduit + `topic.names`) — aucun texte figé côté serveur |
+| `PUT /api/profiles/{userId}/title` | `204` | Titre **porté** : `{ titleKey }` (`topicId:GRADE`) ou `null` pour n'en afficher aucun. Propriétaire uniquement (invariant d'agrégat, 403) ; titre **réellement débloqué** exigé — la progression est lue avant l'envoi et un **sujet non joué** ou un grade insuffisant répond `400` (`urn:quizup:bff:profile:titleNotEarned`), une clé mal formée `400` (`…:invalidTitle`) |
 | `GET /api/profiles/{userId}/following?q=&sort=&page=&size=` | `PageResponse<PlayerCardView>` | `sort` ∈ `RECENT\|LEVEL\|ALPHA` |
 | `GET /api/profiles/{userId}/followers?q=&sort=&page=&size=` | `PageResponse<PlayerCardView>` | idem |
 | `PUT /api/profiles/{userId}/follow` | `204` | Idempotent |

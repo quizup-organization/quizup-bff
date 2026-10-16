@@ -91,32 +91,37 @@ class ProfileViewServiceTest {
                         .xpByTopic(Map.of(
                                 "topic-1", 2_600,   // Confirmé
                                 "topic-2", 6_000,   // Expert
-                                "topic-3", 120))    // Novice → aucun titre
+                                "topic-3", 120))    // Novice : titre débloqué dès la première XP
                         .build()));
         when(queryGateway.query(
                 any(TopicQuery.GetTopicsByIdsQuery.class),
                 ArgumentMatchers.<ResponseType<List<Topic>>>any()))
                 .thenReturn(CompletableFuture.completedFuture(List.of(
                         Topic.builder().topicId("topic-1").names(Map.of(Language.FR, "Histoire")).build(),
-                        Topic.builder().topicId("topic-2").names(Map.of(Language.FR, "Java")).build())));
+                        Topic.builder().topicId("topic-2").names(Map.of(Language.FR, "Java")).build(),
+                        Topic.builder().topicId("topic-3").names(Map.of(Language.FR, "DotA")).build())));
 
         TitlesView view = service.titles("user-1").join();
 
         assertThat(view.equippedKey()).isEqualTo("topic-2:EXPERT");
         assertThat(view.titles()).extracting(TitlesView.TitleView::key)
-                .containsExactly("topic-2:EXPERT", "topic-1:CONFIRME");
+                .containsExactly("topic-2:EXPERT", "topic-1:CONFIRME", "topic-3:NOVICE");
         assertThat(view.titles()).extracting(TitlesView.TitleView::grade)
-                .containsExactly("EXPERT", "CONFIRME");
+                .containsExactly("EXPERT", "CONFIRME", "NOVICE");
         assertThat(view.titles().get(0).topic().names()).containsEntry(Language.FR, "Java");
+        // Le grade d'entrée porte sa progression réelle (120 / 300 XP avant Apprenti).
+        assertThat(view.titles().get(2).nextGrade()).isEqualTo("APPRENTI");
+        assertThat(view.titles().get(2).gradeRemainingXp()).isEqualTo(180);
     }
 
     @Test
-    void titles_skip_the_topic_lookup_when_no_grade_is_reached() {
+    void titles_skip_the_topic_lookup_when_no_topic_is_played() {
         when(profileLookup.get("user-1")).thenReturn(CompletableFuture.completedFuture(
                 Profile.builder().userId("user-1").build()));
         when(progressionLookup.get("user-1")).thenReturn(CompletableFuture.completedFuture(
                 PlayerProgress.empty("user-1").toBuilder()
-                        .xpByTopic(Map.of("topic-1", 120))
+                        // Entraînement bot : XP nulle → aucune maîtrise, donc aucun titre.
+                        .xpByTopic(Map.of("topic-1", 0))
                         .build()));
 
         TitlesView view = service.titles("user-1").join();

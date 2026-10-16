@@ -125,9 +125,10 @@ public class ProfileViewService {
     }
 
     /**
-     * Titres thématiques débloqués par un joueur : un titre par sujet où il a atteint au moins le
-     * premier grade, plus la clé de son **titre porté**. Le libellé est composé par le client
-     * (grade traduit + nom du sujet dans sa langue) — le serveur ne fige pas de texte.
+     * Titres thématiques débloqués par un joueur : un titre par sujet **joué** — le grade d'entrée
+     * Novice compris dès la première XP (un entraînement bot, à 0 XP, ne débloque rien) —, plus la
+     * clé de son **titre porté**. Le libellé est composé par le client (grade traduit + nom du
+     * sujet dans sa langue) — le serveur ne fige pas de texte.
      */
     public CompletableFuture<TitlesView> titles(String userId) {
         CompletableFuture<Profile> profileFuture = profileLookup.get(userId);
@@ -136,7 +137,7 @@ public class ProfileViewService {
         return CompletableFuture.allOf(profileFuture, progressFuture).thenCompose(_ -> {
             Map<String, Integer> xpByTopic = progressFuture.join().xpByTopic();
             List<String> earnedTopicIds = xpByTopic.entrySet().stream()
-                    .filter(entry -> MasteryGrade.gradeFor(entry.getValue()) != MasteryGrade.NOVICE)
+                    .filter(entry -> entry.getValue() > 0)
                     .map(Map.Entry::getKey)
                     .sorted()
                     .toList();
