@@ -1,3 +1,9 @@
+## [11.26.0](https://github.com/quizup-organization/quizup-bff/compare/v11.25.0...v11.26.0) (2026-10-16)
+
+### Features
+
+* **bff:** historique des parties filtrable et triable ([ee468f0](https://github.com/quizup-organization/quizup-bff/commit/ee468f0a57a0c733197d716d7f866835f472bf9d))
+
 ## [11.25.0](https://github.com/quizup-organization/quizup-bff/compare/v11.24.0...v11.25.0) (2026-10-15)
 
 ### Features
