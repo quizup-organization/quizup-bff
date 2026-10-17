@@ -231,6 +231,7 @@ public class ProfileViewService {
                 new PlayerTitle(topicId, grade).key(),
                 topicId,
                 grade.name(),
+                grade.rank().name(),
                 grade.progressPercent(topicXp),
                 grade.remainingXp(topicXp),
                 grade.next() == null ? null : grade.next().name(),

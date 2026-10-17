@@ -154,10 +154,10 @@ class ProfileControllerTest {
     @Test
     void badges_returns_the_whole_catalogue_with_progress() throws Exception {
         when(profileViewService.badges("user-2")).thenReturn(CompletableFuture.completedFuture(
-                new BadgeCollectionView(2, 16, List.of(new BadgeCollectionView.FamilyView(
+                new BadgeCollectionView(2, 88, List.of(new BadgeCollectionView.FamilyView(
                         "VOLUME", List.of(new BadgeCollectionView.BadgeItemView(
-                                "DUELIST_BRONZE", "Duelliste", "BRONZE", "HUMAN_DUELS", 10,
-                                true, 10)))))));
+                                "DUELIST_BRONZE", "Duelliste", "BRONZE", "HUMAN_DUELS", 3,
+                                true, 3)))))));
 
         MvcResult result = mockMvc.perform(get("/api/profiles/user-2/badges"))
                 .andExpect(request().asyncStarted())
@@ -169,14 +169,14 @@ class ProfileControllerTest {
                 .andExpect(jsonPath("$.families[0].family").value("VOLUME"))
                 .andExpect(jsonPath("$.families[0].badges[0].code").value("DUELIST_BRONZE"))
                 .andExpect(jsonPath("$.families[0].badges[0].earned").value(true))
-                .andExpect(jsonPath("$.families[0].badges[0].progress").value(10));
+                .andExpect(jsonPath("$.families[0].badges[0].progress").value(3));
     }
 
     @Test
     void titles_returns_equipped_key_and_unlocked_titles() throws Exception {
         when(profileViewService.titles("user-2")).thenReturn(CompletableFuture.completedFuture(
                 new TitlesView("topic-1:CONFIRME", List.of(new TitlesView.TitleView(
-                        "topic-1:CONFIRME", "topic-1", "CONFIRME", 40, 1_400, "EXPERT",
+                        "topic-1:CONFIRME", "topic-1", "CONFIRME", "OR", 40, 1_400, "EXPERT",
                         new TopicRefView("topic-1", Map.of(Language.FR, "Histoire"),
                                 null, null, null, null, null))))));
 
@@ -188,6 +188,7 @@ class ProfileControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.equippedKey").value("topic-1:CONFIRME"))
                 .andExpect(jsonPath("$.titles[0].grade").value("CONFIRME"))
+                .andExpect(jsonPath("$.titles[0].rank").value("OR"))
                 .andExpect(jsonPath("$.titles[0].key").value("topic-1:CONFIRME"))
                 .andExpect(jsonPath("$.titles[0].topic.names.fr").value("Histoire"));
     }

@@ -108,6 +108,8 @@ class ProfileViewServiceTest {
                 .containsExactly("topic-2:EXPERT", "topic-1:CONFIRME", "topic-3:NOVICE");
         assertThat(view.titles()).extracting(TitlesView.TitleView::grade)
                 .containsExactly("EXPERT", "CONFIRME", "NOVICE");
+        assertThat(view.titles()).extracting(TitlesView.TitleView::rank)
+                .containsExactly("PLATINE", "OR", "FER");
         assertThat(view.titles().get(0).topic().names()).containsEntry(Language.FR, "Java");
         // Le grade d'entrée porte sa progression réelle (120 / 300 XP avant Apprenti).
         assertThat(view.titles().get(2).nextGrade()).isEqualTo("APPRENTI");
@@ -157,13 +159,13 @@ class ProfileViewServiceTest {
 
         // Volume : acquis au palier bronze (plafonné), en cours pour l'argent.
         assertThat(item(view, Badge.DUELIST_BRONZE).earned()).isTrue();
-        assertThat(item(view, Badge.DUELIST_BRONZE).progress()).isEqualTo(10);
+        assertThat(item(view, Badge.DUELIST_BRONZE).progress()).isEqualTo(3);
         assertThat(item(view, Badge.DUELIST_ARGENT).earned()).isFalse();
-        assertThat(item(view, Badge.DUELIST_ARGENT).progress()).isEqualTo(12);
+        assertThat(item(view, Badge.DUELIST_ARGENT).progress()).isEqualTo(10);
         assertThat(item(view, Badge.WINNER_BRONZE).progress()).isEqualTo(3);
 
-        // Maîtrise : meilleur sujet du joueur (2 600 XP), plafonné au seuil de Confirmé.
-        assertThat(item(view, Badge.MASTER_BRONZE).progress()).isEqualTo(2_500);
+        // Maîtrise : meilleur sujet du joueur (2 600 XP), plafonné au seuil d'Apprenti.
+        assertThat(item(view, Badge.MASTER_BRONZE).progress()).isEqualTo(300);
 
         // Collection : nombre de badges acquis ; exploits : faits ponctuels.
         assertThat(item(view, Badge.COLLECTOR_BRONZE).progress()).isEqualTo(2);
@@ -171,11 +173,11 @@ class ProfileViewServiceTest {
         assertThat(item(view, Badge.PERFECT).progress()).isZero();
 
         // Précision / Rapidité : compteurs d'exploits cumulés, plafonnés au seuil du palier.
-        assertThat(item(view, Badge.PRECISION_BRONZE).progress()).isEqualTo(4);
-        assertThat(item(view, Badge.SPEED_BRONZE).progress()).isEqualTo(50);
+        assertThat(item(view, Badge.PRECISION_BRONZE).progress()).isEqualTo(3);
+        assertThat(item(view, Badge.SPEED_BRONZE).progress()).isEqualTo(25);
 
-        // Assiduité : meilleure série de jours joués, plafonnée au seuil du palier (3).
-        assertThat(item(view, Badge.ASSIDUITY_BRONZE).progress()).isEqualTo(3);
+        // Assiduité : meilleure série de jours joués, plafonnée au seuil du palier (5).
+        assertThat(item(view, Badge.ASSIDUITY_BRONZE).progress()).isEqualTo(5);
 
         // Social / Défis : compteurs alimentés par les autres services (abonnés, défis lancés).
         assertThat(item(view, Badge.SOCIAL_BRONZE).progress()).isEqualTo(5);
