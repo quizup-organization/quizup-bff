@@ -70,6 +70,10 @@ public class WebPushDispatcher {
     /** Route applicative canonique du clic : chaque client la mappe (web : URL, mobile : deep link). */
     private static String pathFor(NotificationEvent.NotificationCreatedEvent event) {
         return switch (event.type()) {
+            // Invitation : carte du défi dans l'espace Social (onglet Défis & Salons, reçus).
+            case CHALLENGE_RECEIVED -> event.sourceId() != null
+                    ? "/social?tab=challenges&type=received&challenge=" + event.sourceId()
+                    : "/notifications";
             // Partie créée (gameId attaché) : arène ; sinon salle encore ouverte.
             case ROOM_ACCEPTED -> event.gameId() != null
                     ? "/game/" + event.gameId()
@@ -79,6 +83,9 @@ public class WebPushDispatcher {
                     ? "/rooms/" + event.sourceId()
                     : "/notifications";
             case FOLLOW -> event.actorId() != null ? "/players/" + event.actorId() : "/notifications";
+            case QUESTION_REPORTED -> event.topicId() != null
+                    ? "/topics/" + event.topicId()
+                    : "/notifications";
             default -> "/notifications";
         };
     }

@@ -297,7 +297,10 @@ l'envoi est branché sur le processing group `notification-push` (**groupe globa
 instance-scopé : une seule notification OS par événement, même avec plusieurs répliques — le
 fan-out STOMP de l'inbox vit dans `notification-ws`, instance-scopé), hors thread du processor.
 Payload structuré (`type`, `actorPseudonym`, `sourceId`, `path`…) ;
-le Service Worker web compose le texte et route le clic. **Urgence `high`** pour les notifications
+le Service Worker web compose le texte et route le clic. Routes de clic notables :
+`CHALLENGE_RECEIVED` → `/social?tab=challenges&type=received&challenge={sourceId}` (carte du
+défi), `ROOM_ACCEPTED` → `/game/{gameId}` ou `/rooms/{sourceId}`, `WIZZ` → `/rooms/{sourceId}`,
+`FOLLOW` → `/players/{actorId}`. **Urgence `high`** pour les notifications
 time-sensitive (`CHALLENGE_RECEIVED`, `ROOM_ACCEPTED`, `WIZZ`) : en `normal`, FCM
 diffère la livraison quand l'appareil est verrouillé/en Doze ; le header `Topic` collapse les
 invitations d'un même défi et les **relances** d'une même salle. Configuration `quizup.push.vapid.*`
