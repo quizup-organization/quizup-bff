@@ -25,8 +25,10 @@ import io.github.quizup.theme.domain.command.TopicCommand;
 import io.github.quizup.theme.domain.model.Question;
 import io.github.quizup.theme.domain.model.QuestionChoice;
 import io.github.quizup.theme.domain.model.QuestionContent;
+import io.github.quizup.theme.domain.model.QuestionReportCount;
 import io.github.quizup.theme.domain.model.Topic;
 import io.github.quizup.theme.domain.query.QuestionQuery;
+import io.github.quizup.theme.domain.query.QuestionReportQuery;
 import io.github.quizup.theme.domain.query.TopicQuery;
 import org.axonframework.commandhandling.gateway.CommandGateway;
 import org.axonframework.queryhandling.QueryGateway;
@@ -39,6 +41,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * Écritures d'auteur : création d'un sujet, mises à jour champ par champ, questions et
@@ -138,14 +142,30 @@ public class TopicAuthoringService {
                 .thenCompose(_ -> queryGateway.query(
                         new QuestionQuery.GetQuestionsByTopicIdQuery(topicId),
                         QueryResponseTypes.multipleInstancesOf(Question.class)))
-                .thenApply(questions -> {
-                    List<QuestionEditorView> views = questions.stream()
-                            .sorted(Comparator.comparing(Question::createdAt).reversed())
-                            .map(TopicAuthoringService::toEditorView)
-                            .toList();
-                    int from = Math.min(page * size, views.size());
-                    int to = Math.min(from + size, views.size());
-                    return PageResponse.of(views.subList(from, to), page, size, views.size());
+                .thenCompose(questions -> {
+                    List<String> questionIds = questions.stream().map(Question::questionId).toList();
+                    if (questionIds.isEmpty()) {
+                        return CompletableFuture.completedFuture(
+                                PageResponse.of(List.of(), page, size, 0));
+                    }
+                    return queryGateway.query(
+                                    new QuestionReportQuery.GetQuestionReportCountsQuery(questionIds),
+                                    QueryResponseTypes.multipleInstancesOf(QuestionReportCount.class))
+                            .thenApply(counts -> {
+                                Map<String, QuestionReportCount> byQuestion = counts.stream()
+                                        .collect(Collectors.toMap(
+                                                QuestionReportCount::questionId,
+                                                Function.identity(),
+                                                (first, _) -> first));
+                                List<QuestionEditorView> views = questions.stream()
+                                        .sorted(Comparator.comparing(Question::createdAt).reversed())
+                                        .map(question -> toEditorView(question,
+                                                byQuestion.get(question.questionId())))
+                                        .toList();
+                                int from = Math.min(page * size, views.size());
+                                int to = Math.min(from + size, views.size());
+                                return PageResponse.of(views.subList(from, to), page, size, views.size());
+                            });
                 });
     }
 
@@ -271,7 +291,7 @@ public class TopicAuthoringService {
         return result;
     }
 
-    private static QuestionEditorView toEditorView(Question question) {
+    private static QuestionEditorView toEditorView(Question question, QuestionReportCount reportCount) {
         List<QuestionEditorView.ContentView> contents = question.contents().entrySet().stream()
                 .sorted(Map.Entry.comparingByKey())
                 .map(entry -> new QuestionEditorView.ContentView(
@@ -291,6 +311,18 @@ public class TopicAuthoringService {
                 question.imageUrl(),
                 question.status(),
                 question.difficulty(),
+                question.suspended(),
+                question.suspensionReason(),
+                question.suspensionNote(),
+                question.suspendedAt(),
+                question.reinstatedAt(),
+                question.archived(),
+                question.archiveNote(),
+                question.archivedAt(),
+                question.restoredAt(),
+                reportCount == null ? 0 : reportCount.openCount(),
+                reportCount == null ? 0 : reportCount.totalCount(),
+                reportCount == null ? null : reportCount.lastReportedAt(),
                 question.createdAt(),
                 question.updatedAt());
     }

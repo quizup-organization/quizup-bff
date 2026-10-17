@@ -166,6 +166,45 @@ question ne connaît pas le créateur du sujet) et répondent `403` `PERMISSION`
 | `POST /api/questions/{questionId}/approve` | `200` | |
 | `POST /api/questions/{questionId}/reject` | `200` | `{ reason ≤500 }` optionnel |
 
+### Signalements de questions (joueur / créateur)
+
+| Endpoint | Réponse | Notes |
+|---|---|---|
+| `POST /api/questions/{questionId}/reports` | `201` (créé) / `200` (déjà ouvert) | `{ gameId, reasons[], comment?, language? }` ; partie `FINISHED`, participant et question réellement jouée exigés ; snapshot de la version jouée |
+| `GET /api/questions/{questionId}/reports` | `List<OwnerQuestionReportView>` | propriétaire du sujet uniquement, **sans identité** du signalant |
+| `POST /api/questions/{questionId}/reports/{reportId}/resolve` | `200` | `{ resolution: RESOLVED\|DISMISSED, note? }` |
+| `POST /api/questions/{questionId}/reports/resolve` | `200` | clôture en masse des signalements ouverts |
+
+`GET /api/topics/{topicId}/questions` enrichit chaque question de `openReportCount`,
+`totalReportCount`, `lastReportedAt`, `suspended`, `archived` et des métadonnées de modération.
+
+### Administration des questions (console d'exploitation)
+
+Surface `/api/admin/**` (`ROLE_ADMIN`, `@EnableMethodSecurity`), consommée par
+`quizup-web-console`. Le catalogue couvre la création, l'édition, l'approbation/rejet, la
+suspension/réactivation, l'archivage/restauration et la file des signalements.
+
+| Endpoint | Réponse | Notes |
+|---|---|---|
+| `GET /api/admin/questions?q=&topicId=&status=&difficulty=&moderation=&reportedOnly=&sort=&page=&size=` | `PageResponse<AdminQuestionView>` | catalogue complet, compteurs inclus |
+| `GET /api/admin/questions/{questionId}` | `AdminQuestionDetailView` | question + sujet + signalements (pseudonyme du signalant) |
+| `GET /api/admin/question-topics` | `List<AdminTopicOptionView>` | options du filtre / création |
+| `GET /api/admin/question-reports?status=&topicId=&suspended=&sort=&page=&size=` | `PageResponse<AdminQuestionSummaryView>` | file groupée par question (`OPEN` par défaut) |
+| `GET /api/admin/question-reports/summary` | `AdminQuestionReportSummaryView` | `openReports`, `reportedQuestions`, `suspendedQuestions`, `archivedQuestions` |
+| `POST /api/admin/topics/{topicId}/questions` | `201 + Location` | création admin (`PENDING`) |
+| `PUT /api/admin/questions/{questionId}/text\|answers\|correct-answer\|image-url` | `204` | édition admin de n'importe quelle question |
+| `POST /api/admin/questions/{questionId}/translations` | `200` | ajout d'une langue absente |
+| `POST /api/admin/questions/{questionId}/approve\|reject` | `200` | modération éditoriale |
+| `POST /api/admin/questions/{questionId}/suspend` | `200` | `{ note? }` |
+| `POST /api/admin/questions/{questionId}/reinstate` | `200` | `{ resolveOpenReports?, note? }` |
+| `POST /api/admin/questions/{questionId}/archive` | `200` | soft delete, `{ resolveOpenReports?, note? }` |
+| `POST /api/admin/questions/{questionId}/restore` | `200` | `{ note? }` |
+| `POST /api/admin/question-reports/{reportId}/resolve` | `200` | résolution unitaire |
+| `POST /api/admin/questions/{questionId}/reports/resolve` | `200` | résolution en masse |
+
+L'upload d'image de la console réutilise `POST /api/media` (pipeline MinIO existant, quota de
+l'admin), puis `PUT .../image-url`.
+
 
 ### Médias (upload d'images)
 
@@ -282,13 +321,15 @@ Intention **asynchrone** (TTL 1 h) distincte de la salle temps réel : l'accepta
 | `DELETE /api/notifications/{notificationId}` | `204` | Hard delete — propriétaire uniquement (404/403 sinon) |
 | `DELETE /api/notifications` | `204` | Vide l'inbox du joueur courant (hard delete, fan-out de commandes unitaires idempotentes) |
 | `POST /api/notifications/read-all` | `200` | Fan-out de commandes unitaires idempotentes |
-| `GET /api/notification-preferences` | `List<{ category, enabled }>` | `category` ∈ `FOLLOW\|ROOM` (défaut activé) |
+| `GET /api/notification-preferences` | `List<{ category, enabled }>` | `category` ∈ `FOLLOW\|ROOM\|QUESTION` (défaut activé) |
 | `PUT /api/notification-preferences/{category}` | `204` | `{ enabled }` |
 
 Types ingérés (Kafka → inbox) : `FOLLOW`, `CHALLENGE_RECEIVED`, `CHALLENGE_DECLINED`,
-`ROOM_ACCEPTED` et **`WIZZ`** (relance de salle — une seule entrée par salle, remplacée à chaque
-relance, expirée quand la cible rejoint ou à la fin de la salle) ; le BFF pousse chaque
-`NotificationCreatedEvent` sur `/topic/notifications/{userId}` et en Web Push.
+`ROOM_ACCEPTED`, **`WIZZ`** (relance de salle — une seule entrée par salle, remplacée à chaque
+relance, expirée quand la cible rejoint ou à la fin de la salle) et **`QUESTION_REPORTED`**
+(signalement d'une question d'un sujet du destinataire, catégorie `QUESTION`, une entrée par
+signalement `reportId`). Le BFF pousse chaque `NotificationCreatedEvent` sur
+`/topic/notifications/{userId}` et en Web Push.
 
 ### Web Push (navigateur)
 
@@ -363,8 +404,10 @@ l'`EventEnvelope` du SDK (payload typé via `eventType`, sans annotation), mapp�
 - Pas d'event store propre (seul le token store Axon, fourni par le SDK).
 - Pas de back-office global : la surface d'**auteur** (`/api/topics` écriture, `/api/questions`)
   est ouverte à tout joueur pour **ses propres** sujets ; les use cases de recherche génériques
-  restent réservés aux futures surfaces d'administration. **Exception actée** : la surface
-  `/api/admin/media` (console média, `ROLE_ADMIN`) — voir § Médias.
+  restent réservés aux futures surfaces d'administration. **Exceptions actées** : la surface
+  `/api/admin/media` (console média) et la surface `/api/admin` des questions (console
+  d'exploitation : catalogue, modération, signalements) — voir § Médias et § Administration des
+  questions.
 - Erreurs de façade : les `BaseProblem` levés hors handlers Axon (gardes propriétaire, chaînage
   asynchrone) sont mappés par `BffProblemExceptionHandler` (RFC 7807, `PERMISSION` → 403).
 

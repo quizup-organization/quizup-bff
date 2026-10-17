@@ -4,13 +4,14 @@ import io.github.quizup.microservice.core.domain.model.i18n.Language;
 import io.github.quizup.theme.domain.model.QuestionChoice;
 import io.github.quizup.theme.domain.model.QuestionDifficulty;
 import io.github.quizup.theme.domain.model.QuestionStatus;
+import io.github.quizup.theme.domain.model.QuestionSuspensionReason;
 
 import java.time.Instant;
 import java.util.List;
 
 /**
  * Question vue par son auteur : contenus localisés (texte + réponses), bonne réponse, statut de
- * modération et difficulté déduite.
+ * modération, flags de suspension/archivage et compteurs de signalements.
  */
 public record QuestionEditorView(
         String questionId,
@@ -19,6 +20,18 @@ public record QuestionEditorView(
         String imageUrl,
         QuestionStatus status,
         QuestionDifficulty difficulty,
+        boolean suspended,
+        QuestionSuspensionReason suspensionReason,
+        String suspensionNote,
+        Instant suspendedAt,
+        Instant reinstatedAt,
+        boolean archived,
+        String archiveNote,
+        Instant archivedAt,
+        Instant restoredAt,
+        int openReportCount,
+        int totalReportCount,
+        Instant lastReportedAt,
         Instant createdAt,
         Instant updatedAt
 ) {

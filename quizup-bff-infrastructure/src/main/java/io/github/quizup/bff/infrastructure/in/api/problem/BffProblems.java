@@ -73,9 +73,30 @@ public final class BffProblems {
         }
     }
 
+    /** Signalement d'une question refusé (partie non terminée, joueur non participant…). */
+    public static class QuestionReportNotAllowedProblem extends BaseProblem {
+        public QuestionReportNotAllowedProblem(String questionId, String gameId, String detail) {
+            super("urn:quizup:bff:question:reportNotAllowed",
+                    ProblemCategory.PERMISSION,
+                    "Question report not allowed",
+                    detail,
+                    Map.of("questionId", questionId, "gameId", gameId));
+        }
+    }
+
+    /** Paramètres invalides d'un signalement de question (`400`). */
+    public static class InvalidQuestionReportRequestProblem extends BaseProblem {
+        public InvalidQuestionReportRequestProblem(String detail) {
+            super("urn:quizup:bff:question:reportInvalid",
+                    ProblemCategory.VALIDATION,
+                    "Invalid question report",
+                    detail,
+                    Map.of());
+        }
+    }
+
     /** Le challenger n'a pas joué la partie d'origine de la revanche. */
-    public static class RematchNotAllowedProblem extends BaseProblem {
-        public RematchNotAllowedProblem(String gameId, String playerId) {
+    public static class RematchNotAllowedProblem extends BaseProblem {        public RematchNotAllowedProblem(String gameId, String playerId) {
             super("urn:quizup:bff:challenge:rematchNotAllowed",
                     ProblemCategory.PERMISSION,
                     "Rematch not allowed",
