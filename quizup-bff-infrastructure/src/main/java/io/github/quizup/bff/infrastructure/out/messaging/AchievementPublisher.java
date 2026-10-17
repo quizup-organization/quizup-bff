@@ -38,6 +38,8 @@ public class AchievementPublisher {
                 event.badge().label(),
                 event.badge().family().name(),
                 event.badge().tier().name(),
+                event.badge().metric().name(),
+                event.badge().target(),
                 event.earnedAt()));
     }
 

@@ -33,7 +33,8 @@ class AchievementPublisherTest {
                 USER_ID, Badge.DUELIST_DIAMANT, AT));
 
         verify(messagingTemplate).convertAndSend(eq(DESTINATION), eq(AchievementView.badge(
-                "DUELIST_DIAMANT", "Mythe vivant", "VOLUME", "DIAMANT", AT)));
+                "DUELIST_DIAMANT", "Mythe vivant", "VOLUME", "DIAMANT",
+                Badge.DUELIST_DIAMANT.metric().name(), Badge.DUELIST_DIAMANT.target(), AT)));
     }
 
     @Test
