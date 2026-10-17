@@ -106,9 +106,31 @@ class ProfileUpdateServiceTest {
 
     @Test
     void equippedTitle_noviceOnUnplayedTopic_isRejectedAsNotEarned() {
-        stubProgress(Map.of("topic-1", 0));
+        stubProgress(Map.of("topic-1", 0), Map.of());
 
-        assertThatThrownBy(() -> service.updateEquippedTitle("u1", "u1", "topic-9:NOVICE").join())
+        assertThatThrownBy(() -> service.updateEquippedTitle("u1", "u1", "topic-1:NOVICE").join())
+                .isInstanceOf(CompletionException.class)
+                .hasCauseInstanceOf(BffProblems.TitleNotEarnedProblem.class);
+        verifyNoInteractions(commandGateway);
+    }
+
+    @Test
+    void equippedTitle_noviceIsAllowedAfterAHumanGameEvenAtZeroXp() {
+        stubProgress(Map.of("topic-1", 0), Map.of("topic-1", 1));
+        when(commandGateway.send(any())).thenReturn(CompletableFuture.completedFuture(null));
+
+        service.updateEquippedTitle("u1", "u1", "topic-1:NOVICE").join();
+
+        verify(commandGateway).send(new ProfileCommand.UpdateEquippedTitleCommand(
+                "u1", "u1", "topic-1:NOVICE"));
+        verify(profileLookup).invalidate("u1");
+    }
+
+    @Test
+    void equippedTitle_noviceOnXpOnlyTopicWithoutHumanGame_isRejected() {
+        stubProgress(Map.of("topic-1", 120), Map.of());
+
+        assertThatThrownBy(() -> service.updateEquippedTitle("u1", "u1", "topic-1:NOVICE").join())
                 .isInstanceOf(CompletionException.class)
                 .hasCauseInstanceOf(BffProblems.TitleNotEarnedProblem.class);
         verifyNoInteractions(commandGateway);
@@ -143,7 +165,17 @@ class ProfileUpdateServiceTest {
     }
 
     private void stubProgress(Map<String, Integer> xpByTopic) {
+        Map<String, Integer> gamesByTopic = new java.util.HashMap<>();
+        xpByTopic.keySet().forEach(topicId -> gamesByTopic.put(topicId, 1));
+        stubProgress(xpByTopic, gamesByTopic);
+    }
+
+    private void stubProgress(Map<String, Integer> xpByTopic,
+                              Map<String, Integer> gamesByTopic) {
         when(progressionLookup.get("u1")).thenReturn(CompletableFuture.completedFuture(
-                PlayerProgress.empty("u1").toBuilder().xpByTopic(xpByTopic).build()));
+                PlayerProgress.empty("u1").toBuilder()
+                        .xpByTopic(xpByTopic)
+                        .gamesByTopic(gamesByTopic)
+                        .build()));
     }
 }

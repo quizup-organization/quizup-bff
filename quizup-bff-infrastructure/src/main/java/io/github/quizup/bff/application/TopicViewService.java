@@ -175,7 +175,8 @@ public class TopicViewService {
                 .thenApply(_ -> {
                     Topic topic = topicFuture.join();
                     TopicCardView card = TopicViews.toCard(topic, followedFuture.join());
-                    int xp = progressFuture.join().xp();
+                    TopicProgress topicProgress = progressFuture.join();
+                    int xp = topicProgress.xp();
                     int level = ProgressionRules.levelFor(xp);
                     MasteryGrade grade = MasteryGrade.gradeFor(xp);
                     int totalQuestions = card.questionsCount();
@@ -186,6 +187,7 @@ public class TopicViewService {
                             : 0;
                     TopicOverviewView.MyProgressView progress = new TopicOverviewView.MyProgressView(
                             xp,
+                            topicProgress.games(),
                             level,
                             ProgressionRules.titleFor(level),
                             ProgressionRules.xpForNextLevel(level),

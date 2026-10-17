@@ -23,6 +23,8 @@ public record TopicOverviewView(
 
     public record MyProgressView(
             int xp,
+            /** Parties humaines terminées dans le sujet (abandon inclus) — condition du titre Fer. */
+            int games,
             int level,
             String title,
             int xpForNextLevel,

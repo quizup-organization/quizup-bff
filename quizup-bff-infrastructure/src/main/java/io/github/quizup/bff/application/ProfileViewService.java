@@ -125,20 +125,18 @@ public class ProfileViewService {
     }
 
     /**
-     * Titres thématiques débloqués par un joueur : un titre par sujet **joué** — le grade d'entrée
-     * Novice compris dès la première XP (un entraînement bot, à 0 XP, ne débloque rien) —, plus la
-     * clé de son **titre porté**. Le libellé est composé par le client (grade traduit + nom du
-     * sujet dans sa langue) — le serveur ne fige pas de texte.
+     * Titres thématiques débloqués par un joueur : un titre par sujet avec **au moins une partie
+     * humaine terminée** (abandon inclus, entraînement bot exclu) — le grade d'entrée Novice
+     * compris même à 0 XP —, plus la clé de son **titre porté**. Le libellé est composé par le
+     * client (grade traduit + nom du sujet dans sa langue) — le serveur ne fige pas de texte.
      */
     public CompletableFuture<TitlesView> titles(String userId) {
         CompletableFuture<Profile> profileFuture = profileLookup.get(userId);
         CompletableFuture<PlayerProgress> progressFuture = progressionLookup.get(userId);
 
         return CompletableFuture.allOf(profileFuture, progressFuture).thenCompose(_ -> {
-            Map<String, Integer> xpByTopic = progressFuture.join().xpByTopic();
-            List<String> earnedTopicIds = xpByTopic.entrySet().stream()
-                    .filter(entry -> entry.getValue() > 0)
-                    .map(Map.Entry::getKey)
+            PlayerProgress progress = progressFuture.join();
+            List<String> earnedTopicIds = progress.gamesByTopic().keySet().stream()
                     .sorted()
                     .toList();
 
@@ -152,7 +150,7 @@ public class ProfileViewService {
                 Map<String, Topic> topicById = topics.stream().collect(Collectors.toMap(
                         Topic::topicId, Function.identity(), (left, right) -> left));
                 List<TitlesView.TitleView> titles = earnedTopicIds.stream()
-                        .map(topicId -> toTitle(topicId, xpByTopic.getOrDefault(topicId, 0),
+                        .map(topicId -> toTitle(topicId, progress.xpForTopic(topicId),
                                 topicById.get(topicId)))
                         .sorted(Comparator
                                 .comparing((TitlesView.TitleView title) -> MasteryGrade.valueOf(title.grade()))

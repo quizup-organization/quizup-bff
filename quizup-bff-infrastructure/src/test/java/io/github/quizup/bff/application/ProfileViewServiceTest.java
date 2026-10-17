@@ -91,7 +91,9 @@ class ProfileViewServiceTest {
                         .xpByTopic(Map.of(
                                 "topic-1", 2_600,   // Confirmé
                                 "topic-2", 6_000,   // Expert
-                                "topic-3", 120))    // Novice : titre débloqué dès la première XP
+                                "topic-3", 120,     // Novice : titre débloqué dès une partie humaine
+                                "topic-4", 500))    // XP seule, aucune partie humaine : exclu
+                        .gamesByTopic(Map.of("topic-1", 1, "topic-2", 1, "topic-3", 1))
                         .build()));
         when(queryGateway.query(
                 any(TopicQuery.GetTopicsByIdsQuery.class),
@@ -117,12 +119,36 @@ class ProfileViewServiceTest {
     }
 
     @Test
+    void titles_include_a_topic_played_against_a_human_even_at_zero_xp() {
+        when(profileLookup.get("user-1")).thenReturn(CompletableFuture.completedFuture(
+                Profile.builder().userId("user-1").build()));
+        when(progressionLookup.get("user-1")).thenReturn(CompletableFuture.completedFuture(
+                PlayerProgress.empty("user-1").toBuilder()
+                        // Partie humaine terminée à 0 XP (ex. défaite 0–0) : le titre Fer existe.
+                        .xpByTopic(Map.of("topic-1", 0))
+                        .gamesByTopic(Map.of("topic-1", 1))
+                        .build()));
+        when(queryGateway.query(
+                any(TopicQuery.GetTopicsByIdsQuery.class),
+                ArgumentMatchers.<ResponseType<List<Topic>>>any()))
+                .thenReturn(CompletableFuture.completedFuture(List.of(
+                        Topic.builder().topicId("topic-1").names(Map.of(Language.FR, "Histoire")).build())));
+
+        TitlesView view = service.titles("user-1").join();
+
+        assertThat(view.titles()).extracting(TitlesView.TitleView::key)
+                .containsExactly("topic-1:NOVICE");
+        assertThat(view.titles().getFirst().grade()).isEqualTo("NOVICE");
+        assertThat(view.titles().getFirst().rank()).isEqualTo("FER");
+    }
+
+    @Test
     void titles_skip_the_topic_lookup_when_no_topic_is_played() {
         when(profileLookup.get("user-1")).thenReturn(CompletableFuture.completedFuture(
                 Profile.builder().userId("user-1").build()));
         when(progressionLookup.get("user-1")).thenReturn(CompletableFuture.completedFuture(
                 PlayerProgress.empty("user-1").toBuilder()
-                        // Entraînement bot : XP nulle → aucune maîtrise, donc aucun titre.
+                        // Aucune partie humaine terminée (ex. entraînement bot) : aucun titre.
                         .xpByTopic(Map.of("topic-1", 0))
                         .build()));
 

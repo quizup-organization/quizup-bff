@@ -84,11 +84,11 @@ Le `quizup-mobile` n'est **pas** branché sur cette surface (migration dédiée 
   > Pin `quizup.profile-domain.version` : **4.8.0** (palier Fer + rang des titres).
 - **Titres thématiques** : le serveur ne compose **jamais** le libellé (« Confirmé · Histoire ») —
   il expose le grade (`MasteryGrade`, à traduire côté client) et le sujet (`names`), le client
-  combine. Un titre est débloqué par **sujet joué** — le grade d'entrée **Novice compris** dès la
-  première XP (un entraînement bot, à 0 XP, ne débloque rien). Le **titre porté**
-  (`Profile.equippedTitle`) est validé à l'écriture : le BFF vérifie que le sujet est joué
-  (XP > 0) et que le grade est réellement atteint **avant** d'envoyer la commande
-  (`command-preparation`).
+  combine. Un titre est débloqué par un sujet avec **au moins une partie humaine terminée**
+  (abandon inclus ; un entraînement bot, à 0 XP, ne débloque rien) — le grade d'entrée
+  **Novice compris même à 0 XP**. Le **titre porté** (`Profile.equippedTitle`) est validé à
+  l'écriture : le BFF vérifie que le sujet a une partie humaine terminée et que le grade est
+  réellement atteint **avant** d'envoyer la commande (`command-preparation`).
 - **Caches de lecture (Caffeine)** : `ProfileLookup` (profil, 30 s, purgé par `ProfileUpdateService`
   après chaque écriture), `ProgressionLookup` (progression, 15 s — lue sur chaque `/api/me`/fiche/
   enfilage) et les **compteurs de follows** (`FollowLookup.userCounts`, 30 s, purgés après un
@@ -141,7 +141,7 @@ Le `quizup-mobile` n'est **pas** branché sur cette surface (migration dédiée 
 | `GET /api/topics?q=&category=&followed=&mine=&sort=&page=&size=` | `PageResponse<TopicCardView>` | `sort` ∈ `POPULAR\|MOST_PLAYED\|ALPHA\|RECENT` (défaut `POPULAR` ; `MOST_PLAYED` = compteur communautaire de parties du thème) ; `followed=true` filtre côté serveur ; `mine=true` = sujets créés par le joueur courant (brouillons + publiés, tri `updatedAt desc`), exclusif de `followed`/`q`/`category`/`sort` (400 sinon). `TopicCardView.status` expose le statut |
 | `GET /api/topics/facets?q=&followed=` | `TopicFacetsView` | `total` + `categories[{ category, label, count }]` |
 | `GET /api/topic-categories` | `List<TopicCategoryView>` | `category`, `label` |
-| `GET /api/topics/{topicId}/overview` | `TopicOverviewView` | `topic`, `titles` (titres thématiques par langue puis grade — onglet « Titres » de la fiche sujet), `followersCount`, `myRank`, `myProgress`, `canManage` (créateur). `myProgress` porte la **maîtrise du sujet** : `grade` (`MasteryGrade`), `gradeProgressPercent`, `gradeRemainingXp`, `nextGrade` — le `level`/`title` de compte y reste **transitoire** (l'UI basculera sur le grade) |
+| `GET /api/topics/{topicId}/overview` | `TopicOverviewView` | `topic`, `titles` (titres thématiques par langue puis grade — onglet « Titres » de la fiche sujet), `followersCount`, `myRank`, `myProgress`, `canManage` (créateur). `myProgress` porte la **maîtrise du sujet** : `games` (parties humaines terminées — verrou du titre Fer), `grade` (`MasteryGrade`), `gradeProgressPercent`, `gradeRemainingXp`, `nextGrade` — le `level`/`title` de compte y reste **transitoire** (l'UI basculera sur le grade) |
 | `PUT /api/topics/{topicId}/follow` | `204` | Idempotent |
 | `DELETE /api/topics/{topicId}/follow` | `204` | |
 | `GET /api/topics/{topicId}/leaderboard?period=&month=&scope=&page=&size=` | `TopicLeaderboardView` | `entries` paginées + `me` ; `period` ∈ `ALL_TIME\|MONTHLY`, `month` (`YYYY-MM`, mensuel uniquement, défaut = mois courant), `scope` ∈ `WORLD\|FOLLOWING\|COUNTRY` |
@@ -213,8 +213,8 @@ de sujet, illustration de question, bannière de profil) : objet référencé �
 |---|---|---|
 | `GET /api/profiles/{userId}` | `PlayerProfileView` | Profil + progression + stats + counts + présence + `follow` + `isMe` + `equippedTitle` (clé du titre porté, `null` si aucun) |
 | `GET /api/profiles/{userId}/badges` | `BadgeCollectionView` | **Collection** : tout le catalogue groupé par famille — **13 familles, une seule échelle (métrique) par famille**, **7 paliers** (Fer → Diamant) : `VOLUME` = duels joués, **`VICTORY`** = duels gagnés, `MASTERY`, `EXPLOIT` = exploits ponctuels, `SERIES`, `ASSIDUITY`, `SOCIAL`, `CHALLENGES`, `VISION`, `PRECISION`, `SPEED`, `EXPLORATION`, `COLLECTION` ; chaque badge avec `code`, `label`, `tier`, `metric`, `target`, `earned` et `progress` (compteur courant **plafonné** à `target` : « 7/10 »). Les compteurs viennent du read model de progression (`gamesPlayed`, `wins`, `max(xpByTopic)`, `badges`, fait ponctuel) — aucune requête supplémentaire |
-| `GET /api/profiles/{userId}/titles` | `TitlesView` | Titres thématiques **débloqués** (un par sujet **joué** — grade d'entrée **Novice compris** dès la première XP ; un entraînement bot, à 0 XP, ne débloque rien) + `equippedKey` : `key` (`topicId:GRADE`), `grade`, **`rank`** (`FER`…`DIAMANT`), `gradeProgressPercent`, `gradeRemainingXp`, `nextGrade`, `topic` (`TopicRefView`). Le libellé est composé par le client (grade traduit + `topic.names`) — aucun texte figé côté serveur |
-| `PUT /api/profiles/{userId}/title` | `204` | Titre **porté** : `{ titleKey }` (`topicId:GRADE`) ou `null` pour n'en afficher aucun. Propriétaire uniquement (invariant d'agrégat, 403) ; titre **réellement débloqué** exigé — la progression est lue avant l'envoi et un **sujet non joué** ou un grade insuffisant répond `400` (`urn:quizup:bff:profile:titleNotEarned`), une clé mal formée `400` (`…:invalidTitle`) |
+| `GET /api/profiles/{userId}/titles` | `TitlesView` | Titres thématiques **débloqués** (un par sujet avec **au moins une partie humaine terminée**, abandon inclus ; entraînement bot exclu — grade d'entrée **Novice compris même à 0 XP**) + `equippedKey` : `key` (`topicId:GRADE`), `grade`, **`rank`** (`FER`…`DIAMANT`), `gradeProgressPercent`, `gradeRemainingXp`, `nextGrade`, `topic` (`TopicRefView`). Le libellé est composé par le client (grade traduit + `topic.names`) — aucun texte figé côté serveur |
+| `PUT /api/profiles/{userId}/title` | `204` | Titre **porté** : `{ titleKey }` (`topicId:GRADE`) ou `null` pour n'en afficher aucun. Propriétaire uniquement (invariant d'agrégat, 403) ; titre **réellement débloqué** exigé — la progression est lue avant l'envoi et un **sujet sans partie humaine terminée** ou un grade insuffisant répond `400` (`urn:quizup:bff:profile:titleNotEarned`), une clé mal formée `400` (`…:invalidTitle`) |
 | `GET /api/profiles/{userId}/following?q=&sort=&page=&size=` | `PageResponse<PlayerCardView>` | `sort` ∈ `RECENT\|LEVEL\|ALPHA` |
 | `GET /api/profiles/{userId}/followers?q=&sort=&page=&size=` | `PageResponse<PlayerCardView>` | idem |
 | `PUT /api/profiles/{userId}/follow` | `204` | Idempotent |
