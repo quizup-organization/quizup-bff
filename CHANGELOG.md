@@ -1,3 +1,9 @@
+## [11.29.0](https://github.com/quizup-organization/quizup-bff/compare/v11.28.0...v11.29.0) (2026-10-17)
+
+### Features
+
+* **bff:** expose le rang des titres ([6c23ccf](https://github.com/quizup-organization/quizup-bff/commit/6c23ccfcb341cc7ca86c3769e6d192221728f9bb))
+
 ## [11.28.0](https://github.com/quizup-organization/quizup-bff/compare/v11.27.0...v11.28.0) (2026-10-16)
 
 ### Features
