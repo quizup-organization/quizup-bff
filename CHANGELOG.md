@@ -1,3 +1,9 @@
+## [11.30.0](https://github.com/quizup-organization/quizup-bff/compare/v11.29.0...v11.30.0) (2026-10-17)
+
+### Features
+
+* **bff:** débloque le titre Fer après une partie humaine terminée ([a61bbe8](https://github.com/quizup-organization/quizup-bff/commit/a61bbe80c7291a910d4b82c899636c1e16de08e1))
+
 ## [11.29.0](https://github.com/quizup-organization/quizup-bff/compare/v11.28.0...v11.29.0) (2026-10-17)
 
 ### Features
