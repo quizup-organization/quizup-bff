@@ -1,3 +1,10 @@
+## [11.31.0](https://github.com/quizup-organization/quizup-bff/compare/v11.30.0...v11.31.0) (2026-10-17)
+
+### Features
+
+* **bff:** expose l'objectif d'un badge dans la célébration ([d6e8d7f](https://github.com/quizup-organization/quizup-bff/commit/d6e8d7ffc40199612672260c683ba21d7fd0e2c7))
+* **bff:** ouvre les invitations de defi sur la carte Social ([0ea896b](https://github.com/quizup-organization/quizup-bff/commit/0ea896bb9c9b7f8f9bdc6ff55ca91f9ae340d783))
+
 ## [11.30.0](https://github.com/quizup-organization/quizup-bff/compare/v11.29.0...v11.30.0) (2026-10-17)
 
 ### Features
