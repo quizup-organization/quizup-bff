@@ -50,8 +50,10 @@ class CacheInvalidationHandlerTest {
         handler.on(new ProfileEvent.ProfileBioUpdatedEvent("u1", "u1", "bio", now));
         handler.on(new ProfileEvent.ProfileCountryUpdatedEvent("u1", "u1", "FR", now));
         handler.on(new ProfileEvent.ProfileAvatarUpdatedEvent("u1", "u1", "{}", now));
+        handler.on(new ProfileEvent.ProfileBannerUpdatedEvent("u1", "u1", "https://media.example.test/b.jpg", now));
         handler.on(new ProfileEvent.ProfileLanguageUpdatedEvent("u1", "u1", Language.FR, now));
+        handler.on(new ProfileEvent.ProfileEquippedTitleUpdatedEvent("u1", "u1", "t1:NOVICE", now));
 
-        verify(profileLookup, times(5)).invalidate("u1");
+        verify(profileLookup, times(7)).invalidate("u1");
     }
 }

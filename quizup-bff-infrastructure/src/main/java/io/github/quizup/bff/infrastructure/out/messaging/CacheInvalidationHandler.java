@@ -74,6 +74,11 @@ public class CacheInvalidationHandler {
         invalidateProfile(event.userId());
     }
 
+    @EventHandler
+    public void on(ProfileEvent.ProfileEquippedTitleUpdatedEvent event) {
+        invalidateProfile(event.userId());
+    }
+
     private void invalidateCounts(UserFollowerEvent event) {
         // Le follower (followingCount) et le suivi (followersCount) changent tous les deux.
         followLookup.invalidateCounts(event.followerId());
