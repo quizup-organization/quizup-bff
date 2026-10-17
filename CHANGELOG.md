@@ -1,3 +1,9 @@
+## [11.32.0](https://github.com/quizup-organization/quizup-bff/compare/v11.31.0...v11.32.0) (2026-10-17)
+
+### Features
+
+* **bff:** expose les signalements et l'administration des questions ([24dae11](https://github.com/quizup-organization/quizup-bff/commit/24dae11b984e7bcceb6ab3fafdc85308d590ed3c))
+
 ## [11.31.0](https://github.com/quizup-organization/quizup-bff/compare/v11.30.0...v11.31.0) (2026-10-17)
 
 ### Features
