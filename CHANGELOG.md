@@ -1,3 +1,9 @@
+## [11.34.3](https://github.com/quizup-organization/quizup-bff/compare/v11.34.2...v11.34.3) (2026-10-18)
+
+### Bug Fixes
+
+* **bff:** protège le résultat des duels et le profil bot ([bd46fd2](https://github.com/quizup-organization/quizup-bff/commit/bd46fd2e1445f1ed02382b1e404f60fcb9dfc21a))
+
 ## [11.34.2](https://github.com/quizup-organization/quizup-bff/compare/v11.34.1...v11.34.2) (2026-10-18)
 
 ### Bug Fixes
