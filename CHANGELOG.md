@@ -1,3 +1,9 @@
+## [11.32.2](https://github.com/quizup-organization/quizup-bff/compare/v11.32.1...v11.32.2) (2026-10-18)
+
+### Bug Fixes
+
+* **bff:** expose tous les grades atteints des titres ([50b2b77](https://github.com/quizup-organization/quizup-bff/commit/50b2b77573e0d3acfadb60b8979a6fcbf5ca92d2))
+
 ## [11.32.1](https://github.com/quizup-organization/quizup-bff/compare/v11.32.0...v11.32.1) (2026-10-17)
 
 ### Bug Fixes
