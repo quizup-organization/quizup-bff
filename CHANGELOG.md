@@ -1,3 +1,9 @@
+## [11.34.1](https://github.com/quizup-organization/quizup-bff/compare/v11.34.0...v11.34.1) (2026-10-18)
+
+### Bug Fixes
+
+* **bff:** materialize SearchResponse content from distributed query ([f4ecae4](https://github.com/quizup-organization/quizup-bff/commit/f4ecae4af0a80cefa64845e73ed643b5088dd56a))
+
 ## [11.34.0](https://github.com/quizup-organization/quizup-bff/compare/v11.33.0...v11.34.0) (2026-10-18)
 
 ### Features
