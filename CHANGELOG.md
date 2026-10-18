@@ -1,3 +1,9 @@
+## [11.34.2](https://github.com/quizup-organization/quizup-bff/compare/v11.34.1...v11.34.2) (2026-10-18)
+
+### Bug Fixes
+
+* **bff:** consume identity suspension reasons 2.9.0 ([6a9a380](https://github.com/quizup-organization/quizup-bff/commit/6a9a380782309578e61df03f333dc1c7b0251038))
+
 ## [11.34.1](https://github.com/quizup-organization/quizup-bff/compare/v11.34.0...v11.34.1) (2026-10-18)
 
 ### Bug Fixes
