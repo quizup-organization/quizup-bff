@@ -10,6 +10,7 @@ import io.github.quizup.game.domain.model.GamePlayerType;
 import io.github.quizup.game.domain.query.GameQuery;
 import io.github.quizup.matchmaking.domain.command.ChallengeCommand;
 import io.github.quizup.matchmaking.domain.model.Challenge;
+import io.github.quizup.identity.domain.model.UserAccountStatus;
 import io.github.quizup.matchmaking.domain.query.ChallengeQuery;
 import io.github.quizup.microservice.core.infrastructure.axon.QueryResponseTypes;
 import io.github.quizup.profile.domain.model.Profile;
@@ -19,6 +20,7 @@ import org.axonframework.commandhandling.gateway.CommandGateway;
 import org.axonframework.queryhandling.QueryGateway;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -37,13 +39,16 @@ public class ChallengeViewService {
     private final QueryGateway queryGateway;
     private final CommandGateway commandGateway;
     private final ProfileLookup profileLookup;
+    private final IdentityLookup identityLookup;
 
     public ChallengeViewService(QueryGateway queryGateway,
                                 CommandGateway commandGateway,
-                                ProfileLookup profileLookup) {
+                                ProfileLookup profileLookup,
+                                IdentityLookup identityLookup) {
         this.queryGateway = queryGateway;
         this.commandGateway = commandGateway;
         this.profileLookup = profileLookup;
+        this.identityLookup = identityLookup;
     }
 
     public CompletableFuture<String> create(String challengerId, CreateChallengeRequest request) {
@@ -51,7 +56,14 @@ public class ChallengeViewService {
         // L'adversaire doit exister (404 sinon, jamais de défi orphelin) ; une revanche doit
         // référencer une partie terminée où le challenger a réellement joué.
         return profileLookup.get(request.opponentId())
-                .thenCompose(_ -> validateRematch(challengerId, request))
+                .thenCompose(_ -> identityLookup.status(request.opponentId()).exceptionally(_ -> null))
+                .thenCompose(status -> {
+                    UserAccountStatus account = status;
+                    if (account != null && account.suspended(Instant.now())) {
+                        throw new BffProblems.ChallengeOpponentSuspendedProblem(request.opponentId());
+                    }
+                    return validateRematch(challengerId, request);
+                })
                 .thenCompose(_ -> commandGateway.send(new ChallengeCommand.CreateChallengeCommand(
                         challengeId, request.topicId(), challengerId, request.opponentId(), request.gameId())))
                 .thenApply(_ -> challengeId);
@@ -151,28 +163,32 @@ public class ChallengeViewService {
         CompletableFuture<List<Profile>> profilesFuture = playerIds.isEmpty()
                 ? CompletableFuture.completedFuture(List.of())
                 : profileLookup.getAll(playerIds);
+        CompletableFuture<Map<String, UserAccountStatus>> statusesFuture = identityLookup.statuses(playerIds)
+                .exceptionally(_ -> Map.<String, UserAccountStatus>of());
 
-        return CompletableFuture.allOf(topicsFuture, profilesFuture).thenApply(_ -> {
+        return CompletableFuture.allOf(topicsFuture, profilesFuture, statusesFuture).thenApply(_ -> {
             Map<String, Topic> topicById = topicsFuture.join().stream()
                     .collect(Collectors.toMap(Topic::topicId, Function.identity(), (first, _) -> first, LinkedHashMap::new));
             Map<String, Profile> profileById = profilesFuture.join().stream()
                     .collect(Collectors.toMap(Profile::userId, Function.identity(), (first, _) -> first, LinkedHashMap::new));
+            Map<String, UserAccountStatus> statusById = statusesFuture.join();
 
             return challenges.stream()
-                    .map(challenge -> toView(challenge, topicById, profileById))
+                    .map(challenge -> toView(challenge, topicById, profileById, statusById))
                     .toList();
         });
     }
 
     private static ChallengeView toView(Challenge challenge,
                                         Map<String, Topic> topicById,
-                                        Map<String, Profile> profileById) {
+                                        Map<String, Profile> profileById,
+                                        Map<String, UserAccountStatus> statusById) {
         TopicRefView topic = TopicViews.toRef(challenge.topicId(), topicById.get(challenge.topicId()));
         return new ChallengeView(
                 challenge.challengeId(),
                 topic,
-                toRef(profileById.get(challenge.challengerId())),
-                toRef(profileById.get(challenge.opponentId())),
+                toRef(profileById.get(challenge.challengerId()), statusById),
+                toRef(profileById.get(challenge.opponentId()), statusById),
                 challenge.status(),
                 challenge.roomId(),
                 challenge.gameId(),
@@ -180,9 +196,15 @@ public class ChallengeViewService {
                 challenge.expiresAt());
     }
 
-    private static UserRefView toRef(Profile profile) {
-        return profile == null
-                ? null
-                : new UserRefView(profile.userId(), profile.pseudonym(), profile.avatarOptions());
+    private static UserRefView toRef(Profile profile, Map<String, UserAccountStatus> statusById) {
+        if (profile == null) {
+            return null;
+        }
+        UserAccountStatus status = statusById.get(profile.userId());
+        return new UserRefView(
+                profile.userId(),
+                profile.pseudonym(),
+                profile.avatarOptions(),
+                status != null && status.suspended(Instant.now()));
     }
 }

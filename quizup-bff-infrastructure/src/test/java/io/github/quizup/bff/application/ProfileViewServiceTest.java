@@ -36,8 +36,9 @@ class ProfileViewServiceTest {
     private final ProfileLookup profileLookup = mock(ProfileLookup.class);
     private final ProgressionLookup progressionLookup = mock(ProgressionLookup.class);
     private final FollowLookup followLookup = mock(FollowLookup.class);
+    private final IdentityLookup identityLookup = mock(IdentityLookup.class);
     private final ProfileViewService service =
-            new ProfileViewService(queryGateway, profileLookup, progressionLookup, followLookup);
+            new ProfileViewService(queryGateway, profileLookup, progressionLookup, followLookup, identityLookup);
 
     @Test
     void topics_enrich_progressions_and_skip_missing_topics() {

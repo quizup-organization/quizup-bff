@@ -16,7 +16,8 @@ public record TopicLeaderboardView(
             String country,
             int level,
             int totalXp,
-            int monthlyXp
+            int monthlyXp,
+            boolean suspended
     ) {
     }
 }

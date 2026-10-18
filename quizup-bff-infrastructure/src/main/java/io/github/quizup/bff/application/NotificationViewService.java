@@ -3,6 +3,7 @@ package io.github.quizup.bff.application;
 import io.github.quizup.bff.infrastructure.in.api.response.NotificationPreferenceView;
 import io.github.quizup.bff.infrastructure.in.api.response.NotificationView;
 import io.github.quizup.bff.infrastructure.in.api.response.PageResponse;
+import io.github.quizup.identity.domain.model.UserAccountStatus;
 import io.github.quizup.microservice.core.infrastructure.axon.QueryResponseTypes;
 import io.github.quizup.notification.domain.command.NotificationCommand;
 import io.github.quizup.notification.domain.model.Notification;
@@ -14,7 +15,10 @@ import org.axonframework.commandhandling.gateway.CommandGateway;
 import org.axonframework.queryhandling.QueryGateway;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 
 /** Facade de l'inbox : lecture paginée, compteur, transitions de lecture, suppression, préférences. */
@@ -23,10 +27,14 @@ public class NotificationViewService {
 
     private final QueryGateway queryGateway;
     private final CommandGateway commandGateway;
+    private final IdentityLookup identityLookup;
 
-    public NotificationViewService(QueryGateway queryGateway, CommandGateway commandGateway) {
+    public NotificationViewService(QueryGateway queryGateway,
+                                   CommandGateway commandGateway,
+                                   IdentityLookup identityLookup) {
         this.queryGateway = queryGateway;
         this.commandGateway = commandGateway;
+        this.identityLookup = identityLookup;
     }
 
     public CompletableFuture<PageResponse<NotificationView>> list(String userId,
@@ -36,11 +44,25 @@ public class NotificationViewService {
         return queryGateway
                 .query(new NotificationQuery.GetNotificationsQuery(userId, unreadOnly, page, size),
                         QueryResponseTypes.instanceOf(NotificationPage.class))
-                .thenApply(result -> PageResponse.of(
-                        result.content().stream().map(NotificationView::of).toList(),
-                        page,
-                        size,
-                        result.totalElements()));
+                .thenCompose(result -> {
+                    List<String> actorIds = result.content().stream()
+                            .map(Notification::actorId)
+                            .filter(Objects::nonNull)
+                            .distinct()
+                            .toList();
+                    CompletableFuture<Map<String, UserAccountStatus>> statusesFuture =
+                            identityLookup.statuses(actorIds)
+                                    .exceptionally(_ -> Map.<String, UserAccountStatus>of());
+                    return statusesFuture.thenApply(statusById -> PageResponse.of(
+                            result.content().stream()
+                                    .map(notification -> NotificationView.of(
+                                            notification,
+                                            suspended(statusById, notification.actorId())))
+                                    .toList(),
+                            page,
+                            size,
+                            result.totalElements()));
+                });
     }
 
     public CompletableFuture<Long> unreadCount(String userId) {
@@ -114,5 +136,13 @@ public class NotificationViewService {
                 .send(new NotificationCommand.UpdateNotificationPreferenceCommand(userId, category, enabled))
                 .thenAccept(_ -> {
                 });
+    }
+
+    private static boolean suspended(Map<String, UserAccountStatus> statusById, String actorId) {
+        if (actorId == null) {
+            return false;
+        }
+        UserAccountStatus status = statusById.get(actorId);
+        return status != null && status.suspended(Instant.now());
     }
 }

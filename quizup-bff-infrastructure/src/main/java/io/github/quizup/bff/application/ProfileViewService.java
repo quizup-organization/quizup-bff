@@ -20,6 +20,7 @@ import io.github.quizup.game.domain.model.GamePlayerType;
 import io.github.quizup.game.domain.model.GameStatus;
 import io.github.quizup.game.domain.model.PlayerGamesPage;
 import io.github.quizup.game.domain.query.GameQuery;
+import io.github.quizup.identity.domain.model.UserAccountStatus;
 import io.github.quizup.microservice.core.domain.model.i18n.Language;
 import io.github.quizup.microservice.core.infrastructure.axon.QueryResponseTypes;
 import io.github.quizup.profile.domain.model.Badge;
@@ -44,6 +45,7 @@ import org.axonframework.queryhandling.QueryGateway;
 import org.springframework.stereotype.Service;
 
 import java.text.Normalizer;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -71,15 +73,18 @@ public class ProfileViewService {
     private final ProfileLookup profileLookup;
     private final ProgressionLookup progressionLookup;
     private final FollowLookup followLookup;
+    private final IdentityLookup identityLookup;
 
     public ProfileViewService(QueryGateway queryGateway,
                               ProfileLookup profileLookup,
                               ProgressionLookup progressionLookup,
-                              FollowLookup followLookup) {
+                              FollowLookup followLookup,
+                              IdentityLookup identityLookup) {
         this.queryGateway = queryGateway;
         this.profileLookup = profileLookup;
         this.progressionLookup = progressionLookup;
         this.followLookup = followLookup;
+        this.identityLookup = identityLookup;
     }
 
     public CompletableFuture<PlayerProfileView> profileView(String viewerId, String userId) {
@@ -92,13 +97,17 @@ public class ProfileViewService {
         CompletableFuture<Boolean> followingFuture = userId.equals(viewerId)
                 ? CompletableFuture.completedFuture(false)
                 : followLookup.userFollowed(viewerId, userId);
+        CompletableFuture<UserAccountStatus> statusFuture = identityLookup.status(userId)
+                .exceptionally(_ -> null);
 
-        return CompletableFuture.allOf(profileFuture, progressFuture, countsFuture, presenceFuture, followingFuture)
+        return CompletableFuture.allOf(profileFuture, progressFuture, countsFuture, presenceFuture, followingFuture,
+                        statusFuture)
                 .thenApply(_ -> {
                     Profile profile = profileFuture.join();
                     PlayerProgress progress = progressFuture.join();
                     UserFollowCounts counts = countsFuture.join();
                     PlayerPresence presence = presenceFuture.join().stream().findFirst().orElse(null);
+                    UserAccountStatus status = statusFuture.join();
                     return new PlayerProfileView(
                             profile.userId(),
                             profile.pseudonym(),
@@ -113,7 +122,8 @@ public class ProfileViewService {
                             ProgressionViews.toView(progress),
                             ProgressionViews.toStats(progress),
                             counts.followers(),
-                            counts.following());
+                            counts.following(),
+                            status != null && status.suspended(Instant.now()));
                 });
     }
 
@@ -288,17 +298,22 @@ public class ProfileViewService {
                     ? CompletableFuture.completedFuture(List.of())
                     : queryGateway.query(new PresenceQuery.GetPresencesByIdsQuery(ids),
                             QueryResponseTypes.multipleInstancesOf(PlayerPresence.class));
+            CompletableFuture<Map<String, UserAccountStatus>> statusesFuture = identityLookup.statuses(ids)
+                    .exceptionally(_ -> Map.<String, UserAccountStatus>of());
 
-            return CompletableFuture.allOf(profilesFuture, progressionsFuture, presencesFuture, viewerFollowingFuture)
+            return CompletableFuture.allOf(profilesFuture, progressionsFuture, presencesFuture, viewerFollowingFuture,
+                            statusesFuture)
                     .thenApply(_ -> {
                         Map<String, Profile> profileById = byKey(profilesFuture.join(), Profile::userId);
                         Map<String, PlayerProgress> progressById = byKey(progressionsFuture.join(), PlayerProgress::userId);
                         Map<String, PlayerPresence> presenceById = byKey(presencesFuture.join(), PlayerPresence::userId);
                         Set<String> viewerFollowing = Set.copyOf(viewerFollowingFuture.join());
+                        Map<String, UserAccountStatus> statusById = statusesFuture.join();
                         String normalizedQuery = query == null || query.isBlank() ? null : normalize(query);
 
                         List<PlayerCardView> cards = ids.stream()
-                                .map(id -> toCard(id, profileById, progressById, presenceById, viewerFollowing))
+                                .map(id -> toCard(id, profileById, progressById, presenceById, viewerFollowing,
+                                        statusById))
                                 .filter(Optional::isPresent)
                                 .map(Optional::get)
                                 .filter(card -> normalizedQuery == null
@@ -399,14 +414,17 @@ public class ProfileViewService {
                 ? CompletableFuture.completedFuture(List.of())
                 : queryGateway.query(new ProgressionQuery.GetGamesXpQuery(userId, gameIds),
                         QueryResponseTypes.multipleInstancesOf(GameXp.class));
+        CompletableFuture<Map<String, UserAccountStatus>> statusesFuture = identityLookup.statuses(opponentIds)
+                .exceptionally(_ -> Map.<String, UserAccountStatus>of());
 
-        return CompletableFuture.allOf(topicsFuture, opponentsFuture, xpFuture)
+        return CompletableFuture.allOf(topicsFuture, opponentsFuture, xpFuture, statusesFuture)
                 .thenApply(_ -> {
                     Map<String, Topic> topicById = byKey(topicsFuture.join(), Topic::topicId);
                     Map<String, Profile> opponentById = byKey(opponentsFuture.join(), Profile::userId);
                     Map<String, GameXp> xpByGame = byKey(xpFuture.join(), GameXp::gameId);
+                    Map<String, UserAccountStatus> statusById = statusesFuture.join();
                     return games.stream()
-                            .map(game -> toHistoryItem(userId, game, topicById, opponentById, xpByGame))
+                            .map(game -> toHistoryItem(userId, game, topicById, opponentById, xpByGame, statusById))
                             .toList();
                 });
     }
@@ -432,7 +450,8 @@ public class ProfileViewService {
                                                    Map<String, Profile> profileById,
                                                    Map<String, PlayerProgress> progressById,
                                                    Map<String, PlayerPresence> presenceById,
-                                                   Set<String> viewerFollowing) {
+                                                   Set<String> viewerFollowing,
+                                                   Map<String, UserAccountStatus> statusById) {
         Profile profile = profileById.get(userId);
         if (profile == null) {
             return Optional.empty();
@@ -440,6 +459,7 @@ public class ProfileViewService {
         ProgressionView progression = ProgressionViews.toView(
                 progressById.getOrDefault(userId, PlayerProgress.empty(userId)));
         PlayerPresence presence = presenceById.get(userId);
+        UserAccountStatus status = statusById.get(userId);
         return Optional.of(new PlayerCardView(
                 profile.userId(),
                 profile.pseudonym(),
@@ -447,7 +467,8 @@ public class ProfileViewService {
                 progression.level(),
                 progression.title(),
                 viewerFollowing.contains(userId),
-                presence == null ? null : toPresence(presence)));
+                presence == null ? null : toPresence(presence),
+                status != null && status.suspended(Instant.now())));
     }
 
     private static Comparator<PlayerCardView> peopleComparator(PeopleSort sort) {
@@ -465,16 +486,22 @@ public class ProfileViewService {
                                                      Game game,
                                                      Map<String, Topic> topicById,
                                                      Map<String, Profile> opponentById,
-                                                     Map<String, GameXp> xpByGame) {
+                                                     Map<String, GameXp> xpByGame,
+                                                     Map<String, UserAccountStatus> statusById) {
         boolean isPlayer1 = game.player1Id().equals(userId);
         String opponentId = opponentIdOf(game, userId);
         Profile opponent = opponentId == null ? null : opponentById.get(opponentId);
         Topic topic = topicById.get(game.topicId());
         GameXp xp = xpByGame.get(game.gameId());
+        UserAccountStatus status = opponentId == null ? null : statusById.get(opponentId);
         return new GameHistoryItemView(
                 game.gameId(),
                 TopicViews.toRef(game.topicId(), topic),
-                opponent == null ? null : new UserRefView(opponent.userId(), opponent.pseudonym(), opponent.avatarOptions()),
+                opponent == null ? null : new UserRefView(
+                        opponent.userId(),
+                        opponent.pseudonym(),
+                        opponent.avatarOptions(),
+                        status != null && status.suspended(Instant.now())),
                 game.opponent() == null ? null : game.opponent().name(),
                 outcomeOf(game, userId),
                 isPlayer1 ? game.player1Score() : game.player2Score(),

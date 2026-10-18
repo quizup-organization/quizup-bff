@@ -95,6 +95,72 @@ public final class BffProblems {
         }
     }
 
+    /** Signalement d'un joueur refusé (auto-signalement, compte protégé, partie incohérente…). */
+    public static class UserReportNotAllowedProblem extends BaseProblem {
+        public UserReportNotAllowedProblem(String targetUserId, String detail) {
+            super("urn:quizup:bff:user:reportNotAllowed",
+                    ProblemCategory.PERMISSION,
+                    "User report not allowed",
+                    detail,
+                    Map.of("targetUserId", targetUserId));
+        }
+    }
+
+    /** Paramètres invalides d'un signalement de joueur (`400`). */
+    public static class InvalidUserReportRequestProblem extends BaseProblem {
+        public InvalidUserReportRequestProblem(String detail) {
+            super("urn:quizup:bff:user:reportInvalid",
+                    ProblemCategory.VALIDATION,
+                    "Invalid user report",
+                    detail,
+                    Map.of());
+        }
+    }
+
+    /** Paramètres invalides d'une suspension (`400`). */
+    public static class InvalidSuspensionRequestProblem extends BaseProblem {
+        public InvalidSuspensionRequestProblem(String detail) {
+            super("urn:quizup:bff:user:invalidSuspension",
+                    ProblemCategory.VALIDATION,
+                    "Invalid suspension",
+                    detail,
+                    Map.of());
+        }
+    }
+
+    /** Compte déjà suspendu (`409`). */
+    public static class UserAlreadySuspendedProblem extends BaseProblem {
+        public UserAlreadySuspendedProblem(String userId) {
+            super("urn:quizup:bff:user:alreadySuspended",
+                    ProblemCategory.BUSINESS_INVALID_COMMAND,
+                    "User already suspended",
+                    "The account " + userId + " is already suspended",
+                    Map.of("userId", userId));
+        }
+    }
+
+    /** Compte système protégé (`403`). */
+    public static class ProtectedAccountProblem extends BaseProblem {
+        public ProtectedAccountProblem(String userId) {
+            super("urn:quizup:bff:user:protectedAccount",
+                    ProblemCategory.PERMISSION,
+                    "Protected account",
+                    "The system account cannot be moderated",
+                    Map.of("userId", userId));
+        }
+    }
+
+    /** Défi refusé : l'adversaire est suspendu (`409`). */
+    public static class ChallengeOpponentSuspendedProblem extends BaseProblem {
+        public ChallengeOpponentSuspendedProblem(String opponentId) {
+            super("urn:quizup:bff:challenge:opponentSuspended",
+                    ProblemCategory.BUSINESS_INVALID_COMMAND,
+                    "Opponent suspended",
+                    "The opponent " + opponentId + " is suspended",
+                    Map.of("opponentId", opponentId));
+        }
+    }
+
     /** Le challenger n'a pas joué la partie d'origine de la revanche. */
     public static class RematchNotAllowedProblem extends BaseProblem {        public RematchNotAllowedProblem(String gameId, String playerId) {
             super("urn:quizup:bff:challenge:rematchNotAllowed",

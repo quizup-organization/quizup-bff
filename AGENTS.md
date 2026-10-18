@@ -105,13 +105,15 @@ Le `quizup-mobile` n'est **pas** branché sur cette surface (migration dédiée 
   réplicas) ou avoir un TTL volontairement borné. Après une purge, la **fenêtre no-cache** (3 s)
   des lookups évite de mémoriser une projection encore en retard.
 - **Actor** : le `userId` provient du JWT (`SecurityHelper`) ; jamais dans le body.
-- **Session périmée** : un JWT encore valide dont le `user_id` n'existe plus dans identity (base
-  purgée, compte supprimé) est rejeté en `401` par `CurrentUserExistsFilter` sur `/api/**` —
-  le client purge sa session et repasse par le login. Existence résolue via
-  `UserExistsByIdQuery` (cache court 30 s) ; identity injoignable ⇒ fail-open. La réponse 401
-  porte les **en-têtes CORS** de la configuration du service (le filtre court-circuite avant le
-  `CorsFilter` servlet, même ordre par défaut) : sans eux le navigateur masque le 401 et le
-  client web ne peut pas purger sa session.
+- **Session périmée / compte suspendu** : un JWT encore valide dont le `user_id` n'existe plus
+  dans identity (base purgée, compte supprimé) est rejeté en `401` par
+  `CurrentUserExistsFilter` sur `/api/**` ; un compte suspendu est rejeté en `403`
+  `urn:quizup:authorization:accountSuspended` (avec `suspendedUntil`). Le client purge sa
+  session et repasse par le login. Statut résolu via `GetUserAccountStatusQuery` (cache court
+  30 s + fenêtre no-cache de 3 s après invalidation ; identity injoignable ⇒ fail-open). Les
+  réponses 401/403 portent les **en-têtes CORS** de la configuration du service (le filtre
+  court-circuite avant le `CorsFilter` servlet, même ordre par défaut) : sans eux le navigateur
+  masque la réponse et le client web ne peut pas purger sa session.
 - **Entrées** : `@Valid`, enums stricts, `ProblemDetail` en erreur. Aucun parsing permissif,
   aucune valeur par défaut inventée (`level=1`, `OFFLINE` fabriqué…).
 - **Composition asynchrone** : combiner les `QueryGateway.query()` (pas de `.join()` bloquant
@@ -135,7 +137,7 @@ Le `quizup-mobile` n'est **pas** branché sur cette surface (migration dédiée 
 
 | Endpoint | Réponse | Notes |
 |---|---|---|
-| `GET /api/home` | `HomeView` | `followedTopics` (récents) + `trendingTopics` (les plus joués **en ce moment** : parties des **24 h**, tous joueurs confondus, via `game`) + `newTopics` (récemment publiés ou mis à jour — tri theme `RECENT`, limités à 10) |
+| `GET /api/home` | `HomeView` | `followedTopics` (récents) + `trendingTopics` (les plus joués **en ce moment** : parties des **24 h**, tous joueurs confondus, via `game`) + `newTopics` (récemment publiés ou mis à jour — tri theme `RECENT`, limités à 10). Le Top 10 est **complété par le tri theme `MOST_PLAYED`** quand moins de 10 sujets ont été joués sur 24 h : les récents gardent la tête, le relais all-time complète sans doublon (liste bornée à 10) |
 
 ### Sujets (theme + social + leaderboard + profile)
 
@@ -204,6 +206,33 @@ suspension/réactivation, l'archivage/restauration et la file des signalements.
 | `POST /api/admin/questions/{questionId}/restore` | `200` | `{ note? }` |
 | `POST /api/admin/question-reports/{reportId}/resolve` | `200` | résolution unitaire |
 | `POST /api/admin/questions/{questionId}/reports/resolve` | `200` | résolution en masse |
+
+### Signalements de joueurs et modération des comptes
+
+Dépôt joueur : `POST /api/profiles/{userId}/reports` (`{ reasons[], comment?, gameId? }`) —
+`201` créé / `200` déjà ouvert, cible existante, auto-signalement et compte système refusés ;
+si `gameId` est fourni, partie `FINISHED`, participant et adversaire humain exigés.
+
+Admin (`ROLE_ADMIN`, `/api/admin/**`) :
+
+| Endpoint | Réponse | Notes |
+|---|---|---|
+| `GET /api/admin/user-reports?status=&suspended=&sort=&page=&size=` | `PageResponse<AdminReportedUserSummaryView>` | file groupée par joueur (`OPEN` par défaut) |
+| `GET /api/admin/user-reports/summary` | `AdminUserModerationSummaryView` | `openReports`, `reportedUsers`, `suspendedUsers` |
+| `GET /api/admin/users/search?q=&limit=` | `List<AdminUserSearchResultView>` | recherche bornée (pseudo/email/ID) |
+| `GET /api/admin/users/{userId}` | `AdminUserDetailView` | compte + profil + signalements |
+| `POST /api/admin/users/{userId}/suspend` | `AdminUserModerationView` | `{ reason, note?, duration?, permanent, resolveOpenReports? }` |
+| `POST /api/admin/users/{userId}/reinstate` | `AdminUserModerationView` | `{ note? }` |
+| `POST /api/admin/user-reports/{reportId}/resolve` | `200` | résolution unitaire |
+| `POST /api/admin/users/{userId}/reports/resolve` | `200` | résolution en masse |
+
+Le statut de compte vit dans **identity** ; le BFF expose `suspended` sur toutes les vues joueur
+(`PlayerProfileView`, `PlayerCardView`, `UserRefView`, `SuggestionView`, `TopicLeaderboardView`,
+`NotificationView.actorSuspended`) et refuse les JWT des comptes suspendus en
+`403 urn:quizup:authorization:accountSuspended` (filtre `CurrentUserExistsFilter`, cache 30 s +
+invalidation multi-répliques, fail-open si identity est injoignable). La création de défi vers
+un adversaire suspendu est refusée (`409`). Les payloads temps réel de l'arène/WS ne portent pas
+encore le badge en v1.
 
 L'upload d'image de la console réutilise `POST /api/media` (pipeline MinIO existant, quota de
 l'admin), puis `PUT .../image-url`.
@@ -329,10 +358,11 @@ Intention **asynchrone** (TTL 1 h) distincte de la salle temps réel : l'accepta
 
 Types ingérés (Kafka → inbox) : `FOLLOW`, `CHALLENGE_RECEIVED`, `CHALLENGE_DECLINED`,
 `ROOM_ACCEPTED`, **`WIZZ`** (relance de salle — une seule entrée par salle, remplacée à chaque
-relance, expirée quand la cible rejoint ou à la fin de la salle) et **`QUESTION_REPORTED`**
+relance, expirée quand la cible rejoint ou à la fin de la salle), **`QUESTION_REPORTED`**
 (signalement d'une question d'un sujet du destinataire, catégorie `QUESTION`, une entrée par
-signalement `reportId`). Le BFF pousse chaque `NotificationCreatedEvent` sur
-`/topic/notifications/{userId}` et en Web Push.
+signalement `reportId`) et **`ACCOUNT_SUSPENDED`** (suspension du compte, catégorie `ACCOUNT`
+obligatoire, une entrée par `suspensionId`, lisible après réactivation). Le BFF pousse chaque
+`NotificationCreatedEvent` sur `/topic/notifications/{userId}` et en Web Push.
 
 ### Web Push (navigateur)
 

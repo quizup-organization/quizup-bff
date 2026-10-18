@@ -10,6 +10,7 @@ import io.github.quizup.game.domain.model.GamePlayerType;
 import io.github.quizup.game.domain.model.GameQuestionChoice;
 import io.github.quizup.game.domain.model.GameResult;
 import io.github.quizup.game.domain.query.GameQuery;
+import io.github.quizup.identity.domain.model.UserAccountStatus;
 import io.github.quizup.microservice.core.infrastructure.axon.QueryResponseTypes;
 import io.github.quizup.profile.domain.model.GameXp;
 import io.github.quizup.profile.domain.model.ProgressionRules;
@@ -40,13 +41,16 @@ public class GameViewService {
     private final CommandGateway commandGateway;
     private final QueryGateway queryGateway;
     private final ProfileLookup profileLookup;
+    private final IdentityLookup identityLookup;
 
     public GameViewService(CommandGateway commandGateway,
                            QueryGateway queryGateway,
-                           ProfileLookup profileLookup) {
+                           ProfileLookup profileLookup,
+                           IdentityLookup identityLookup) {
         this.commandGateway = commandGateway;
         this.queryGateway = queryGateway;
         this.profileLookup = profileLookup;
+        this.identityLookup = identityLookup;
     }
 
     /**
@@ -77,15 +81,18 @@ public class GameViewService {
         CompletableFuture<List<Profile>> profilesFuture = opponentIds.isEmpty()
                 ? CompletableFuture.completedFuture(List.of())
                 : profileLookup.getAll(opponentIds);
+        CompletableFuture<Map<String, UserAccountStatus>> statusesFuture = identityLookup.statuses(opponentIds)
+                .exceptionally(_ -> Map.<String, UserAccountStatus>of());
 
-        return CompletableFuture.allOf(topicsFuture, profilesFuture).thenApply(_ -> {
+        return CompletableFuture.allOf(topicsFuture, profilesFuture, statusesFuture).thenApply(_ -> {
             Map<String, Topic> topicById = topicsFuture.join().stream()
                     .collect(Collectors.toMap(Topic::topicId, Function.identity(), (first, _) -> first, LinkedHashMap::new));
             Map<String, Profile> profileById = profilesFuture.join().stream()
                     .collect(Collectors.toMap(Profile::userId, Function.identity(), (first, _) -> first, LinkedHashMap::new));
+            Map<String, UserAccountStatus> statusById = statusesFuture.join();
 
             return games.stream()
-                    .map(game -> toActiveView(game, userId, topicById, profileById))
+                    .map(game -> toActiveView(game, userId, topicById, profileById, statusById))
                     .toList();
         });
     }
@@ -93,13 +100,19 @@ public class GameViewService {
     private static ActiveGameView toActiveView(Game game,
                                                String userId,
                                                Map<String, Topic> topicById,
-                                               Map<String, Profile> profileById) {
+                                               Map<String, Profile> profileById,
+                                               Map<String, UserAccountStatus> statusById) {
         String opponentId = opponentIdOf(userId, game);
         Profile opponent = opponentId == null ? null : profileById.get(opponentId);
+        UserAccountStatus status = opponentId == null ? null : statusById.get(opponentId);
         TopicRefView topic = TopicViews.toRef(game.topicId(), topicById.get(game.topicId()));
         UserRefView opponentRef = opponent == null
                 ? null
-                : new UserRefView(opponent.userId(), opponent.pseudonym(), opponent.avatarOptions());
+                : new UserRefView(
+                        opponent.userId(),
+                        opponent.pseudonym(),
+                        opponent.avatarOptions(),
+                        status != null && status.suspended(Instant.now()));
         return new ActiveGameView(
                 game.gameId(), topic, opponentRef, game.opponent(), game.status(), game.createdAt());
     }
@@ -154,8 +167,12 @@ public class GameViewService {
             CompletableFuture<Profile> opponentFuture = gameResult.botGame() || gameResult.opponentId() == null
                     ? CompletableFuture.completedFuture(null)
                     : profileLookup.get(gameResult.opponentId());
+            CompletableFuture<UserAccountStatus> opponentStatusFuture =
+                    gameResult.botGame() || gameResult.opponentId() == null
+                            ? CompletableFuture.completedFuture(null)
+                            : identityLookup.status(gameResult.opponentId()).exceptionally(_ -> null);
 
-            return CompletableFuture.allOf(topicsFuture, opponentFuture, xpFuture).thenApply(_ -> {
+            return CompletableFuture.allOf(topicsFuture, opponentFuture, xpFuture, opponentStatusFuture).thenApply(_ -> {
                 GameXp gameXp = xpFuture.join().stream().findFirst().orElse(null);
                 Integer xp = gameXp == null ? null : gameXp.xp();
                 // Entraînement (duel bot) : XP nulle par construction, donc aucun bonus de victoire
@@ -175,9 +192,14 @@ public class GameViewService {
 
                 Topic topic = topicsFuture.join().stream().findFirst().orElse(null);
                 Profile opponent = opponentFuture.join();
+                UserAccountStatus opponentStatus = opponentStatusFuture.join();
                 UserRefView opponentRef = opponent == null
                         ? null
-                        : new UserRefView(opponent.userId(), opponent.pseudonym(), opponent.avatarOptions());
+                        : new UserRefView(
+                                opponent.userId(),
+                                opponent.pseudonym(),
+                                opponent.avatarOptions(),
+                                opponentStatus != null && opponentStatus.suspended(Instant.now()));
 
                 return new GameResultView(
                         gameResult.myScore(),

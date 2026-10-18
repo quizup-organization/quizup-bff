@@ -1,7 +1,9 @@
 package io.github.quizup.bff.infrastructure.out.messaging;
 
 import io.github.quizup.bff.application.FollowLookup;
+import io.github.quizup.bff.application.IdentityLookup;
 import io.github.quizup.bff.application.ProfileLookup;
+import io.github.quizup.identity.domain.event.UserEvent;
 import io.github.quizup.microservice.core.domain.model.i18n.Language;
 import io.github.quizup.profile.domain.event.ProfileEvent;
 import io.github.quizup.social.domain.event.UserFollowerEvent;
@@ -22,8 +24,9 @@ class CacheInvalidationHandlerTest {
 
     private final FollowLookup followLookup = mock(FollowLookup.class);
     private final ProfileLookup profileLookup = mock(ProfileLookup.class);
+    private final IdentityLookup identityLookup = mock(IdentityLookup.class);
     private final CacheInvalidationHandler handler =
-            new CacheInvalidationHandler(followLookup, profileLookup);
+            new CacheInvalidationHandler(followLookup, profileLookup, identityLookup);
 
     @Test
     void followedEventInvalidatesBothSides() {
@@ -55,5 +58,20 @@ class CacheInvalidationHandlerTest {
         handler.on(new ProfileEvent.ProfileEquippedTitleUpdatedEvent("u1", "u1", "t1:NOVICE", now));
 
         verify(profileLookup, times(7)).invalidate("u1");
+    }
+
+    @Test
+    void accountStatusEventsInvalidateIdentityCache() {
+        Instant now = Instant.now();
+        handler.on(new UserEvent.UserSuspendedEvent(
+                "u1", "u1@quizup.dev", "s1",
+                io.github.quizup.identity.domain.model.UserSuspensionReason.HARASSMENT,
+                null, "admin-1", now, null));
+        handler.on(new UserEvent.UserReinstatedEvent(
+                "u1", "u1@quizup.dev", "s1",
+                io.github.quizup.identity.domain.model.SuspensionReinstatementReason.MANUAL,
+                null, "admin-1", now));
+
+        verify(identityLookup, times(2)).invalidate("u1");
     }
 }

@@ -1,6 +1,7 @@
 package io.github.quizup.bff.application;
 
 import io.github.quizup.bff.infrastructure.in.api.response.SuggestionView;
+import io.github.quizup.identity.domain.model.UserAccountStatus;
 import io.github.quizup.microservice.core.infrastructure.axon.QueryResponseTypes;
 import io.github.quizup.profile.domain.model.PlayerProgress;
 import io.github.quizup.profile.domain.model.Profile;
@@ -26,9 +27,11 @@ import java.util.stream.Collectors;
 public class SuggestionService {
 
     private final QueryGateway queryGateway;
+    private final IdentityLookup identityLookup;
 
-    public SuggestionService(QueryGateway queryGateway) {
+    public SuggestionService(QueryGateway queryGateway, IdentityLookup identityLookup) {
         this.queryGateway = queryGateway;
+        this.identityLookup = identityLookup;
     }
 
     public CompletableFuture<List<SuggestionView>> suggest(String query, int limit) {
@@ -50,8 +53,12 @@ public class SuggestionService {
                     ? CompletableFuture.completedFuture(List.of())
                     : queryGateway.query(new ProgressionQuery.GetProgressionsByIdsQuery(playerIds),
                             QueryResponseTypes.multipleInstancesOf(PlayerProgress.class));
+            CompletableFuture<Map<String, UserAccountStatus>> statusesFuture = identityLookup.statuses(playerIds)
+                    .exceptionally(_ -> Map.<String, UserAccountStatus>of());
 
-            return progressionsFuture.thenApply(progressions -> {
+            return CompletableFuture.allOf(progressionsFuture, statusesFuture).thenApply(_ -> {
+                List<PlayerProgress> progressions = progressionsFuture.join();
+                Map<String, UserAccountStatus> statusById = statusesFuture.join();
                 Map<String, PlayerProgress> progressById = progressions.stream()
                         .collect(Collectors.toMap(PlayerProgress::userId, Function.identity(), (first, _) -> first));
                 List<SuggestionView> suggestions = new ArrayList<>();
@@ -78,7 +85,9 @@ public class SuggestionService {
                         null,
                         null,
                         profile.avatarOptions(),
-                        null)));
+                        null,
+                        statusById.get(profile.userId()) != null
+                                && statusById.get(profile.userId()).suspended(java.time.Instant.now()))));
                 return List.copyOf(suggestions);
             });
         });

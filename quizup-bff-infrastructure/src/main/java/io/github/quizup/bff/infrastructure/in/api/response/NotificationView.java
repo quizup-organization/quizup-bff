@@ -19,10 +19,15 @@ public record NotificationView(
         String gameId,
         Instant expiresAt,
         Instant readAt,
-        Instant createdAt
+        Instant createdAt,
+        boolean actorSuspended
 ) {
 
     public static NotificationView of(Notification notification) {
+        return of(notification, false);
+    }
+
+    public static NotificationView of(Notification notification, boolean actorSuspended) {
         return new NotificationView(
                 notification.notificationId(),
                 notification.type(),
@@ -32,10 +37,15 @@ public record NotificationView(
                 notification.gameId(),
                 notification.expiresAt(),
                 notification.readAt(),
-                notification.createdAt());
+                notification.createdAt(),
+                actorSuspended);
     }
 
     public static NotificationView of(NotificationEvent.NotificationCreatedEvent event) {
+        return of(event, false);
+    }
+
+    public static NotificationView of(NotificationEvent.NotificationCreatedEvent event, boolean actorSuspended) {
         return new NotificationView(
                 event.notificationId(),
                 event.type(),
@@ -45,6 +55,7 @@ public record NotificationView(
                 event.gameId(),
                 event.expiresAt(),
                 null,
-                event.createdAt());
+                event.createdAt(),
+                actorSuspended);
     }
 }

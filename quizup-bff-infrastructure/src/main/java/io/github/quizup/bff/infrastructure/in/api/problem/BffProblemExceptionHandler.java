@@ -62,6 +62,20 @@ public class BffProblemExceptionHandler {
         return respond(problem, request, HttpStatus.CONFLICT);
     }
 
+    /** Compte déjà suspendu : 409. */
+    @ExceptionHandler(BffProblems.UserAlreadySuspendedProblem.class)
+    public ResponseEntity<ExceptionResponse> handleAlreadySuspended(BffProblems.UserAlreadySuspendedProblem problem,
+                                                                    HttpServletRequest request) {
+        return respond(problem, request, HttpStatus.CONFLICT);
+    }
+
+    /** Défi vers un joueur suspendu : 409. */
+    @ExceptionHandler(BffProblems.ChallengeOpponentSuspendedProblem.class)
+    public ResponseEntity<ExceptionResponse> handleOpponentSuspended(BffProblems.ChallengeOpponentSuspendedProblem problem,
+                                                                     HttpServletRequest request) {
+        return respond(problem, request, HttpStatus.CONFLICT);
+    }
+
     /** Vérification des références indisponible : 503, la suppression est refusée (fail-closed). */
     @ExceptionHandler(BffProblems.MediaReferenceUnavailableProblem.class)
     public ResponseEntity<ExceptionResponse> handleMediaReferenceCheck(BffProblems.MediaReferenceUnavailableProblem problem,

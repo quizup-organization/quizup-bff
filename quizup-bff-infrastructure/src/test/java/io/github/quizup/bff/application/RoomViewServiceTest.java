@@ -34,9 +34,10 @@ class RoomViewServiceTest {
     private final CommandGateway commandGateway = mock(CommandGateway.class);
     private final ProfileLookup profileLookup = mock(ProfileLookup.class);
     private final ProgressionLookup progressionLookup = mock(ProgressionLookup.class);
+    private final IdentityLookup identityLookup = mock(IdentityLookup.class);
 
     private final RoomViewService service =
-            new RoomViewService(queryGateway, commandGateway, profileLookup, progressionLookup);
+            new RoomViewService(queryGateway, commandGateway, profileLookup, progressionLookup, identityLookup);
 
     @Test
     void join_preparesPlayerSnapshotInCommand() {

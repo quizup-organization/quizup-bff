@@ -36,12 +36,16 @@ class ChallengeViewServiceTest {
     private final QueryGateway queryGateway = mock(QueryGateway.class);
     private final CommandGateway commandGateway = mock(CommandGateway.class);
     private final ProfileLookup profileLookup = mock(ProfileLookup.class);
+    private final IdentityLookup identityLookup = mock(IdentityLookup.class);
     private final ChallengeViewService service =
-            new ChallengeViewService(queryGateway, commandGateway, profileLookup);
+            new ChallengeViewService(queryGateway, commandGateway, profileLookup, identityLookup);
 
     @BeforeEach
     void setUp() {
         when(profileLookup.get(any())).thenReturn(CompletableFuture.completedFuture(null));
+        when(identityLookup.status(any())).thenReturn(CompletableFuture.completedFuture(
+                new io.github.quizup.identity.domain.model.UserAccountStatus(
+                        OPPONENT, io.github.quizup.identity.domain.model.AccountStatus.ACTIVE, null)));
         when(commandGateway.send(any())).thenReturn(CompletableFuture.completedFuture(null));
     }
 

@@ -31,8 +31,9 @@ class GameViewServiceTest {
     private final CommandGateway commandGateway = mock(CommandGateway.class);
     private final QueryGateway queryGateway = mock(QueryGateway.class);
     private final ProfileLookup profileLookup = mock(ProfileLookup.class);
+    private final IdentityLookup identityLookup = mock(IdentityLookup.class);
     private final GameViewService service =
-            new GameViewService(commandGateway, queryGateway, profileLookup);
+            new GameViewService(commandGateway, queryGateway, profileLookup, identityLookup);
 
     @Test
     void result_derives_victory_bonus_from_game_xp() {
@@ -98,6 +99,9 @@ class GameViewServiceTest {
                 ArgumentMatchers.<ResponseType<List<Topic>>>any()))
                 .thenReturn(CompletableFuture.completedFuture(List.of()));
         when(profileLookup.get(any())).thenReturn(CompletableFuture.completedFuture(null));
+        when(identityLookup.status(any())).thenReturn(CompletableFuture.completedFuture(
+                new io.github.quizup.identity.domain.model.UserAccountStatus(
+                        "player-2", io.github.quizup.identity.domain.model.AccountStatus.ACTIVE, null)));
     }
 
     private static GameResult gameResult(int myScore, int opponentScore) {

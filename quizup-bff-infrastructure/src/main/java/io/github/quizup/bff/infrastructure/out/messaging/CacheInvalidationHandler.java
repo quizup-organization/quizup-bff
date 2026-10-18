@@ -1,7 +1,9 @@
 package io.github.quizup.bff.infrastructure.out.messaging;
 
 import io.github.quizup.bff.application.FollowLookup;
+import io.github.quizup.bff.application.IdentityLookup;
 import io.github.quizup.bff.application.ProfileLookup;
+import io.github.quizup.identity.domain.event.UserEvent;
 import io.github.quizup.profile.domain.event.ProfileEvent;
 import io.github.quizup.social.domain.event.UserFollowerEvent;
 import org.axonframework.config.ProcessingGroup;
@@ -28,10 +30,14 @@ public class CacheInvalidationHandler {
 
     private final FollowLookup followLookup;
     private final ProfileLookup profileLookup;
+    private final IdentityLookup identityLookup;
 
-    public CacheInvalidationHandler(FollowLookup followLookup, ProfileLookup profileLookup) {
+    public CacheInvalidationHandler(FollowLookup followLookup,
+                                    ProfileLookup profileLookup,
+                                    IdentityLookup identityLookup) {
         this.followLookup = followLookup;
         this.profileLookup = profileLookup;
+        this.identityLookup = identityLookup;
     }
 
     @EventHandler
@@ -77,6 +83,18 @@ public class CacheInvalidationHandler {
     @EventHandler
     public void on(ProfileEvent.ProfileEquippedTitleUpdatedEvent event) {
         invalidateProfile(event.userId());
+    }
+
+    @EventHandler
+    public void on(UserEvent.UserSuspendedEvent event) {
+        identityLookup.invalidate(event.userId());
+        logger.debug("Statut identity invalidé (suspension): userId={}", event.userId());
+    }
+
+    @EventHandler
+    public void on(UserEvent.UserReinstatedEvent event) {
+        identityLookup.invalidate(event.userId());
+        logger.debug("Statut identity invalidé (réintégration): userId={}", event.userId());
     }
 
     private void invalidateCounts(UserFollowerEvent event) {

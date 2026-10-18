@@ -19,8 +19,22 @@ public record SuggestionView(
         String color,
         String imageUrl,
         String avatarOptions,
-        Map<Language, String> names
+        Map<Language, String> names,
+        boolean suspended
 ) {
+
+    public SuggestionView(Type type,
+                          String id,
+                          String label,
+                          String subtitle,
+                          String category,
+                          String emoji,
+                          String color,
+                          String imageUrl,
+                          String avatarOptions,
+                          Map<Language, String> names) {
+        this(type, id, label, subtitle, category, emoji, color, imageUrl, avatarOptions, names, false);
+    }
 
     public enum Type {
         TOPIC,

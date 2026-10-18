@@ -10,6 +10,7 @@ import io.github.quizup.bff.infrastructure.in.api.response.TopicFacetsView;
 import io.github.quizup.bff.infrastructure.in.api.response.TopicLeaderboardView;
 import io.github.quizup.bff.infrastructure.in.api.response.TopicOverviewView;
 import io.github.quizup.game.domain.query.GameQuery;
+import io.github.quizup.identity.domain.model.UserAccountStatus;
 import io.github.quizup.leaderboard.domain.model.LeaderboardPage;
 import io.github.quizup.leaderboard.domain.model.LeaderboardRank;
 import io.github.quizup.leaderboard.domain.model.LeaderboardRules;
@@ -31,6 +32,7 @@ import io.github.quizup.theme.domain.util.SearchText;
 import org.axonframework.queryhandling.QueryGateway;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -50,13 +52,16 @@ public class TopicViewService {
     private final QueryGateway queryGateway;
     private final FollowLookup followLookup;
     private final LeaderboardScopeService leaderboardScopeService;
+    private final IdentityLookup identityLookup;
 
     public TopicViewService(QueryGateway queryGateway,
                             FollowLookup followLookup,
-                            LeaderboardScopeService leaderboardScopeService) {
+                            LeaderboardScopeService leaderboardScopeService,
+                            IdentityLookup identityLookup) {
         this.queryGateway = queryGateway;
         this.followLookup = followLookup;
         this.leaderboardScopeService = leaderboardScopeService;
+        this.identityLookup = identityLookup;
     }
 
     public List<TopicCategoryView> categories() {
@@ -231,23 +236,37 @@ public class TopicViewService {
                                     scopeFilter.memberIds(), scopeFilter.country()),
                             QueryResponseTypes.optionalInstanceOf(LeaderboardRank.class));
 
-                    return CompletableFuture.allOf(pageFuture, meFuture).thenApply(_ -> {
+                    return CompletableFuture.allOf(pageFuture, meFuture).thenCompose(_ -> {
                         LeaderboardPage result = pageFuture.join();
-                        List<TopicLeaderboardView.EntryView> entries = java.util.stream.IntStream
-                                .range(0, result.entries().size())
-                                .mapToObj(index -> toEntryView(result.entries().get(index), page * size + index + 1))
-                                .toList();
-                        TopicLeaderboardView.EntryView meView = meFuture.join()
-                                .map(rank -> toEntryView(rank.entry(), rank.rank()))
-                                .orElse(null);
-                        return new TopicLeaderboardView(
-                                PageResponse.of(entries, result.page(), result.size(), result.totalElements()),
-                                meView);
+                        List<String> userIds = new java.util.ArrayList<>();
+                        result.entries().forEach(entry -> userIds.add(entry.userId()));
+                        meFuture.join().ifPresent(rank -> userIds.add(rank.entry().userId()));
+                        CompletableFuture<Map<String, UserAccountStatus>> statusesFuture =
+                                identityLookup.statuses(userIds)
+                                        .exceptionally(_ -> Map.<String, UserAccountStatus>of());
+                        return statusesFuture.thenApply(statusById -> {
+                            List<TopicLeaderboardView.EntryView> entries = java.util.stream.IntStream
+                                    .range(0, result.entries().size())
+                                    .mapToObj(index -> toEntryView(
+                                            result.entries().get(index),
+                                            page * size + index + 1,
+                                            statusById))
+                                    .toList();
+                            TopicLeaderboardView.EntryView meView = meFuture.join()
+                                    .map(rank -> toEntryView(rank.entry(), rank.rank(), statusById))
+                                    .orElse(null);
+                            return new TopicLeaderboardView(
+                                    PageResponse.of(entries, result.page(), result.size(), result.totalElements()),
+                                    meView);
+                        });
                     });
                 });
     }
 
-    private static TopicLeaderboardView.EntryView toEntryView(TopicLeaderboardEntry entry, int rank) {
+    private static TopicLeaderboardView.EntryView toEntryView(TopicLeaderboardEntry entry,
+                                                              int rank,
+                                                              Map<String, UserAccountStatus> statusById) {
+        UserAccountStatus status = statusById.get(entry.userId());
         return new TopicLeaderboardView.EntryView(
                 rank,
                 entry.userId(),
@@ -256,7 +275,8 @@ public class TopicViewService {
                 entry.country(),
                 entry.level(),
                 entry.totalXp(),
-                entry.monthlyXp());
+                entry.monthlyXp(),
+                status != null && status.suspended(Instant.now()));
     }
 
     private static Comparator<Topic> topicComparator(TopicSort sort) {

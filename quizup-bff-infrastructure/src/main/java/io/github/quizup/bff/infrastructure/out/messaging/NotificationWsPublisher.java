@@ -1,5 +1,6 @@
 package io.github.quizup.bff.infrastructure.out.messaging;
 
+import io.github.quizup.bff.application.IdentityLookup;
 import io.github.quizup.bff.infrastructure.in.api.response.EventEnvelopeResponse;
 import io.github.quizup.bff.infrastructure.in.api.response.NotificationDeletedView;
 import io.github.quizup.bff.infrastructure.in.api.response.NotificationView;
@@ -12,6 +13,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
+
+import java.time.Instant;
 
 /**
  * Diffuse les notifications personnelles sur {@code /topic/notifications/{userId}} : c'est le
@@ -36,9 +39,12 @@ public class NotificationWsPublisher {
     private static final String DELETED_EVENT_TYPE = "NOTIFICATION_DELETED";
 
     private final SimpMessagingTemplate messagingTemplate;
+    private final IdentityLookup identityLookup;
 
-    public NotificationWsPublisher(SimpMessagingTemplate messagingTemplate) {
+    public NotificationWsPublisher(SimpMessagingTemplate messagingTemplate,
+                                   IdentityLookup identityLookup) {
         this.messagingTemplate = messagingTemplate;
+        this.identityLookup = identityLookup;
     }
 
     @EventHandler
@@ -55,27 +61,39 @@ public class NotificationWsPublisher {
             return;
         }
 
-        EventEnvelopeResponse envelope;
-        String userId;
         if (payload instanceof NotificationEvent.NotificationCreatedEvent event) {
-            envelope = EventEnvelopeResponse.of(
-                    event.notificationId(),
-                    domainMessage.getSequenceNumber(),
-                    domainMessage.getTimestamp(),
-                    event.type().name(),
-                    NotificationView.of(event));
-            userId = event.userId();
-        } else {
-            NotificationEvent.NotificationDeletedEvent event =
-                    (NotificationEvent.NotificationDeletedEvent) payload;
-            envelope = EventEnvelopeResponse.of(
-                    event.notificationId(),
-                    domainMessage.getSequenceNumber(),
-                    domainMessage.getTimestamp(),
-                    DELETED_EVENT_TYPE,
-                    new NotificationDeletedView(event.notificationId()));
-            userId = event.userId();
+            if (event.actorId() == null) {
+                publishCreated(event, domainMessage, false);
+                return;
+            }
+            identityLookup.status(event.actorId())
+                    .exceptionally(_ -> null)
+                    .thenAccept(status -> publishCreated(
+                            event,
+                            domainMessage,
+                            status != null && status.suspended(Instant.now())));
+            return;
         }
-        messagingTemplate.convertAndSend(DESTINATION_PREFIX + userId, envelope);
+        NotificationEvent.NotificationDeletedEvent event =
+                (NotificationEvent.NotificationDeletedEvent) payload;
+        EventEnvelopeResponse envelope = EventEnvelopeResponse.of(
+                event.notificationId(),
+                domainMessage.getSequenceNumber(),
+                domainMessage.getTimestamp(),
+                DELETED_EVENT_TYPE,
+                new NotificationDeletedView(event.notificationId()));
+        messagingTemplate.convertAndSend(DESTINATION_PREFIX + event.userId(), envelope);
+    }
+
+    private void publishCreated(NotificationEvent.NotificationCreatedEvent event,
+                                DomainEventMessage<?> domainMessage,
+                                boolean actorSuspended) {
+        EventEnvelopeResponse envelope = EventEnvelopeResponse.of(
+                event.notificationId(),
+                domainMessage.getSequenceNumber(),
+                domainMessage.getTimestamp(),
+                event.type().name(),
+                NotificationView.of(event, actorSuspended));
+        messagingTemplate.convertAndSend(DESTINATION_PREFIX + event.userId(), envelope);
     }
 }

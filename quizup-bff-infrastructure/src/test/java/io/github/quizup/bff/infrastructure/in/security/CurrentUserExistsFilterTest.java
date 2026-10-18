@@ -2,6 +2,9 @@ package io.github.quizup.bff.infrastructure.in.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.quizup.bff.application.IdentityLookup;
+import io.github.quizup.identity.domain.exception.UserProblems;
+import io.github.quizup.identity.domain.model.AccountStatus;
+import io.github.quizup.identity.domain.model.UserAccountStatus;
 import io.github.quizup.microservice.MicroserviceProperties;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -16,6 +19,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
@@ -64,9 +68,9 @@ class CurrentUserExistsFilterTest {
     }
 
     @Test
-    void passesThroughForExistingUser() throws Exception {
+    void passesThroughForActiveUser() throws Exception {
         authenticate("user-1");
-        when(identityLookup.exists("user-1")).thenReturn(CompletableFuture.completedFuture(true));
+        when(identityLookup.status("user-1")).thenReturn(CompletableFuture.completedFuture(active("user-1")));
         MockHttpServletRequest request = request("/api/me");
         MockHttpServletResponse response = new MockHttpServletResponse();
         MockFilterChain chain = new MockFilterChain();
@@ -80,7 +84,8 @@ class CurrentUserExistsFilterTest {
     @Test
     void rejectsWith401WhenUserNoLongerExists() throws Exception {
         authenticate("ghost");
-        when(identityLookup.exists("ghost")).thenReturn(CompletableFuture.completedFuture(false));
+        when(identityLookup.status("ghost")).thenReturn(
+                CompletableFuture.failedFuture(new UserProblems.UserNotFoundProblem("ghost")));
         MockHttpServletRequest request = request("/api/matchmaking/tickets");
         request.addHeader(HttpHeaders.ORIGIN, "https://app.quizup.cnadjim.fr");
         MockHttpServletResponse response = new MockHttpServletResponse();
@@ -91,7 +96,6 @@ class CurrentUserExistsFilterTest {
         assertEquals(401, response.getStatus());
         assertTrue(response.getContentType().startsWith("application/problem+json"));
         assertTrue(response.getContentAsString().contains("urn:quizup:authentification:unknownUser"));
-        // Sans ces en-têtes, le navigateur masque le 401 : le web ne peut pas purger sa session.
         assertEquals("https://app.quizup.cnadjim.fr",
                 response.getHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN));
         assertEquals("true", response.getHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_CREDENTIALS));
@@ -100,9 +104,46 @@ class CurrentUserExistsFilterTest {
     }
 
     @Test
+    void rejectsWith403WhenUserIsSuspended() throws Exception {
+        authenticate("suspended");
+        Instant until = Instant.parse("2030-02-01T00:00:00Z");
+        when(identityLookup.status("suspended")).thenReturn(CompletableFuture.completedFuture(
+                new UserAccountStatus("suspended", AccountStatus.SUSPENDED, until)));
+        MockHttpServletRequest request = request("/api/me");
+        request.addHeader(HttpHeaders.ORIGIN, "https://app.quizup.cnadjim.fr");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        MockFilterChain chain = new MockFilterChain();
+
+        filter().doFilter(request, response, chain);
+
+        assertEquals(403, response.getStatus());
+        assertTrue(response.getContentAsString().contains("urn:quizup:authorization:accountSuspended"));
+        assertTrue(response.getContentAsString().contains(until.toString()));
+        assertNull(chain.getRequest());
+        assertNull(SecurityContextHolder.getContext().getAuthentication());
+    }
+
+    @Test
+    void passesThroughWhenSuspensionExpired() throws Exception {
+        authenticate("user-1");
+        when(identityLookup.status("user-1")).thenReturn(CompletableFuture.completedFuture(
+                new UserAccountStatus("user-1", AccountStatus.SUSPENDED,
+                        Instant.parse("2020-01-01T00:00:00Z"))));
+        MockHttpServletRequest request = request("/api/me");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        MockFilterChain chain = new MockFilterChain();
+
+        filter().doFilter(request, response, chain);
+
+        assertNotNull(chain.getRequest());
+        assertEquals(200, response.getStatus());
+    }
+
+    @Test
     void rejectsWithoutCorsHeadersWhenNotACorsRequest() throws Exception {
         authenticate("ghost");
-        when(identityLookup.exists("ghost")).thenReturn(CompletableFuture.completedFuture(false));
+        when(identityLookup.status("ghost")).thenReturn(
+                CompletableFuture.failedFuture(new UserProblems.UserNotFoundProblem("ghost")));
         MockHttpServletRequest request = request("/api/me");
         MockHttpServletResponse response = new MockHttpServletResponse();
 
@@ -115,7 +156,7 @@ class CurrentUserExistsFilterTest {
     @Test
     void failsOpenWhenIdentityLookupFails() throws Exception {
         authenticate("user-1");
-        when(identityLookup.exists("user-1"))
+        when(identityLookup.status("user-1"))
                 .thenReturn(CompletableFuture.failedFuture(new RuntimeException("identity down")));
         MockHttpServletRequest request = request("/api/me");
         MockHttpServletResponse response = new MockHttpServletResponse();
@@ -138,6 +179,10 @@ class CurrentUserExistsFilterTest {
 
         assertNotNull(chain.getRequest());
         assertEquals(200, response.getStatus());
+    }
+
+    private static UserAccountStatus active(String userId) {
+        return new UserAccountStatus(userId, AccountStatus.ACTIVE, null);
     }
 
     private static MockHttpServletRequest request(String uri) {

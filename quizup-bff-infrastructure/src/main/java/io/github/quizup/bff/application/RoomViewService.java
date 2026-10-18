@@ -10,6 +10,7 @@ import io.github.quizup.matchmaking.domain.command.RoomCommand;
 import io.github.quizup.matchmaking.domain.model.Room;
 import io.github.quizup.matchmaking.domain.model.RoomPlayer;
 import io.github.quizup.matchmaking.domain.query.RoomQuery;
+import io.github.quizup.identity.domain.model.UserAccountStatus;
 import io.github.quizup.microservice.core.domain.constant.QuizUpConstants;
 import io.github.quizup.microservice.core.infrastructure.axon.QueryResponseTypes;
 import io.github.quizup.profile.domain.model.PlayerProgress;
@@ -20,6 +21,7 @@ import org.axonframework.commandhandling.gateway.CommandGateway;
 import org.axonframework.queryhandling.QueryGateway;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -39,15 +41,18 @@ public class RoomViewService {
     private final CommandGateway commandGateway;
     private final ProfileLookup profileLookup;
     private final ProgressionLookup progressionLookup;
+    private final IdentityLookup identityLookup;
 
     public RoomViewService(QueryGateway queryGateway,
                            CommandGateway commandGateway,
                            ProfileLookup profileLookup,
-                           ProgressionLookup progressionLookup) {
+                           ProgressionLookup progressionLookup,
+                           IdentityLookup identityLookup) {
         this.queryGateway = queryGateway;
         this.commandGateway = commandGateway;
         this.profileLookup = profileLookup;
         this.progressionLookup = progressionLookup;
+        this.identityLookup = identityLookup;
     }
 
     /**
@@ -176,15 +181,18 @@ public class RoomViewService {
         CompletableFuture<List<Profile>> profilesFuture = opponentIds.isEmpty()
                 ? CompletableFuture.completedFuture(List.of())
                 : profileLookup.getAll(opponentIds);
+        CompletableFuture<Map<String, UserAccountStatus>> statusesFuture = identityLookup.statuses(opponentIds)
+                .exceptionally(_ -> Map.<String, UserAccountStatus>of());
 
-        return CompletableFuture.allOf(topicsFuture, profilesFuture).thenApply(_ -> {
+        return CompletableFuture.allOf(topicsFuture, profilesFuture, statusesFuture).thenApply(_ -> {
             Map<String, Topic> topicById = topicsFuture.join().stream()
                     .collect(Collectors.toMap(Topic::topicId, Function.identity(), (first, _) -> first, LinkedHashMap::new));
             Map<String, Profile> profileById = profilesFuture.join().stream()
                     .collect(Collectors.toMap(Profile::userId, Function.identity(), (first, _) -> first, LinkedHashMap::new));
+            Map<String, UserAccountStatus> statusById = statusesFuture.join();
 
             return rooms.stream()
-                    .map(room -> toView(room, viewerId, topicById, profileById))
+                    .map(room -> toView(room, viewerId, topicById, profileById, statusById))
                     .toList();
         });
     }
@@ -192,9 +200,11 @@ public class RoomViewService {
     private static RoomView toView(Room room,
                                    String viewerId,
                                    Map<String, Topic> topicById,
-                                   Map<String, Profile> profileById) {
+                                   Map<String, Profile> profileById,
+                                   Map<String, UserAccountStatus> statusById) {
         String opponentId = opponentIdOf(viewerId, room);
         Profile opponent = opponentId == null ? null : profileById.get(opponentId);
+        UserAccountStatus status = opponentId == null ? null : statusById.get(opponentId);
         TopicRefView topic = TopicViews.toRef(room.topicId(), topicById.get(room.topicId()));
 
         return new RoomView(
@@ -203,7 +213,7 @@ public class RoomViewService {
                 room.status(),
                 room.vsBot(),
                 viewerId.equals(room.initiatorId()),
-                opponentRef(opponentId, opponent),
+                opponentRef(opponentId, opponent, status),
                 room.initiatorPresent(),
                 room.participantPresent(),
                 room.gameId(),
@@ -213,9 +223,15 @@ public class RoomViewService {
     }
 
     /** Le bot n'a pas de profil : référence synthétique stable (nom système, sans avatar). */
-    private static UserRefView opponentRef(String opponentId, Profile opponent) {
+    private static UserRefView opponentRef(String opponentId,
+                                           Profile opponent,
+                                           UserAccountStatus status) {
         if (opponent != null) {
-            return new UserRefView(opponent.userId(), opponent.pseudonym(), opponent.avatarOptions());
+            return new UserRefView(
+                    opponent.userId(),
+                    opponent.pseudonym(),
+                    opponent.avatarOptions(),
+                    status != null && status.suspended(Instant.now()));
         }
         if (QuizUpConstants.SYSTEM_USER_ID.equals(opponentId)) {
             return new UserRefView(QuizUpConstants.SYSTEM_USER_ID, QuizUpConstants.SYSTEM_USER_NAME, null);

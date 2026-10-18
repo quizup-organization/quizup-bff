@@ -18,6 +18,7 @@ public record PlayerProfileView(
         ProgressionView progression,
         DuelStatsView stats,
         long followersCount,
-        long followingCount
+        long followingCount,
+        boolean suspended
 ) {
 }

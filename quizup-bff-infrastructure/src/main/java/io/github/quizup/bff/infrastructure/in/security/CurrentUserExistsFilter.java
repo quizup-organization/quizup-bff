@@ -2,6 +2,8 @@ package io.github.quizup.bff.infrastructure.in.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.quizup.bff.application.IdentityLookup;
+import io.github.quizup.identity.domain.exception.UserProblems;
+import io.github.quizup.identity.domain.model.UserAccountStatus;
 import io.github.quizup.microservice.MicroserviceProperties;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -19,6 +21,7 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
@@ -26,18 +29,17 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 /**
- * Rejette en {@code 401} les JWT encore valides dont l'utilisateur n'existe plus côté identity
- * (base purgée/reset, compte supprimé). Sans ce garde-fou, ces requêtes produisent des
- * {@code profile:notFound} en cascade et des lobbies incohérents (saga matchmaking).
- * Le client purge alors sa session et repasse par le login.
- * <p>
- * Fail-open : si identity est injoignable, le jeton reste la preuve d'authentification et la
- * requête passe (la disponibilité prime sur le nettoyage des sessions périmées).
- * <p>
- * La réponse 401 porte les en-têtes CORS de la configuration du service : le filtre
- * court-circuite **avant** le {@code CorsFilter} servlet (même ordre par défaut), et sans eux
- * le navigateur masque la réponse — le web ne verrait jamais le 401 et ne purgerait pas la
- * session (écran figé jusqu'à l'expiration de l'access token).
+ * Rejette les JWT encore valides dont l'utilisateur n'existe plus ou est suspendu côté identity.
+ *
+ * <ul>
+ *   <li>compte inexistant ⇒ {@code 401 urn:quizup:authentification:unknownUser} ;</li>
+ *   <li>compte suspendu ⇒ {@code 403 urn:quizup:authorization:accountSuspended} avec
+ *       {@code suspendedUntil} ;</li>
+ *   <li>identity injoignable ⇒ fail-open (la disponibilité prime).</li>
+ * </ul>
+ *
+ * <p>La réponse porte les en-têtes CORS de la configuration du service : le filtre court-circuite
+ * <b>avant</b> le {@code CorsFilter} servlet, sans eux le navigateur masque la réponse.</p>
  */
 @Component
 public class CurrentUserExistsFilter extends OncePerRequestFilter {
@@ -94,10 +96,17 @@ public class CurrentUserExistsFilter extends OncePerRequestFilter {
             return;
         }
 
-        if (Boolean.FALSE.equals(exists(userId))) {
+        LookupResult result = lookup(userId);
+        if (result.notFound()) {
             logger.warn("Stale session rejected: user {} no longer exists in identity", userId);
             SecurityContextHolder.clearContext();
             writeUnauthorized(request, response);
+            return;
+        }
+        if (result.status() != null && result.status().suspended(Instant.now())) {
+            logger.warn("Suspended session rejected: user {}", userId);
+            SecurityContextHolder.clearContext();
+            writeForbidden(request, response, result.status());
             return;
         }
 
@@ -105,16 +114,32 @@ public class CurrentUserExistsFilter extends OncePerRequestFilter {
     }
 
     /** {@code null} = indéterminé (identity injoignable ou trop lent) : fail-open. */
-    private Boolean exists(String userId) {
+    private LookupResult lookup(String userId) {
         try {
-            return identityLookup.exists(userId).get(LOOKUP_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+            UserAccountStatus status = identityLookup.status(userId)
+                    .get(LOOKUP_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+            return new LookupResult(status, false);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             logger.warn("Identity lookup interrupted for {} (fail-open)", userId);
-        } catch (ExecutionException | TimeoutException e) {
+        } catch (ExecutionException e) {
+            if (hasCause(e, UserProblems.UserNotFoundProblem.class)) {
+                return new LookupResult(null, true);
+            }
             logger.warn("Identity lookup failed for {} (fail-open): {}", userId, e.toString());
+        } catch (TimeoutException e) {
+            logger.warn("Identity lookup timed out for {} (fail-open)", userId);
         }
-        return null;
+        return new LookupResult(null, false);
+    }
+
+    private static boolean hasCause(Throwable error, Class<? extends Throwable> type) {
+        for (Throwable current = error; current != null; current = current.getCause()) {
+            if (type.isInstance(current)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private void writeUnauthorized(HttpServletRequest request, HttpServletResponse response) throws IOException {
@@ -132,7 +157,26 @@ public class CurrentUserExistsFilter extends OncePerRequestFilter {
         objectMapper.writeValue(response.getWriter(), body);
     }
 
-    /** Sans ces en-têtes, le navigateur masque le 401 (CORS) et le web ne purge pas sa session. */
+    private void writeForbidden(HttpServletRequest request,
+                                HttpServletResponse response,
+                                UserAccountStatus status) throws IOException {
+        applyCorsHeaders(request, response);
+        response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+        response.setContentType(MediaType.APPLICATION_PROBLEM_JSON_VALUE);
+
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("type", "urn:quizup:authorization:accountSuspended");
+        body.put("title", "Compte suspendu");
+        body.put("status", HttpServletResponse.SC_FORBIDDEN);
+        body.put("detail", "Ce compte est suspendu. Consulte l'email reçu pour connaître le motif et l'échéance.");
+        body.put("instance", request.getRequestURI());
+        if (status.suspendedUntil() != null) {
+            body.put("suspendedUntil", status.suspendedUntil().toString());
+        }
+        objectMapper.writeValue(response.getWriter(), body);
+    }
+
+    /** Sans ces en-têtes, le navigateur masque la 401/403 (CORS) et le web ne purge pas sa session. */
     private void applyCorsHeaders(HttpServletRequest request, HttpServletResponse response) {
         String origin = request.getHeader(HttpHeaders.ORIGIN);
         if (origin == null) {
@@ -147,5 +191,8 @@ public class CurrentUserExistsFilter extends OncePerRequestFilter {
         if (Boolean.TRUE.equals(corsConfiguration.getAllowCredentials())) {
             response.setHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_CREDENTIALS, "true");
         }
+    }
+
+    private record LookupResult(UserAccountStatus status, boolean notFound) {
     }
 }

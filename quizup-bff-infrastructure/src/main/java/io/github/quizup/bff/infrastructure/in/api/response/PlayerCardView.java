@@ -10,6 +10,7 @@ public record PlayerCardView(
         int level,
         String title,
         boolean following,
-        PresenceView presence
+        PresenceView presence,
+        boolean suspended
 ) {
 }

@@ -1,0 +1,343 @@
+package io.github.quizup.bff.application;
+
+import io.github.quizup.bff.infrastructure.in.api.problem.BffProblems;
+import io.github.quizup.bff.infrastructure.in.api.request.ReinstateUserRequest;
+import io.github.quizup.bff.infrastructure.in.api.request.SuspendUserRequest;
+import io.github.quizup.bff.infrastructure.in.api.response.AdminReportedUserSummaryView;
+import io.github.quizup.bff.infrastructure.in.api.response.AdminUserAccountView;
+import io.github.quizup.bff.infrastructure.in.api.response.AdminUserDetailView;
+import io.github.quizup.bff.infrastructure.in.api.response.AdminUserModerationSummaryView;
+import io.github.quizup.bff.infrastructure.in.api.response.AdminUserModerationView;
+import io.github.quizup.bff.infrastructure.in.api.response.AdminUserProfileView;
+import io.github.quizup.bff.infrastructure.in.api.response.AdminUserSearchResultView;
+import io.github.quizup.bff.infrastructure.in.api.response.AdminUserReportResolutionView;
+import io.github.quizup.bff.infrastructure.in.api.response.PageResponse;
+import io.github.quizup.identity.domain.command.UserCommand;
+import io.github.quizup.identity.domain.model.AccountStatus;
+import io.github.quizup.identity.domain.model.SuspensionReinstatementReason;
+import io.github.quizup.identity.domain.model.User;
+import io.github.quizup.identity.domain.model.UserReportSort;
+import io.github.quizup.identity.domain.model.UserReportStats;
+import io.github.quizup.identity.domain.model.UserReportSummary;
+import io.github.quizup.identity.domain.model.UserReportSummaryFilter;
+import io.github.quizup.identity.domain.model.UserReportSummaryPage;
+import io.github.quizup.identity.domain.model.UserSuspension;
+import io.github.quizup.identity.domain.query.UserQuery;
+import io.github.quizup.identity.domain.query.UserReportQuery;
+import io.github.quizup.microservice.core.domain.constant.QuizUpConstants;
+import io.github.quizup.microservice.core.infrastructure.axon.QueryResponseTypes;
+import io.github.quizup.profile.domain.model.Profile;
+import io.github.quizup.profile.domain.query.ProfileQuery;
+import org.axonframework.commandhandling.gateway.CommandGateway;
+import org.axonframework.queryhandling.QueryGateway;
+import org.springframework.stereotype.Service;
+
+import java.time.Duration;
+import java.time.Instant;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
+
+/**
+ * Modération des comptes : file de signalements, recherche, dossier, suspension et réintégration.
+ */
+@Service
+public class UserModerationAdminService {
+
+    private static final int MAX_SEARCH = 20;
+    private static final Duration MAX_SUSPENSION = Duration.ofDays(3650);
+
+    private final QueryGateway queryGateway;
+    private final CommandGateway commandGateway;
+    private final IdentityLookup identityLookup;
+    private final ProfileLookup profileLookup;
+    private final UserReportService userReportService;
+
+    public UserModerationAdminService(QueryGateway queryGateway,
+                                      CommandGateway commandGateway,
+                                      IdentityLookup identityLookup,
+                                      ProfileLookup profileLookup,
+                                      UserReportService userReportService) {
+        this.queryGateway = queryGateway;
+        this.commandGateway = commandGateway;
+        this.identityLookup = identityLookup;
+        this.profileLookup = profileLookup;
+        this.userReportService = userReportService;
+    }
+
+    public CompletableFuture<PageResponse<AdminReportedUserSummaryView>> queue(UserReportSummaryFilter filter,
+                                                                               UserReportSort sort,
+                                                                               int page,
+                                                                               int size) {
+        return queryGateway.query(
+                        new UserReportQuery.GetReportedUserPageQuery(filter, sort, page, size),
+                        QueryResponseTypes.instanceOf(UserReportSummaryPage.class))
+                .thenCompose(pageResult -> enrichQueue(pageResult, page, size));
+    }
+
+    public CompletableFuture<AdminUserModerationSummaryView> summary() {
+        return queryGateway.query(
+                        new UserReportQuery.GetUserReportStatsQuery(),
+                        QueryResponseTypes.instanceOf(UserReportStats.class))
+                .thenApply(stats -> new AdminUserModerationSummaryView(
+                        stats.openReports(), stats.reportedUsers(), stats.suspendedUsers()));
+    }
+
+    public CompletableFuture<AdminUserDetailView> detail(String userId) {
+        CompletableFuture<User> userFuture = requireUser(userId);
+        CompletableFuture<Profile> profileFuture = profileLookup.get(userId).exceptionally(_ -> null);
+        CompletableFuture<List<io.github.quizup.bff.infrastructure.in.api.response.AdminUserReportView>> reportsFuture =
+                userReportService.adminReports(userId);
+        return CompletableFuture.allOf(userFuture, profileFuture, reportsFuture)
+                .thenApply(_ -> new AdminUserDetailView(
+                        accountView(userFuture.join()),
+                        profileView(profileFuture.join()),
+                        reportsFuture.join()));
+    }
+
+    public CompletableFuture<List<AdminUserSearchResultView>> search(String query, int limit) {
+        if (query == null || query.isBlank()) {
+            return CompletableFuture.completedFuture(List.of());
+        }
+        String term = query.trim();
+        int safeLimit = Math.min(Math.max(limit, 1), MAX_SEARCH);
+
+        if (term.contains("@")) {
+            return queryGateway.query(new UserQuery.FindUserByEmailQuery(term.toLowerCase()),
+                            QueryResponseTypes.optionalInstanceOf(User.class))
+                    .thenCompose(user -> user.map(value -> toSearchResults(List.of(value), safeLimit))
+                            .orElseGet(() -> CompletableFuture.completedFuture(List.of())));
+        }
+        if (looksLikeUuid(term)) {
+            return queryGateway.query(new UserQuery.FindUserQuery(term),
+                            QueryResponseTypes.optionalInstanceOf(User.class))
+                    .thenCompose(user -> user.map(value -> toSearchResults(List.of(value), safeLimit))
+                            .orElseGet(() -> CompletableFuture.completedFuture(List.of())));
+        }
+        return queryGateway.query(new ProfileQuery.GetProfileSuggestionsQuery(term, safeLimit),
+                        QueryResponseTypes.multipleInstancesOf(Profile.class))
+                .thenCompose(profiles -> {
+                    List<String> ids = profiles.stream().map(Profile::userId).distinct().toList();
+                    if (ids.isEmpty()) {
+                        return CompletableFuture.completedFuture(List.of());
+                    }
+                    return queryGateway.query(new UserQuery.GetUsersByIdsQuery(ids),
+                                    QueryResponseTypes.multipleInstancesOf(User.class))
+                            .thenApply(users -> {
+                                Map<String, Profile> profileById = profiles.stream()
+                                        .collect(Collectors.toMap(Profile::userId, p -> p, (a, _) -> a));
+                                return users.stream()
+                                        .sorted(Comparator.comparing(
+                                                user -> {
+                                                    Profile profile = profileById.get(user.userId());
+                                                    return profile == null || profile.pseudonym() == null
+                                                            ? user.email()
+                                                            : profile.pseudonym();
+                                                },
+                                                String.CASE_INSENSITIVE_ORDER))
+                                        .limit(safeLimit)
+                                        .map(user -> searchResult(user, profileById.get(user.userId())))
+                                        .toList();
+                            });
+                });
+    }
+
+    public CompletableFuture<AdminUserModerationView> suspend(String userId,
+                                                              String adminId,
+                                                              SuspendUserRequest request) {
+        return requireUser(userId).thenCompose(user -> {
+            requireNotProtected(user);
+            Instant now = Instant.now();
+            if (user.suspended(now)) {
+                throw new BffProblems.UserAlreadySuspendedProblem(userId);
+            }
+            Instant until = suspensionEnd(now, request);
+            return commandGateway.send(new UserCommand.SuspendUserCommand(
+                            userId,
+                            request.reason(),
+                            normalizeNote(request.note()),
+                            adminId,
+                            until,
+                            now))
+                    .thenCompose(_ -> {
+                        if (!request.resolveOpenReports()) {
+                            return CompletableFuture.completedFuture(0);
+                        }
+                        return userReportService.resolveOpenReports(userId, adminId, "Suspension du compte")
+                                .thenApply(AdminUserReportResolutionView::resolvedCount)
+                                .exceptionally(_ -> 0);
+                    })
+                    .thenApply(resolved -> new AdminUserModerationView(
+                            userId,
+                            AccountStatus.SUSPENDED,
+                            until,
+                            request.reason(),
+                            resolved,
+                            false));
+        });
+    }
+
+    public CompletableFuture<AdminUserModerationView> reinstate(String userId,
+                                                                String adminId,
+                                                                ReinstateUserRequest request) {
+        return requireUser(userId).thenCompose(user -> {
+            requireNotProtected(user);
+            return commandGateway.send(new UserCommand.ReinstateUserCommand(
+                            userId,
+                            SuspensionReinstatementReason.MANUAL,
+                            request == null ? null : normalizeNote(request.note()),
+                            adminId,
+                            Instant.now()))
+                    .thenApply(_ -> new AdminUserModerationView(
+                            userId,
+                            AccountStatus.ACTIVE,
+                            null,
+                            null,
+                            0,
+                            false));
+        });
+    }
+
+    private CompletableFuture<PageResponse<AdminReportedUserSummaryView>> enrichQueue(
+            UserReportSummaryPage pageResult, int page, int size) {
+        List<UserReportSummary> rows = pageResult.content();
+        if (rows.isEmpty()) {
+            return CompletableFuture.completedFuture(PageResponse.of(List.of(), page, size, pageResult.totalElements()));
+        }
+        List<String> ids = rows.stream().map(UserReportSummary::targetUserId).toList();
+        CompletableFuture<List<User>> usersFuture = queryGateway.query(
+                new UserQuery.GetUsersByIdsQuery(ids),
+                QueryResponseTypes.multipleInstancesOf(User.class));
+        CompletableFuture<List<Profile>> profilesFuture = profileLookup.getAll(ids);
+
+        return CompletableFuture.allOf(usersFuture, profilesFuture).thenApply(_ -> {
+            Map<String, User> userById = usersFuture.join().stream()
+                    .collect(Collectors.toMap(User::userId, u -> u, (a, _) -> a));
+            Map<String, Profile> profileById = profilesFuture.join().stream()
+                    .collect(Collectors.toMap(Profile::userId, p -> p, (a, _) -> a));
+            Instant now = Instant.now();
+            List<AdminReportedUserSummaryView> content = rows.stream()
+                    .map(row -> {
+                        User user = userById.get(row.targetUserId());
+                        Profile profile = profileById.get(row.targetUserId());
+                        UserSuspension suspension = user == null ? null : user.suspension();
+                        return new AdminReportedUserSummaryView(
+                                row.targetUserId(),
+                                user == null ? null : user.email(),
+                                profile == null ? null : profile.pseudonym(),
+                                profile == null ? null : profile.avatarOptions(),
+                                user != null && user.suspended(now),
+                                suspension == null ? null : suspension.suspendedUntil(),
+                                row.openCount(),
+                                row.totalCount(),
+                                row.lastReportedAt());
+                    })
+                    .toList();
+            return PageResponse.of(content, page, size, pageResult.totalElements());
+        });
+    }
+
+    private CompletableFuture<List<AdminUserSearchResultView>> toSearchResults(List<User> users, int limit) {
+        List<String> ids = users.stream().map(User::userId).toList();
+        return profileLookup.getAll(ids).thenApply(profiles -> {
+            Map<String, Profile> profileById = profiles.stream()
+                    .collect(Collectors.toMap(Profile::userId, p -> p, (a, _) -> a));
+            return users.stream()
+                    .limit(limit)
+                    .map(user -> searchResult(user, profileById.get(user.userId())))
+                    .toList();
+        });
+    }
+
+    private AdminUserSearchResultView searchResult(User user, Profile profile) {
+        Instant now = Instant.now();
+        return new AdminUserSearchResultView(
+                user.userId(),
+                user.email(),
+                profile == null ? null : profile.pseudonym(),
+                profile == null ? null : profile.avatarOptions(),
+                user.status(),
+                user.suspended(now),
+                user.suspension() == null ? null : user.suspension().suspendedUntil(),
+                isProtected(user.userId()));
+    }
+
+    private CompletableFuture<User> requireUser(String userId) {
+        return queryGateway.query(
+                new UserQuery.GetUserQuery(userId),
+                QueryResponseTypes.instanceOf(User.class));
+    }
+
+    private static void requireNotProtected(User user) {
+        if (QuizUpConstants.SYSTEM_USER_ID.equals(user.userId())) {
+            throw new BffProblems.ProtectedAccountProblem(user.userId());
+        }
+    }
+
+    private static Instant suspensionEnd(Instant now, SuspendUserRequest request) {
+        if (request.permanent()) {
+            if (request.duration() != null) {
+                throw new BffProblems.InvalidSuspensionRequestProblem(
+                        "Une suspension définitive ne doit pas porter de durée");
+            }
+            return null;
+        }
+        Duration duration = request.duration();
+        if (duration == null || duration.isZero() || duration.isNegative()) {
+            throw new BffProblems.InvalidSuspensionRequestProblem(
+                    "Une suspension temporaire doit porter une durée strictement positive");
+        }
+        if (duration.compareTo(MAX_SUSPENSION) > 0) {
+            throw new BffProblems.InvalidSuspensionRequestProblem(
+                    "La durée maximale d'une suspension est de 3650 jours");
+        }
+        return now.plus(duration);
+    }
+
+    private static AdminUserAccountView accountView(User user) {
+        UserSuspension suspension = user.suspension();
+        Instant now = Instant.now();
+        return new AdminUserAccountView(
+                user.userId(),
+                user.email(),
+                user.createdAt(),
+                user.status(),
+                user.suspended(now),
+                suspension == null ? null : suspension.suspendedUntil(),
+                suspension == null ? null : suspension.reason(),
+                suspension == null ? null : suspension.note(),
+                suspension == null ? null : suspension.suspendedAt(),
+                suspension == null ? null : suspension.suspendedBy(),
+                suspension == null ? null : suspension.reinstatedAt(),
+                suspension == null ? null : suspension.reinstatedBy(),
+                suspension == null ? null : suspension.reinstatementReason(),
+                suspension == null ? null : suspension.reinstatementNote(),
+                QuizUpConstants.SYSTEM_USER_ID.equals(user.userId()));
+    }
+
+    private static AdminUserProfileView profileView(Profile profile) {
+        if (profile == null) {
+            return null;
+        }
+        return new AdminUserProfileView(
+                profile.pseudonym(),
+                profile.bio(),
+                profile.country(),
+                profile.avatarOptions(),
+                profile.bannerUrl());
+    }
+
+    private static String normalizeNote(String note) {
+        return note == null || note.isBlank() ? null : note.trim();
+    }
+
+    private static boolean isProtected(String userId) {
+        return QuizUpConstants.SYSTEM_USER_ID.equals(userId);
+    }
+
+    private static boolean looksLikeUuid(String value) {
+        return value.matches("[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}");
+    }
+}

@@ -14,14 +14,18 @@ import org.springframework.stereotype.Service;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 /**
  * Composition de l'accueil : sujets suivis (récents) + sujets **les plus joués en ce moment**
  * (24 h, toutes les parties de la communauté — aucun filtre joueur) + sujets récemment publiés /
- * mis à jour (nouvelles questions).
+ * mis à jour (nouvelles questions). Le Top 10 « en ce moment » est complété par les sujets les
+ * plus joués de tous les temps ({@link TopicSort#MOST_PLAYED}) quand moins de 10 sujets ont été
+ * joués dans la fenêtre de 24 h : les récents gardent la tête, le relais all-time complète.
  */
 @Service
 public class HomeService {
@@ -65,15 +69,20 @@ public class HomeService {
                         ? CompletableFuture.completedFuture(List.of())
                         : queryGateway.query(new TopicQuery.GetTopicsByIdsQuery(trendingIds),
                                 QueryResponseTypes.multipleInstancesOf(Topic.class));
+                CompletableFuture<List<Topic>> mostPlayedFuture = trendingIds.size() >= TRENDING_LIMIT
+                        ? CompletableFuture.completedFuture(List.of())
+                        : queryGateway.query(
+                                new TopicQuery.GetTopicPageQuery(null, null, TopicSort.MOST_PLAYED, 0, TRENDING_LIMIT),
+                                QueryResponseTypes.instanceOf(TopicPage.class))
+                        .thenApply(TopicPage::topics);
 
-                return trendingTopicsFuture.thenApply(trendingTopics -> {
+                return CompletableFuture.allOf(trendingTopicsFuture, mostPlayedFuture).thenApply(_ -> {
                     Set<String> followed = Set.copyOf(followedIds);
                     List<TopicCardView> followedTopics = followedTopicsFuture.join().stream()
                             .map(topic -> TopicViews.toCard(topic, true))
                             .toList();
-                    List<TopicCardView> trending = trendingTopics.stream()
-                            .map(topic -> TopicViews.toCard(topic, followed.contains(topic.topicId())))
-                            .toList();
+                    List<TopicCardView> trending = trendingTopics(
+                            trendingTopicsFuture.join(), mostPlayedFuture.join(), followed);
                     List<TopicCardView> newTopics = newTopicsFuture.join().topics().stream()
                             .map(topic -> TopicViews.toCard(topic, followed.contains(topic.topicId())))
                             .toList();
@@ -81,5 +90,23 @@ public class HomeService {
                 });
             });
         });
+    }
+
+    /**
+     * Top 10 : les sujets réellement joués dans les 24 h d'abord, puis le relais all-time
+     * ({@link TopicSort#MOST_PLAYED}) pour atteindre {@link #TRENDING_LIMIT} sans doublon.
+     * L'ordre d'entrée est conservé et la liste est bornée à 10.
+     */
+    private static List<TopicCardView> trendingTopics(
+            List<Topic> recentlyPlayed,
+            List<Topic> mostPlayed,
+            Set<String> followed) {
+        Map<String, Topic> ordered = new LinkedHashMap<>();
+        recentlyPlayed.forEach(topic -> ordered.putIfAbsent(topic.topicId(), topic));
+        mostPlayed.forEach(topic -> ordered.putIfAbsent(topic.topicId(), topic));
+        return ordered.values().stream()
+                .limit(TRENDING_LIMIT)
+                .map(topic -> TopicViews.toCard(topic, followed.contains(topic.topicId())))
+                .toList();
     }
 }

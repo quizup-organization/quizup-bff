@@ -6,6 +6,12 @@ package io.github.quizup.bff.infrastructure.in.api.response;
 public record UserRefView(
         String userId,
         String pseudonym,
-        String avatarOptions
+        String avatarOptions,
+        boolean suspended
 ) {
+
+    /** Référence d'un joueur non suspendu. */
+    public UserRefView(String userId, String pseudonym, String avatarOptions) {
+        this(userId, pseudonym, avatarOptions, false);
+    }
 }

@@ -70,7 +70,7 @@ class ProfileControllerTest {
                 null,
                 false, false, null,
                 new ProgressionView(120, 2, "Apprenti", 400, 6, List.of()),
-                new DuelStatsView(4, 3, 1, 0, 75, 160, 2, 3), 5, 7);
+                new DuelStatsView(4, 3, 1, 0, 75, 160, 2, 3), 5, 7, false);
         when(profileViewService.profileView(USER_ID, "user-2"))
                 .thenReturn(CompletableFuture.completedFuture(view));
 
