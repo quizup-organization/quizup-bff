@@ -1,3 +1,9 @@
+## [11.33.0](https://github.com/quizup-organization/quizup-bff/compare/v11.32.2...v11.33.0) (2026-10-18)
+
+### Features
+
+* **bff:** add user moderation admin API ([ce6f8fa](https://github.com/quizup-organization/quizup-bff/commit/ce6f8faa09b136f5647d09db652bc4ca80ef8cce))
+
 ## [11.32.2](https://github.com/quizup-organization/quizup-bff/compare/v11.32.1...v11.32.2) (2026-10-18)
 
 ### Bug Fixes
