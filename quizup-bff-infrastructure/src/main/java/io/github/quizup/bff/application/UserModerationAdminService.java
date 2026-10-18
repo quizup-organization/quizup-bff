@@ -5,6 +5,7 @@ import io.github.quizup.bff.infrastructure.in.api.request.ReinstateUserRequest;
 import io.github.quizup.bff.infrastructure.in.api.request.SuspendUserRequest;
 import io.github.quizup.bff.infrastructure.in.api.response.AdminReportedUserSummaryView;
 import io.github.quizup.bff.infrastructure.in.api.response.AdminUserAccountView;
+import io.github.quizup.bff.infrastructure.in.api.response.AdminUserCatalogueView;
 import io.github.quizup.bff.infrastructure.in.api.response.AdminUserDetailView;
 import io.github.quizup.bff.infrastructure.in.api.response.AdminUserModerationSummaryView;
 import io.github.quizup.bff.infrastructure.in.api.response.AdminUserModerationView;
@@ -16,6 +17,7 @@ import io.github.quizup.identity.domain.command.UserCommand;
 import io.github.quizup.identity.domain.model.AccountStatus;
 import io.github.quizup.identity.domain.model.SuspensionReinstatementReason;
 import io.github.quizup.identity.domain.model.User;
+import io.github.quizup.identity.domain.model.UserReportCount;
 import io.github.quizup.identity.domain.model.UserReportSort;
 import io.github.quizup.identity.domain.model.UserReportStats;
 import io.github.quizup.identity.domain.model.UserReportSummary;
@@ -25,7 +27,14 @@ import io.github.quizup.identity.domain.model.UserSuspension;
 import io.github.quizup.identity.domain.query.UserQuery;
 import io.github.quizup.identity.domain.query.UserReportQuery;
 import io.github.quizup.microservice.core.domain.constant.QuizUpConstants;
+import io.github.quizup.microservice.core.domain.model.search.FilterOperator;
+import io.github.quizup.microservice.core.domain.model.search.SortDirection;
 import io.github.quizup.microservice.core.infrastructure.axon.QueryResponseTypes;
+import io.github.quizup.microservice.core.infrastructure.in.api.request.FilterRequest;
+import io.github.quizup.microservice.core.infrastructure.in.api.request.PageRequest;
+import io.github.quizup.microservice.core.infrastructure.in.api.request.SearchRequest;
+import io.github.quizup.microservice.core.infrastructure.in.api.request.SortRequest;
+import io.github.quizup.microservice.core.infrastructure.in.api.response.SearchResponse;
 import io.github.quizup.profile.domain.model.Profile;
 import io.github.quizup.profile.domain.query.ProfileQuery;
 import org.axonframework.commandhandling.gateway.CommandGateway;
@@ -34,8 +43,10 @@ import org.springframework.stereotype.Service;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
@@ -47,6 +58,7 @@ import java.util.stream.Collectors;
 public class UserModerationAdminService {
 
     private static final int MAX_SEARCH = 20;
+    private static final int MAX_CATALOGUE_SEARCH = 200;
     private static final Duration MAX_SUSPENSION = Duration.ofDays(3650);
 
     private final QueryGateway queryGateway;
@@ -95,6 +107,54 @@ public class UserModerationAdminService {
                         accountView(userFuture.join()),
                         profileView(profileFuture.join()),
                         reportsFuture.join()));
+    }
+
+    /**
+     * Catalogue paginé des joueurs. La recherche libre suit la même résolution que la recherche
+     * admin : identifiant exact (UUID), email (présence de {@code @}) ou pseudonyme via le
+     * read model de {@code quizup-profile}.
+     */
+    public CompletableFuture<PageResponse<AdminUserCatalogueView>> catalogue(String query,
+                                                                              AccountStatus status,
+                                                                              boolean reportedOnly,
+                                                                              int page,
+                                                                              int size) {
+        String term = normalizeSearch(query);
+        return pseudonymMatches(term).thenCompose(pseudonymIds -> {
+            List<FilterRequest> filters = new ArrayList<>();
+            if (term != null) {
+                if (looksLikeUuid(term)) {
+                    filters.add(new FilterRequest("userId", FilterOperator.EQUALS, term, null, null));
+                } else if (term.contains("@")) {
+                    filters.add(new FilterRequest("email", FilterOperator.CONTAINS,
+                            term.toLowerCase(Locale.ROOT), null, null));
+                } else {
+                    if (pseudonymIds.isEmpty()) {
+                        return CompletableFuture.completedFuture(
+                                PageResponse.of(List.of(), page, size, 0));
+                    }
+                    filters.add(new FilterRequest("userId", FilterOperator.IN,
+                            null, null, new ArrayList<>(pseudonymIds)));
+                }
+            }
+            if (status != null) {
+                filters.add(new FilterRequest("status", FilterOperator.EQUALS,
+                        status.name(), null, null));
+            }
+            if (reportedOnly) {
+                filters.add(new FilterRequest("reported", FilterOperator.EQUALS, true, null, null));
+            }
+            SearchRequest request = new SearchRequest(
+                    filters,
+                    List.of(
+                            new SortRequest("createdAt", SortDirection.DESC),
+                            new SortRequest("userId", SortDirection.ASC)),
+                    new PageRequest(page, size));
+            return queryGateway.query(
+                            new UserQuery.UserSearchQuery(request),
+                            QueryResponseTypes.searchResponseOf(User.class))
+                    .thenCompose(result -> enrichCatalogue(result, page, size));
+        });
     }
 
     public CompletableFuture<List<AdminUserSearchResultView>> search(String query, int limit) {
@@ -197,6 +257,64 @@ public class UserModerationAdminService {
                             null,
                             0,
                             false));
+        });
+    }
+
+    private CompletableFuture<List<String>> pseudonymMatches(String term) {
+        if (term == null || term.contains("@") || looksLikeUuid(term)) {
+            return CompletableFuture.completedFuture(List.of());
+        }
+        return queryGateway.query(
+                        new ProfileQuery.GetProfileSuggestionsQuery(term, MAX_CATALOGUE_SEARCH),
+                        QueryResponseTypes.multipleInstancesOf(Profile.class))
+                .thenApply(profiles -> profiles.stream()
+                        .map(Profile::userId)
+                        .distinct()
+                        .toList());
+    }
+
+    private CompletableFuture<PageResponse<AdminUserCatalogueView>> enrichCatalogue(
+            SearchResponse<User> pageResult, int page, int size) {
+        List<User> users = pageResult.content();
+        if (users.isEmpty()) {
+            return CompletableFuture.completedFuture(
+                    PageResponse.of(List.of(), page, size, pageResult.totalElements()));
+        }
+        List<String> ids = users.stream().map(User::userId).toList();
+        CompletableFuture<List<Profile>> profilesFuture = profileLookup.getAll(ids)
+                .exceptionally(_ -> List.of());
+        CompletableFuture<List<UserReportCount>> countsFuture = queryGateway.query(
+                        new UserReportQuery.GetUserReportCountsQuery(ids),
+                        QueryResponseTypes.multipleInstancesOf(UserReportCount.class))
+                .exceptionally(_ -> List.of());
+
+        return CompletableFuture.allOf(profilesFuture, countsFuture).thenApply(_ -> {
+            Map<String, Profile> profileById = profilesFuture.join().stream()
+                    .collect(Collectors.toMap(Profile::userId, profile -> profile, (a, _) -> a));
+            Map<String, UserReportCount> countById = countsFuture.join().stream()
+                    .collect(Collectors.toMap(UserReportCount::targetUserId, count -> count, (a, _) -> a));
+            Instant now = Instant.now();
+            List<AdminUserCatalogueView> content = users.stream()
+                    .map(user -> {
+                        Profile profile = profileById.get(user.userId());
+                        UserReportCount count = countById.get(user.userId());
+                        UserSuspension suspension = user.suspension();
+                        return new AdminUserCatalogueView(
+                                user.userId(),
+                                user.email(),
+                                profile == null ? null : profile.pseudonym(),
+                                profile == null ? null : profile.avatarOptions(),
+                                user.status(),
+                                user.suspended(now),
+                                suspension == null ? null : suspension.suspendedUntil(),
+                                user.createdAt(),
+                                isProtected(user.userId()),
+                                count == null ? 0 : count.openCount(),
+                                count == null ? 0 : count.totalCount(),
+                                count == null ? null : count.lastReportedAt());
+                    })
+                    .toList();
+            return PageResponse.of(content, page, size, pageResult.totalElements());
         });
     }
 
@@ -331,6 +449,10 @@ public class UserModerationAdminService {
 
     private static String normalizeNote(String note) {
         return note == null || note.isBlank() ? null : note.trim();
+    }
+
+    private static String normalizeSearch(String query) {
+        return query == null || query.isBlank() ? null : query.trim();
     }
 
     private static boolean isProtected(String userId) {

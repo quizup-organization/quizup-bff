@@ -207,7 +207,7 @@ suspension/réactivation, l'archivage/restauration et la file des signalements.
 | `POST /api/admin/question-reports/{reportId}/resolve` | `200` | résolution unitaire |
 | `POST /api/admin/questions/{questionId}/reports/resolve` | `200` | résolution en masse |
 
-### Signalements de joueurs et modération des comptes
+### Catalogue des joueurs, signalements et modération des comptes
 
 Dépôt joueur : `POST /api/profiles/{userId}/reports` (`{ reasons[], comment?, gameId? }`) —
 `201` créé / `200` déjà ouvert, cible existante, auto-signalement et compte système refusés ;
@@ -217,6 +217,7 @@ Admin (`ROLE_ADMIN`, `/api/admin/**`) :
 
 | Endpoint | Réponse | Notes |
 |---|---|---|
+| `GET /api/admin/users?q=&status=&reportedOnly=&page=&size=` | `PageResponse<AdminUserCatalogueView>` | catalogue paginé de tous les joueurs (compte + profil + compteurs de signalements), tri `createdAt desc` ; `q` = pseudonyme (profile), email (avec `@`) ou identifiant ; `status` ∈ `ACTIVE\|SUSPENDED` (suspension **effective**) ; `reportedOnly=true` = signalement ouvert |
 | `GET /api/admin/user-reports?status=&suspended=&sort=&page=&size=` | `PageResponse<AdminReportedUserSummaryView>` | file groupée par joueur (`OPEN` par défaut) |
 | `GET /api/admin/user-reports/summary` | `AdminUserModerationSummaryView` | `openReports`, `reportedUsers`, `suspendedUsers` |
 | `GET /api/admin/users/search?q=&limit=` | `List<AdminUserSearchResultView>` | recherche bornée (pseudo/email/ID) |
@@ -225,6 +226,14 @@ Admin (`ROLE_ADMIN`, `/api/admin/**`) :
 | `POST /api/admin/users/{userId}/reinstate` | `AdminUserModerationView` | `{ note? }` |
 | `POST /api/admin/user-reports/{reportId}/resolve` | `200` | résolution unitaire |
 | `POST /api/admin/users/{userId}/reports/resolve` | `200` | résolution en masse |
+
+Le catalogue s'appuie sur `UserQuery.UserSearchQuery` (read model identity, pagination exacte) ;
+les filtres admin `status` et `reported` sont interprétés par l'adaptateur de lecture d'identity
+(suspension **effective** — échéance dépassée = actif — et signalements ouverts). Le pseudonyme
+est résolu via `ProfileQuery.GetProfileSuggestionsQuery`, puis filtré par `userId IN (…)` ;
+les compteurs de signalements viennent de `UserReportQuery.GetUserReportCountsQuery`.
+**Ordre de déploiement** : `quizup-identity` (support des filtres admin) avant le BFF — une
+identity antérieure rejette ces filtres comme champs inconnus.
 
 Le statut de compte vit dans **identity** ; le BFF expose `suspended` sur toutes les vues joueur
 (`PlayerProfileView`, `PlayerCardView`, `UserRefView`, `SuggestionView`, `TopicLeaderboardView`,

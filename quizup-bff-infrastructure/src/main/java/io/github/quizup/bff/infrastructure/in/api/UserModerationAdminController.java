@@ -6,12 +6,14 @@ import io.github.quizup.bff.infrastructure.in.api.request.ReinstateUserRequest;
 import io.github.quizup.bff.infrastructure.in.api.request.ResolveUserReportsRequest;
 import io.github.quizup.bff.infrastructure.in.api.request.SuspendUserRequest;
 import io.github.quizup.bff.infrastructure.in.api.response.AdminReportedUserSummaryView;
+import io.github.quizup.bff.infrastructure.in.api.response.AdminUserCatalogueView;
 import io.github.quizup.bff.infrastructure.in.api.response.AdminUserDetailView;
 import io.github.quizup.bff.infrastructure.in.api.response.AdminUserModerationSummaryView;
 import io.github.quizup.bff.infrastructure.in.api.response.AdminUserModerationView;
 import io.github.quizup.bff.infrastructure.in.api.response.AdminUserReportResolutionView;
 import io.github.quizup.bff.infrastructure.in.api.response.AdminUserSearchResultView;
 import io.github.quizup.bff.infrastructure.in.api.response.PageResponse;
+import io.github.quizup.identity.domain.model.AccountStatus;
 import io.github.quizup.identity.domain.model.UserReportSort;
 import io.github.quizup.identity.domain.model.UserReportStatus;
 import io.github.quizup.identity.domain.model.UserReportSummaryFilter;
@@ -63,6 +65,17 @@ public class UserModerationAdminController {
     @GetMapping("/user-reports/summary")
     public CompletableFuture<ResponseEntity<AdminUserModerationSummaryView>> summary() {
         return adminService.summary().thenApply(ResponseEntity::ok);
+    }
+
+    @GetMapping("/users")
+    public CompletableFuture<ResponseEntity<PageResponse<AdminUserCatalogueView>>> catalogue(
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) AccountStatus status,
+            @RequestParam(defaultValue = "false") boolean reportedOnly,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return adminService.catalogue(q, status, reportedOnly, safePage(page), safeSize(size))
+                .thenApply(ResponseEntity::ok);
     }
 
     @GetMapping("/users/search")

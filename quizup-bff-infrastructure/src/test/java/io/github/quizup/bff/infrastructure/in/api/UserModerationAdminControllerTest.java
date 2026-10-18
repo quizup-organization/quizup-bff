@@ -5,6 +5,7 @@ import io.github.quizup.bff.application.UserReportService;
 import io.github.quizup.bff.infrastructure.in.api.problem.BffProblemExceptionHandler;
 import io.github.quizup.bff.infrastructure.in.api.response.AdminReportedUserSummaryView;
 import io.github.quizup.bff.infrastructure.in.api.response.AdminUserAccountView;
+import io.github.quizup.bff.infrastructure.in.api.response.AdminUserCatalogueView;
 import io.github.quizup.bff.infrastructure.in.api.response.AdminUserDetailView;
 import io.github.quizup.bff.infrastructure.in.api.response.AdminUserModerationSummaryView;
 import io.github.quizup.bff.infrastructure.in.api.response.AdminUserModerationView;
@@ -85,6 +86,28 @@ class UserModerationAdminControllerTest {
         mockMvc.perform(asyncDispatch(result))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content[0].pseudonym").value("Bravo"));
+    }
+
+    @Test
+    void catalogue_returns_paged_players() throws Exception {
+        when(adminService.catalogue(eq("brav"), eq(AccountStatus.ACTIVE), eq(true), eq(0), eq(20)))
+                .thenReturn(CompletableFuture.completedFuture(PageResponse.of(List.of(
+                        new AdminUserCatalogueView(
+                                "user-2", "user2@quizup.dev", "Bravo", null,
+                                AccountStatus.ACTIVE, false, null, Instant.now(), false,
+                                0, 0, null)), 0, 20, 1)));
+
+        MvcResult result = mockMvc.perform(get("/api/admin/users")
+                        .param("q", "brav")
+                        .param("status", "ACTIVE")
+                        .param("reportedOnly", "true"))
+                .andExpect(request().asyncStarted())
+                .andReturn();
+
+        mockMvc.perform(asyncDispatch(result))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].pseudonym").value("Bravo"))
+                .andExpect(jsonPath("$.totalElements").value(1));
     }
 
     @Test

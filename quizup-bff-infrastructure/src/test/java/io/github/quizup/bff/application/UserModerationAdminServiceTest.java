@@ -5,10 +5,16 @@ import io.github.quizup.bff.infrastructure.in.api.request.SuspendUserRequest;
 import io.github.quizup.identity.domain.command.UserCommand;
 import io.github.quizup.identity.domain.model.AccountStatus;
 import io.github.quizup.identity.domain.model.User;
+import io.github.quizup.identity.domain.model.UserReportCount;
 import io.github.quizup.identity.domain.model.UserSuspension;
 import io.github.quizup.identity.domain.model.UserSuspensionReason;
 import io.github.quizup.identity.domain.query.UserQuery;
+import io.github.quizup.identity.domain.query.UserReportQuery;
 import io.github.quizup.microservice.core.domain.constant.QuizUpConstants;
+import io.github.quizup.microservice.core.infrastructure.in.api.request.FilterRequest;
+import io.github.quizup.microservice.core.infrastructure.in.api.response.SearchResponse;
+import io.github.quizup.profile.domain.model.Profile;
+import io.github.quizup.profile.domain.query.ProfileQuery;
 import org.axonframework.commandhandling.gateway.CommandGateway;
 import org.axonframework.messaging.responsetypes.ResponseType;
 import org.axonframework.queryhandling.QueryGateway;
@@ -17,6 +23,7 @@ import org.mockito.ArgumentCaptor;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
@@ -25,6 +32,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class UserModerationAdminServiceTest {
@@ -36,6 +44,53 @@ class UserModerationAdminServiceTest {
     private final UserReportService userReportService = mock(UserReportService.class);
     private final UserModerationAdminService service = new UserModerationAdminService(
             queryGateway, commandGateway, identityLookup, profileLookup, userReportService);
+
+    @Test
+    void catalogue_returns_enriched_players() {
+        User user = activeUser();
+        when(queryGateway.query(any(UserQuery.UserSearchQuery.class), any(ResponseType.class)))
+                .thenReturn(CompletableFuture.completedFuture(new SearchResponse<>(
+                        List.of(user), 0, 20, 1, 1, List.of(), true, true, false)));
+        when(profileLookup.getAll(List.of("user-2"))).thenReturn(CompletableFuture.completedFuture(
+                List.of(Profile.builder()
+                        .userId("user-2")
+                        .email("user2@quizup.dev")
+                        .pseudonym("Bravo")
+                        .avatarOptions("{}")
+                        .build())));
+        when(queryGateway.query(any(UserReportQuery.GetUserReportCountsQuery.class), any(ResponseType.class)))
+                .thenReturn(CompletableFuture.completedFuture(List.of(
+                        new UserReportCount("user-2", 1, 2, Instant.now()))));
+
+        var result = service.catalogue(null, null, false, 0, 20).join();
+
+        assertThat(result.content()).hasSize(1);
+        assertThat(result.content().getFirst().pseudonym()).isEqualTo("Bravo");
+        assertThat(result.content().getFirst().openReportCount()).isEqualTo(1);
+        assertThat(result.content().getFirst().totalReportCount()).isEqualTo(2);
+    }
+
+    @Test
+    void catalogue_maps_pseudonym_status_and_report_filters() {
+        when(queryGateway.query(any(ProfileQuery.GetProfileSuggestionsQuery.class),
+                any(ResponseType.class))).thenReturn(CompletableFuture.completedFuture(
+                List.of(Profile.builder().userId("user-2").build())));
+        when(queryGateway.query(any(UserQuery.UserSearchQuery.class), any(ResponseType.class)))
+                .thenReturn(CompletableFuture.completedFuture(new SearchResponse<>(
+                        List.of(), 0, 20, 0, 0, List.of(), true, true, true)));
+
+        service.catalogue("brav", AccountStatus.SUSPENDED, true, 0, 20).join();
+
+        ArgumentCaptor<UserQuery.UserSearchQuery> captor =
+                ArgumentCaptor.forClass(UserQuery.UserSearchQuery.class);
+        verify(queryGateway).query(captor.capture(), any(ResponseType.class));
+        var filters = captor.getValue().request().filters();
+        assertThat(filters).extracting(FilterRequest::property)
+                .containsExactly("userId", "status", "reported");
+        assertThat(filters.getFirst().values()).containsExactly("user-2");
+        assertThat(filters.get(1).value()).isEqualTo("SUSPENDED");
+        assertThat(filters.get(2).value()).isEqualTo(true);
+    }
 
     @Test
     void suspend_temporary_sendsCommandAndResolvesReports() {
