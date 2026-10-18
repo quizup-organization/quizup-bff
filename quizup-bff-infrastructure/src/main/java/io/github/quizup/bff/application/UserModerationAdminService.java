@@ -1,5 +1,6 @@
 package io.github.quizup.bff.application;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.quizup.bff.infrastructure.in.api.problem.BffProblems;
 import io.github.quizup.bff.infrastructure.in.api.request.ReinstateUserRequest;
 import io.github.quizup.bff.infrastructure.in.api.request.SuspendUserRequest;
@@ -66,17 +67,20 @@ public class UserModerationAdminService {
     private final IdentityLookup identityLookup;
     private final ProfileLookup profileLookup;
     private final UserReportService userReportService;
+    private final ObjectMapper objectMapper;
 
     public UserModerationAdminService(QueryGateway queryGateway,
                                       CommandGateway commandGateway,
                                       IdentityLookup identityLookup,
                                       ProfileLookup profileLookup,
-                                      UserReportService userReportService) {
+                                      UserReportService userReportService,
+                                      ObjectMapper objectMapper) {
         this.queryGateway = queryGateway;
         this.commandGateway = commandGateway;
         this.identityLookup = identityLookup;
         this.profileLookup = profileLookup;
         this.userReportService = userReportService;
+        this.objectMapper = objectMapper;
     }
 
     public CompletableFuture<PageResponse<AdminReportedUserSummaryView>> queue(UserReportSummaryFilter filter,
@@ -153,7 +157,7 @@ public class UserModerationAdminService {
             return queryGateway.query(
                             new UserQuery.UserSearchQuery(request),
                             QueryResponseTypes.searchResponseOf(User.class))
-                    .thenCompose(result -> enrichCatalogue(result, page, size));
+                    .thenCompose(result -> enrichCatalogue(toUserSearchResponse(result), page, size));
         });
     }
 
@@ -258,6 +262,30 @@ public class UserModerationAdminService {
                             0,
                             false));
         });
+    }
+
+    /**
+     * Le query bus distribué transporte {@link SearchResponse} avec un contenu brut
+     * ({@code LinkedHashMap}) : le type générique est perdu par le descripteur de transport.
+     * On re-matérialise les éléments avant l'enrichissement.
+     */
+    @SuppressWarnings("unchecked")
+    private SearchResponse<User> toUserSearchResponse(SearchResponse<?> source) {
+        List<User> content = source.content().stream()
+                .map(element -> element instanceof User user
+                        ? user
+                        : objectMapper.convertValue(element, User.class))
+                .toList();
+        return new SearchResponse<>(
+                content,
+                source.pageNumber(),
+                source.pageSize(),
+                source.totalElements(),
+                source.totalPages(),
+                source.sorts(),
+                source.first(),
+                source.last(),
+                source.empty());
     }
 
     private CompletableFuture<List<String>> pseudonymMatches(String term) {

@@ -1,5 +1,6 @@
 package io.github.quizup.bff.application;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.quizup.bff.infrastructure.in.api.problem.BffProblems;
 import io.github.quizup.bff.infrastructure.in.api.request.SuspendUserRequest;
 import io.github.quizup.identity.domain.command.UserCommand;
@@ -24,6 +25,7 @@ import org.mockito.ArgumentCaptor;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
@@ -42,8 +44,9 @@ class UserModerationAdminServiceTest {
     private final IdentityLookup identityLookup = mock(IdentityLookup.class);
     private final ProfileLookup profileLookup = mock(ProfileLookup.class);
     private final UserReportService userReportService = mock(UserReportService.class);
+    private final ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
     private final UserModerationAdminService service = new UserModerationAdminService(
-            queryGateway, commandGateway, identityLookup, profileLookup, userReportService);
+            queryGateway, commandGateway, identityLookup, profileLookup, userReportService, objectMapper);
 
     @Test
     void catalogue_returns_enriched_players() {
@@ -68,6 +71,33 @@ class UserModerationAdminServiceTest {
         assertThat(result.content().getFirst().pseudonym()).isEqualTo("Bravo");
         assertThat(result.content().getFirst().openReportCount()).isEqualTo(1);
         assertThat(result.content().getFirst().totalReportCount()).isEqualTo(2);
+    }
+
+    @Test
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    void catalogue_materializes_map_content_from_distributed_query() {
+        Instant createdAt = Instant.parse("2026-10-18T12:00:00Z");
+        SearchResponse raw = new SearchResponse(
+                List.of(Map.of(
+                        "userId", "user-2",
+                        "email", "user2@quizup.dev",
+                        "linkedSocialAccounts", List.of(),
+                        "createdAt", createdAt.toString(),
+                        "status", "ACTIVE")),
+                0, 20, 1, 1, List.of(), true, true, false);
+        when(queryGateway.query(any(UserQuery.UserSearchQuery.class), any(ResponseType.class)))
+                .thenReturn(CompletableFuture.completedFuture(raw));
+        when(profileLookup.getAll(List.of("user-2"))).thenReturn(CompletableFuture.completedFuture(
+                List.of(Profile.builder().userId("user-2").pseudonym("Bravo").build())));
+        when(queryGateway.query(any(UserReportQuery.GetUserReportCountsQuery.class), any(ResponseType.class)))
+                .thenReturn(CompletableFuture.completedFuture(List.of()));
+
+        var result = service.catalogue(null, null, false, 0, 20).join();
+
+        assertThat(result.content()).hasSize(1);
+        assertThat(result.content().getFirst().userId()).isEqualTo("user-2");
+        assertThat(result.content().getFirst().createdAt()).isEqualTo(createdAt);
+        assertThat(result.content().getFirst().pseudonym()).isEqualTo("Bravo");
     }
 
     @Test

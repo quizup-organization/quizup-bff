@@ -230,7 +230,9 @@ Admin (`ROLE_ADMIN`, `/api/admin/**`) :
 | `POST /api/admin/users/{userId}/reports/resolve` | `200` | résolution en masse |
 
 Le catalogue s'appuie sur `UserQuery.UserSearchQuery` (read model identity, pagination exacte) ;
-les filtres admin `status` et `reported` sont interprétés par l'adaptateur de lecture d'identity
+le contenu de `SearchResponse` est re-matérialisé côté BFF (le query bus distribué le transporte
+en `LinkedHashMap`) avant enrichissement. Les filtres admin `status` et `reported` sont interprétés
+par l'adaptateur de lecture d'identity
 (suspension **effective** — échéance dépassée = actif — et signalements ouverts). Le pseudonyme
 est résolu via `ProfileQuery.GetProfileSuggestionsQuery`, puis filtré par `userId IN (…)` ;
 les compteurs de signalements viennent de `UserReportQuery.GetUserReportCountsQuery`.
