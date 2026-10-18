@@ -125,9 +125,11 @@ public class ProfileViewService {
     }
 
     /**
-     * Titres thématiques débloqués par un joueur : un titre par sujet avec **au moins une partie
-     * humaine terminée** (abandon inclus, entraînement bot exclu) — le grade d'entrée Novice
-     * compris même à 0 XP —, plus la clé de son **titre porté**. Le libellé est composé par le
+     * Titres thématiques débloqués par un joueur : **tous les grades atteints** de chaque sujet
+     * avec **au moins une partie humaine terminée** (abandon inclus, entraînement bot exclu) — le
+     * grade d'entrée Novice compris même à 0 XP —, plus la clé de son **titre porté**. Un joueur
+     * peut équiper un grade dépassé (ex. Novice alors qu'il est Apprenti) : la vue doit donc
+     * exposer chaque grade atteint, pas seulement le grade courant. Le libellé est composé par le
      * client (grade traduit + nom du sujet dans sa langue) — le serveur ne fige pas de texte.
      */
     public CompletableFuture<TitlesView> titles(String userId) {
@@ -150,8 +152,14 @@ public class ProfileViewService {
                 Map<String, Topic> topicById = topics.stream().collect(Collectors.toMap(
                         Topic::topicId, Function.identity(), (left, right) -> left));
                 List<TitlesView.TitleView> titles = earnedTopicIds.stream()
-                        .map(topicId -> toTitle(topicId, progress.xpForTopic(topicId),
-                                topicById.get(topicId)))
+                        .flatMap(topicId -> {
+                            int topicXp = progress.xpForTopic(topicId);
+                            MasteryGrade current = MasteryGrade.gradeFor(topicXp);
+                            Topic topic = topicById.get(topicId);
+                            return Arrays.stream(MasteryGrade.values())
+                                    .filter(grade -> grade.ordinal() <= current.ordinal())
+                                    .map(grade -> toTitle(topicId, topicXp, grade, topic));
+                        })
                         .sorted(Comparator
                                 .comparing((TitlesView.TitleView title) -> MasteryGrade.valueOf(title.grade()))
                                 .reversed()
@@ -224,7 +232,8 @@ public class ProfileViewService {
         };
     }
 
-    private static TitlesView.TitleView toTitle(String topicId, int topicXp, Topic topic) {        MasteryGrade grade = MasteryGrade.gradeFor(topicXp);
+    private static TitlesView.TitleView toTitle(String topicId, int topicXp,
+                                                 MasteryGrade grade, Topic topic) {
         return new TitlesView.TitleView(
                 new PlayerTitle(topicId, grade).key(),
                 topicId,

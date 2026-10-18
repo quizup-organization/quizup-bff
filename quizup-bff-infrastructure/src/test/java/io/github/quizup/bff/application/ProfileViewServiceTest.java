@@ -107,15 +107,54 @@ class ProfileViewServiceTest {
 
         assertThat(view.equippedKey()).isEqualTo("topic-2:EXPERT");
         assertThat(view.titles()).extracting(TitlesView.TitleView::key)
-                .containsExactly("topic-2:EXPERT", "topic-1:CONFIRME", "topic-3:NOVICE");
+                .containsExactly(
+                        "topic-2:EXPERT",
+                        "topic-1:CONFIRME", "topic-2:CONFIRME",
+                        "topic-1:PRATIQUANT", "topic-2:PRATIQUANT",
+                        "topic-1:APPRENTI", "topic-2:APPRENTI",
+                        "topic-3:NOVICE", "topic-1:NOVICE", "topic-2:NOVICE");
         assertThat(view.titles()).extracting(TitlesView.TitleView::grade)
-                .containsExactly("EXPERT", "CONFIRME", "NOVICE");
+                .containsExactly(
+                        "EXPERT",
+                        "CONFIRME", "CONFIRME",
+                        "PRATIQUANT", "PRATIQUANT",
+                        "APPRENTI", "APPRENTI",
+                        "NOVICE", "NOVICE", "NOVICE");
         assertThat(view.titles()).extracting(TitlesView.TitleView::rank)
-                .containsExactly("PLATINE", "OR", "FER");
+                .containsExactly(
+                        "PLATINE",
+                        "OR", "OR",
+                        "ARGENT", "ARGENT",
+                        "BRONZE", "BRONZE",
+                        "FER", "FER", "FER");
         assertThat(view.titles().get(0).topic().names()).containsEntry(Language.FR, "Java");
         // Le grade d'entrée porte sa progression réelle (120 / 300 XP avant Apprenti).
-        assertThat(view.titles().get(2).nextGrade()).isEqualTo("APPRENTI");
-        assertThat(view.titles().get(2).gradeRemainingXp()).isEqualTo(180);
+        assertThat(view.titles().get(7).nextGrade()).isEqualTo("APPRENTI");
+        assertThat(view.titles().get(7).gradeRemainingXp()).isEqualTo(180);
+    }
+
+    @Test
+    void titles_include_a_lower_grade_that_is_still_equipped() {
+        when(profileLookup.get("user-1")).thenReturn(CompletableFuture.completedFuture(
+                Profile.builder().userId("user-1").equippedTitle("topic-2:APPRENTI").build()));
+        when(progressionLookup.get("user-1")).thenReturn(CompletableFuture.completedFuture(
+                PlayerProgress.empty("user-1").toBuilder()
+                        .xpByTopic(Map.of("topic-2", 6_000)) // grade courant : Expert
+                        .gamesByTopic(Map.of("topic-2", 1))
+                        .build()));
+        when(queryGateway.query(
+                any(TopicQuery.GetTopicsByIdsQuery.class),
+                ArgumentMatchers.<ResponseType<List<Topic>>>any()))
+                .thenReturn(CompletableFuture.completedFuture(List.of(
+                        Topic.builder().topicId("topic-2").names(Map.of(Language.FR, "Java")).build())));
+
+        TitlesView view = service.titles("user-1").join();
+
+        // Le titre porté peut être un grade dépassé : il doit rester résolvable par le client.
+        assertThat(view.equippedKey()).isEqualTo("topic-2:APPRENTI");
+        assertThat(view.titles()).extracting(TitlesView.TitleView::key)
+                .contains("topic-2:APPRENTI", "topic-2:EXPERT");
+        assertThat(view.titles()).hasSize(5);
     }
 
     @Test
