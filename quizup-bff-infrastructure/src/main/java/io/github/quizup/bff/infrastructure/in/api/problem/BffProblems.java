@@ -33,6 +33,17 @@ public final class BffProblems {
         }
     }
 
+    /** Le lecteur n'est pas l'un des deux joueurs de la partie (résultat / revue privés). */
+    public static class GameAccessDeniedProblem extends BaseProblem {
+        public GameAccessDeniedProblem(String gameId) {
+            super("urn:quizup:bff:game:accessDenied",
+                    ProblemCategory.PERMISSION,
+                    "Game access denied",
+                    "Only the two players of the game can access its result",
+                    Map.of("gameId", gameId));
+        }
+    }
+
     public static class InvalidTopicListRequestProblem extends BaseProblem {
         public InvalidTopicListRequestProblem(String detail) {
             super("urn:quizup:bff:topic:invalidListRequest",

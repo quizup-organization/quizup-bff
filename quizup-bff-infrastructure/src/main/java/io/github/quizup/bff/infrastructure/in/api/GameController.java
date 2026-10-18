@@ -8,12 +8,9 @@ import io.github.quizup.bff.infrastructure.in.api.response.EventEnvelopeResponse
 import io.github.quizup.bff.infrastructure.in.api.response.GameResultView;
 import io.github.quizup.bff.infrastructure.out.messaging.mapper.GameEventNotificationMapper;
 import io.github.quizup.game.domain.event.GameEvent;
-import io.github.quizup.game.domain.query.GameQuery;
 import io.github.quizup.microservice.core.domain.model.notification.EventEnvelope;
-import io.github.quizup.microservice.core.infrastructure.axon.QueryResponseTypes;
 import io.github.quizup.microservice.security.SecurityHelper;
 import jakarta.validation.Valid;
-import org.axonframework.queryhandling.QueryGateway;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -36,11 +33,9 @@ import java.util.concurrent.CompletableFuture;
 public class GameController {
 
     private final GameViewService gameViewService;
-    private final QueryGateway queryGateway;
 
-    public GameController(GameViewService gameViewService, QueryGateway queryGateway) {
+    public GameController(GameViewService gameViewService) {
         this.gameViewService = gameViewService;
-        this.queryGateway = queryGateway;
     }
 
     /**
@@ -97,9 +92,8 @@ public class GameController {
     @GetMapping("/{gameId}/notifications")
     public CompletableFuture<ResponseEntity<List<EventEnvelopeResponse>>> notifications(
             @PathVariable String gameId) {
-        return queryGateway
-                .query(new GameQuery.GetGameEventsQuery(gameId),
-                        QueryResponseTypes.multipleInstancesOf(EventEnvelope.class))
+        return gameViewService
+                .events(gameId, SecurityHelper.getUserId())
                 .thenApply(envelopes -> envelopes.stream()
                         .map(GameController::toResponse)
                         .flatMap(Optional::stream)

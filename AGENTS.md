@@ -31,8 +31,9 @@
 **Package** : `io.github.quizup.bff` · **Port** : `8092` (local) / `8080` (prod) · **DB** : `quizup_bff`
 
 Le `quizup-mobile` est **partiellement** branché sur cette surface : auth native via
-`quizup-identity`, `GET /api/me` et `GET /api/home` ; les autres écrans restent sur l'ancienne
-surface et sont migrés lot par lot.
+`quizup-identity`, `GET /api/me`, `GET /api/home` et l'édition du profil
+(`PUT /api/profiles/{id}/pseudonym|bio|country|language`) ; les autres écrans restent sur
+l'ancienne surface et sont migrés lot par lot.
 
 ---
 
@@ -295,7 +296,7 @@ de sujet, illustration de question, bannière de profil) : objet référencé �
 
 | Endpoint | Réponse | Notes |
 |---|---|---|
-| `GET /api/profiles/{userId}` | `PlayerProfileView` | Profil + progression + stats + counts + présence + `follow` + `isMe` + `equippedTitle` (clé du titre porté, `null` si aucun) |
+| `GET /api/profiles/{userId}` | `PlayerProfileView` | Profil + progression + stats + counts + présence + `follow` + `isMe` + `equippedTitle` (clé du titre porté, `null` si aucun) + `bot`. Le compte système bot (`QuizUpConstants.SYSTEM_USER_ID`) reçoit une identité **minimale** (`bot=true`, avatar/nom, progression/stats à zéro, aucun pays/présence/social) : la fiche web se réduit à l'avatar et au nom |
 | `GET /api/profiles/{userId}/badges` | `BadgeCollectionView` | **Collection** : tout le catalogue groupé par famille — **13 familles, une seule échelle (métrique) par famille**, **7 paliers** (Fer → Diamant) : `VOLUME` = duels joués, **`VICTORY`** = duels gagnés, `MASTERY`, `EXPLOIT` = exploits ponctuels, `SERIES`, `ASSIDUITY`, `SOCIAL`, `CHALLENGES`, `VISION`, `PRECISION`, `SPEED`, `EXPLORATION`, `COLLECTION` ; chaque badge avec `code`, `label`, `tier`, `metric`, `target`, `earned` et `progress` (compteur courant **plafonné** à `target` : « 7/10 »). Les compteurs viennent du read model de progression (`gamesPlayed`, `wins`, `max(xpByTopic)`, `badges`, fait ponctuel) — aucune requête supplémentaire |
 | `GET /api/profiles/{userId}/titles` | `TitlesView` | Titres thématiques **débloqués** (**tous les grades atteints** de chaque sujet avec **au moins une partie humaine terminée**, abandon inclus ; entraînement bot exclu — grade d'entrée **Novice compris même à 0 XP**) + `equippedKey` : `key` (`topicId:GRADE`), `grade`, **`rank`** (`FER`…`DIAMANT`), `gradeProgressPercent`, `gradeRemainingXp`, `nextGrade`, `topic` (`TopicRefView`). Un titre porté sur un grade inférieur au grade courant reste donc exposé et résolvable. Le libellé est composé par le client (grade traduit + `topic.names`) — aucun texte figé côté serveur |
 | `PUT /api/profiles/{userId}/title` | `204` | Titre **porté** : `{ titleKey }` (`topicId:GRADE`) ou `null` pour n'en afficher aucun. Propriétaire uniquement (invariant d'agrégat, 403) ; titre **réellement débloqué** exigé — la progression est lue avant l'envoi et un **sujet sans partie humaine terminée** ou un grade insuffisant répond `400` (`urn:quizup:bff:profile:titleNotEarned`), une clé mal formée `400` (`…:invalidTitle`) |
@@ -305,7 +306,7 @@ de sujet, illustration de question, bannière de profil) : objet référencé �
 | `DELETE /api/profiles/{userId}/follow` | `204` | |
 | `GET /api/profiles/{userId}/games?topicId=&opponentId=&opponentType=&outcome=&sort=&page=&size=` | `PageResponse<GameHistoryItemView>` | Historique enrichi (adversaire, sujet, résultat, XP). Filtres optionnels : `topicId`, `opponentId`, `opponentType` ∈ `HUMAN\|BOT` (isole les entraînements), `outcome` ∈ `ALL\|WIN\|LOSS\|DRAW\|IN_PROGRESS\|CANCELLED` (**relatif au joueur consulté** : `WIN`/`LOSS` se lisent sur le vainqueur). `sort` ∈ `RECENT\|OLDEST\|SCORE` (défaut `RECENT` ; `SCORE` = meilleur score du joueur consulté). Filtres et tri sont appliqués **côté service game** — la pagination reste exacte. Fiche sujet / « Tes duels contre X » passent le scope par `topicId` / `opponentId` |
 | `GET /api/profiles/{userId}/topics` | `List<TopicStatView>` | Répartition des **parties humaines** par sujet (donut « Sujets joués ») : `names`, `emoji`, `color`, `imageUrl`, `games`, `xp`, `level` ; tri par parties décroissantes, sujets supprimés ignorés |
-| `GET /api/profiles/{userId}/head-to-head?against=` | `HeadToHeadView` | V/N/D entre deux joueurs |
+| `GET /api/profiles/{userId}/head-to-head?against=` | `HeadToHeadView` | V/N/D des duels communs **du point de vue de `userId`** ; la fiche d'un autre joueur appelle `userId = viewer` et `against = joueur consulté` |
 | `PUT /api/profiles/{userId}/pseudonym` | `204` | `{ pseudonym }` |
 | `PUT /api/profiles/{userId}/bio` | `204` | `{ bio }` (`null` efface) |
 | `PUT /api/profiles/{userId}/country` | `204` | `{ country }` (`null` efface) |
@@ -411,8 +412,8 @@ invitations d'un même défi et les **relances** d'une même salle. Configuratio
 | `POST /api/games/{gameId}/answer` | `200` | Body `{ choice }` |
 | `POST /api/games/{gameId}/abandon` | `200` | Forfait en cours (`ForfeitGameCommand`) — l'adversaire gagne |
 | `POST /api/games/{gameId}/cancel` | `200` | Annulation avant démarrage |
-| `GET /api/games/{gameId}/result` | `GameResultView` | Résultat après `GAME_ENDED` : scores, détail (`basePoints`, `speedBonus`, `correctAnswers`…), `reward` XP de la partie (`null` tant que la projection n'est pas disponible ; `{ xp: 0, victoryBonus: 0 }` pour un **entraînement** — duel bot, sans XP), progression **à l'instant de la partie** (snapshot `game` + XP gagnée), `opponentLevel/Title` et **enrichissements autosuffisants** : `topic`, `opponent`, `opponentId`, `botDifficulty` (la page web ne fait qu'un GET + l'historique de revue) |
-| `GET /api/games/{gameId}/notifications` | `List<EventEnvelopeResponse>` (payload `GameNotification`) | Même contrat que le push WS |
+| `GET /api/games/{gameId}/result` | `GameResultView` | Résultat après `GAME_ENDED` : scores, détail (`basePoints`, `speedBonus`, `correctAnswers`…), `reward` XP de la partie (`null` tant que la projection n'est pas disponible ; `{ xp: 0, victoryBonus: 0 }` pour un **entraînement** — duel bot, sans XP), progression **à l'instant de la partie** (snapshot `game` + XP gagnée), `opponentLevel/Title` et **enrichissements autosuffisants** : `topic`, `opponent`, `opponentId`, `botDifficulty` (la page web ne fait qu'un GET + l'historique de revue). **Privé** : le viewer doit être l'un des deux joueurs, sinon `403 urn:quizup:bff:game:accessDenied` (garde BFF via `GetGameByIdQuery`, sans changer le contrat game) |
+| `GET /api/games/{gameId}/notifications` | `List<EventEnvelopeResponse>` (payload `GameNotification`) | Même contrat que le push WS. **Privé** : même garde participant que `/result` (`GameViewService.events`), aucun historique de partie pour un tiers |
 
 ---
 

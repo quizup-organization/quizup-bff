@@ -1,8 +1,10 @@
 package io.github.quizup.bff.application;
 
 import io.github.quizup.bff.infrastructure.in.api.response.BadgeCollectionView;
+import io.github.quizup.bff.infrastructure.in.api.response.PlayerProfileView;
 import io.github.quizup.bff.infrastructure.in.api.response.TitlesView;
 import io.github.quizup.bff.infrastructure.in.api.response.TopicStatView;
+import io.github.quizup.microservice.core.domain.constant.QuizUpConstants;
 import io.github.quizup.microservice.core.domain.model.i18n.Language;
 import io.github.quizup.profile.domain.model.Badge;
 import io.github.quizup.profile.domain.model.PlayerProgress;
@@ -251,6 +253,28 @@ class ProfileViewServiceTest {
 
         // Vision : bonnes réponses cumulées sur les questions illustrées.
         assertThat(item(view, Badge.VISION_ARGENT).progress()).isEqualTo(20);
+    }
+
+    @Test
+    void bot_profile_exposes_only_minimal_identity() {
+        when(profileLookup.get(QuizUpConstants.SYSTEM_USER_ID)).thenReturn(
+                CompletableFuture.completedFuture(Profile.builder()
+                        .userId(QuizUpConstants.SYSTEM_USER_ID)
+                        .pseudonym("QuizMeUp Bot")
+                        .build()));
+
+        PlayerProfileView view = service.profileView("user-1", QuizUpConstants.SYSTEM_USER_ID).join();
+
+        assertThat(view.bot()).isTrue();
+        assertThat(view.pseudonym()).isEqualTo("QuizMeUp Bot");
+        assertThat(view.bio()).isNull();
+        assertThat(view.country()).isNull();
+        assertThat(view.presence()).isNull();
+        assertThat(view.stats().played()).isZero();
+        assertThat(view.followersCount()).isZero();
+        assertThat(view.followingCount()).isZero();
+        assertThat(view.suspended()).isFalse();
+        assertThat(view.progression().level()).isEqualTo(1);
     }
 
     private static BadgeCollectionView.BadgeItemView item(BadgeCollectionView view, Badge badge) {

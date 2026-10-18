@@ -2,6 +2,7 @@ package io.github.quizup.bff.application;
 
 import io.github.quizup.bff.infrastructure.in.api.request.PeopleSort;
 import io.github.quizup.bff.infrastructure.in.api.response.BadgeCollectionView;
+import io.github.quizup.bff.infrastructure.in.api.response.DuelStatsView;
 import io.github.quizup.bff.infrastructure.in.api.response.GameHistoryItemView;
 import io.github.quizup.bff.infrastructure.in.api.response.HeadToHeadView;
 import io.github.quizup.bff.infrastructure.in.api.response.PageResponse;
@@ -21,6 +22,7 @@ import io.github.quizup.game.domain.model.GameStatus;
 import io.github.quizup.game.domain.model.PlayerGamesPage;
 import io.github.quizup.game.domain.query.GameQuery;
 import io.github.quizup.identity.domain.model.UserAccountStatus;
+import io.github.quizup.microservice.core.domain.constant.QuizUpConstants;
 import io.github.quizup.microservice.core.domain.model.i18n.Language;
 import io.github.quizup.microservice.core.infrastructure.axon.QueryResponseTypes;
 import io.github.quizup.profile.domain.model.Badge;
@@ -32,6 +34,7 @@ import io.github.quizup.profile.domain.model.PlayerPresence;
 import io.github.quizup.profile.domain.model.PlayerProgress;
 import io.github.quizup.profile.domain.model.PlayerTitle;
 import io.github.quizup.profile.domain.model.Profile;
+import io.github.quizup.profile.domain.model.ProgressionRules;
 import io.github.quizup.profile.domain.model.TopicProgress;
 import io.github.quizup.profile.domain.query.PresenceQuery;
 import io.github.quizup.profile.domain.query.ProgressionQuery;
@@ -88,6 +91,28 @@ public class ProfileViewService {
     }
 
     public CompletableFuture<PlayerProfileView> profileView(String viewerId, String userId) {
+        // Compte système bot : identité minimale uniquement, aucune information de progression,
+        // de statistiques ou de social n'est exposée.
+        if (QuizUpConstants.SYSTEM_USER_ID.equals(userId)) {
+            return profileLookup.get(userId).thenApply(profile -> new PlayerProfileView(
+                    profile.userId(),
+                    profile.pseudonym(),
+                    null,
+                    null,
+                    profile.avatarOptions(),
+                    null,
+                    null,
+                    false,
+                    false,
+                    null,
+                    new ProgressionView(0, 1, ProgressionRules.titleFor(1),
+                            ProgressionRules.xpForNextLevel(1), 0, List.of()),
+                    new DuelStatsView(0, 0, 0, 0, 0, 0, 0, 0),
+                    0,
+                    0,
+                    false,
+                    true));
+        }
         CompletableFuture<Profile> profileFuture = profileLookup.get(userId);
         CompletableFuture<PlayerProgress> progressFuture = progressionLookup.get(userId);
         CompletableFuture<UserFollowCounts> countsFuture = followLookup.userCounts(userId);
@@ -123,7 +148,8 @@ public class ProfileViewService {
                             ProgressionViews.toStats(progress),
                             counts.followers(),
                             counts.following(),
-                            status != null && status.suspended(Instant.now()));
+                            status != null && status.suspended(Instant.now()),
+                            false);
                 });
     }
 

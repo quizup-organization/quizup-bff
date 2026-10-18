@@ -19,6 +19,8 @@ public record PlayerProfileView(
         DuelStatsView stats,
         long followersCount,
         long followingCount,
-        boolean suspended
+        boolean suspended,
+        /** Compte système bot : la fiche web se limite à l'avatar et au nom. */
+        boolean bot
 ) {
 }

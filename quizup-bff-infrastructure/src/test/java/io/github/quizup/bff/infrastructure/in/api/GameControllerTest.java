@@ -2,6 +2,7 @@ package io.github.quizup.bff.infrastructure.in.api;
 
 import io.github.quizup.bff.application.GameViewService;
 import io.github.quizup.bff.infrastructure.in.api.problem.BffProblemExceptionHandler;
+import io.github.quizup.bff.infrastructure.in.api.problem.BffProblems;
 import io.github.quizup.bff.infrastructure.in.api.response.ActiveGameView;
 import io.github.quizup.bff.infrastructure.in.api.response.GameResultView;
 import io.github.quizup.bff.infrastructure.in.api.response.TopicRefView;
@@ -9,7 +10,6 @@ import io.github.quizup.bff.infrastructure.in.api.response.UserRefView;
 import io.github.quizup.game.domain.model.GamePlayerType;
 import io.github.quizup.game.domain.model.GameQuestionChoice;
 import io.github.quizup.game.domain.model.GameStatus;
-import org.axonframework.queryhandling.QueryGateway;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -37,12 +37,11 @@ class GameControllerTest {
     private static final String USER_ID = "user-1";
 
     private final GameViewService gameViewService = mock(GameViewService.class);
-    private final QueryGateway queryGateway = mock(QueryGateway.class);
     private MockMvc mockMvc;
 
     @BeforeEach
     void setUp() {
-        mockMvc = MockMvcBuilders.standaloneSetup(new GameController(gameViewService, queryGateway))
+        mockMvc = MockMvcBuilders.standaloneSetup(new GameController(gameViewService))
                 .setControllerAdvice(new BffProblemExceptionHandler())
                 .build();
         TestSecurity.authenticate(USER_ID);
@@ -162,5 +161,36 @@ class GameControllerTest {
                 .andExpect(jsonPath("$.opponentId").value("opponent-1"))
                 .andExpect(jsonPath("$.topic.topicId").value("topic-1"));
         verify(gameViewService).result("game-1", USER_ID);
+    }
+
+    @Test
+    void result_returns_forbidden_for_a_non_participant() throws Exception {
+        when(gameViewService.result("game-1", USER_ID))
+                .thenReturn(CompletableFuture.failedFuture(
+                        new BffProblems.GameAccessDeniedProblem("game-1")));
+
+        MvcResult mvcResult = mockMvc.perform(get("/api/games/game-1/result"))
+                .andExpect(request().asyncStarted())
+                .andReturn();
+
+        mockMvc.perform(asyncDispatch(mvcResult))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.type").value("urn:quizup:bff:game:accessDenied"));
+    }
+
+    @Test
+    void notifications_are_scoped_to_the_current_user() throws Exception {
+        when(gameViewService.events("game-1", USER_ID))
+                .thenReturn(CompletableFuture.completedFuture(List.of()));
+
+        MvcResult mvcResult = mockMvc.perform(get("/api/games/game-1/notifications"))
+                .andExpect(request().asyncStarted())
+                .andReturn();
+
+        mockMvc.perform(asyncDispatch(mvcResult))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray())
+                .andExpect(jsonPath("$").isEmpty());
+        verify(gameViewService).events("game-1", USER_ID);
     }
 }

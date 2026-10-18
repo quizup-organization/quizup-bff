@@ -1,8 +1,11 @@
 package io.github.quizup.bff.application;
 
+import io.github.quizup.bff.infrastructure.in.api.problem.BffProblems;
 import io.github.quizup.bff.infrastructure.in.api.response.GameResultView;
+import io.github.quizup.game.domain.model.Game;
 import io.github.quizup.game.domain.model.GameResult;
 import io.github.quizup.game.domain.query.GameQuery;
+import io.github.quizup.microservice.core.domain.model.notification.EventEnvelope;
 import io.github.quizup.profile.domain.model.GameXp;
 import io.github.quizup.profile.domain.model.ProgressionRules;
 import io.github.quizup.profile.domain.query.ProgressionQuery;
@@ -16,8 +19,10 @@ import org.mockito.ArgumentMatchers;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -85,7 +90,42 @@ class GameViewServiceTest {
         assertThat(view.reward()).isEqualTo(new GameResultView.RewardView(0, 0));
     }
 
+    @Test
+    void result_rejects_a_non_participant() {
+        GameResult result = gameResult(120, 90);
+        when(queryGateway.query(
+                any(GameQuery.GetGameByIdQuery.class),
+                ArgumentMatchers.<ResponseType<Game>>any()))
+                .thenReturn(CompletableFuture.completedFuture(game(result)));
+
+        assertThatThrownBy(() -> service.result("game-1", "intruder").join())
+                .isInstanceOf(CompletionException.class)
+                .hasCauseInstanceOf(BffProblems.GameAccessDeniedProblem.class);
+    }
+
+    @Test
+    void events_are_reserved_to_participants() {
+        GameResult result = gameResult(120, 90);
+        when(queryGateway.query(
+                any(GameQuery.GetGameByIdQuery.class),
+                ArgumentMatchers.<ResponseType<Game>>any()))
+                .thenReturn(CompletableFuture.completedFuture(game(result)));
+        when(queryGateway.query(
+                any(GameQuery.GetGameEventsQuery.class),
+                ArgumentMatchers.<ResponseType<List<EventEnvelope>>>any()))
+                .thenReturn(CompletableFuture.completedFuture(List.of()));
+
+        assertThat(service.events("game-1", "player-1").join()).isEmpty();
+        assertThatThrownBy(() -> service.events("game-1", "intruder").join())
+                .isInstanceOf(CompletionException.class)
+                .hasCauseInstanceOf(BffProblems.GameAccessDeniedProblem.class);
+    }
+
     private void stubResult(GameResult result, List<GameXp> xp) {
+        when(queryGateway.query(
+                any(GameQuery.GetGameByIdQuery.class),
+                ArgumentMatchers.<ResponseType<Game>>any()))
+                .thenReturn(CompletableFuture.completedFuture(game(result)));
         when(queryGateway.query(
                 any(GameQuery.GetGameResultQuery.class),
                 ArgumentMatchers.<ResponseType<GameResult>>any()))
@@ -102,6 +142,15 @@ class GameViewServiceTest {
         when(identityLookup.status(any())).thenReturn(CompletableFuture.completedFuture(
                 new io.github.quizup.identity.domain.model.UserAccountStatus(
                         "player-2", io.github.quizup.identity.domain.model.AccountStatus.ACTIVE, null)));
+    }
+
+    private static Game game(GameResult result) {
+        return Game.builder()
+                .gameId(result.gameId())
+                .topicId(result.topicId())
+                .player1Id(result.player1Id())
+                .player2Id(result.player2Id())
+                .build();
     }
 
     private static GameResult gameResult(int myScore, int opponentScore) {

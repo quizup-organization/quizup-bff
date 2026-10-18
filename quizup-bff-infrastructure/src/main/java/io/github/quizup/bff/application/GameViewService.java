@@ -1,5 +1,6 @@
 package io.github.quizup.bff.application;
 
+import io.github.quizup.bff.infrastructure.in.api.problem.BffProblems;
 import io.github.quizup.bff.infrastructure.in.api.response.ActiveGameView;
 import io.github.quizup.bff.infrastructure.in.api.response.GameResultView;
 import io.github.quizup.bff.infrastructure.in.api.response.TopicRefView;
@@ -11,6 +12,7 @@ import io.github.quizup.game.domain.model.GameQuestionChoice;
 import io.github.quizup.game.domain.model.GameResult;
 import io.github.quizup.game.domain.query.GameQuery;
 import io.github.quizup.identity.domain.model.UserAccountStatus;
+import io.github.quizup.microservice.core.domain.model.notification.EventEnvelope;
 import io.github.quizup.microservice.core.infrastructure.axon.QueryResponseTypes;
 import io.github.quizup.profile.domain.model.GameXp;
 import io.github.quizup.profile.domain.model.ProgressionRules;
@@ -149,10 +151,41 @@ public class GameViewService {
      * Résultat détaillé d'une partie terminée pour le joueur courant, enrichi de la récompense
      * XP de cette partie ({@code null} tant que la projection n'est pas disponible) et de la
      * progression <b>à l'instant de la partie</b> : snapshot de progression porté par l'agrégat
-     * game (niveau/XP à la création) + XP gagnée sur ce duel. La partie doit exister et le joueur
-     * en faire partie, sinon le service game répond un {@code Problem} métier.
+     * game (niveau/XP à la création) + XP gagnée sur ce duel. Le résultat est **privé** : la
+     * partie doit exister et le lecteur doit en être l'un des deux joueurs (403 sinon).
      */
     public CompletableFuture<GameResultView> result(String gameId, String playerId) {
+        return requireParticipant(gameId, playerId)
+                .thenCompose(_ -> composeResult(gameId, playerId));
+    }
+
+    /** Historique d'événements d'une partie — réservé à ses deux joueurs (REST et revue). */
+    public CompletableFuture<List<EventEnvelope>> events(String gameId, String playerId) {
+        return requireParticipant(gameId, playerId)
+                .thenCompose(_ -> queryGateway.query(
+                        new GameQuery.GetGameEventsQuery(gameId),
+                        QueryResponseTypes.multipleInstancesOf(EventEnvelope.class)));
+    }
+
+    /**
+     * Vérifie que le lecteur est l'un des deux joueurs. La partie inexistante remonte le
+     * {@code GameNotFoundProblem} du service game (404) ; un tiers reçoit un 403 BFF explicite.
+     */
+    private CompletableFuture<Game> requireParticipant(String gameId, String playerId) {
+        return queryGateway.query(
+                        new GameQuery.GetGameByIdQuery(gameId),
+                        QueryResponseTypes.instanceOf(Game.class))
+                .thenCompose(game -> {
+                    boolean participant = playerId.equals(game.player1Id())
+                            || playerId.equals(game.player2Id());
+                    return participant
+                            ? CompletableFuture.completedFuture(game)
+                            : CompletableFuture.failedFuture(
+                                    new BffProblems.GameAccessDeniedProblem(gameId));
+                });
+    }
+
+    private CompletableFuture<GameResultView> composeResult(String gameId, String playerId) {
         CompletableFuture<GameResult> resultFuture = queryGateway.query(
                 new GameQuery.GetGameResultQuery(gameId, playerId),
                 QueryResponseTypes.instanceOf(GameResult.class));
