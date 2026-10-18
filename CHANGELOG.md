@@ -1,3 +1,9 @@
+## [11.34.0](https://github.com/quizup-organization/quizup-bff/compare/v11.33.0...v11.34.0) (2026-10-18)
+
+### Features
+
+* **bff:** expose admin player catalogue ([fa1dc41](https://github.com/quizup-organization/quizup-bff/commit/fa1dc4198f740ecfd40f6d3a9a97563418373f23))
+
 ## [11.33.0](https://github.com/quizup-organization/quizup-bff/compare/v11.32.2...v11.33.0) (2026-10-18)
 
 ### Features
