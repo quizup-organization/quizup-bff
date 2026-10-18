@@ -30,7 +30,9 @@
 
 **Package** : `io.github.quizup.bff` · **Port** : `8092` (local) / `8080` (prod) · **DB** : `quizup_bff`
 
-Le `quizup-mobile` n'est **pas** branché sur cette surface (migration dédiée ultérieure).
+Le `quizup-mobile` est **partiellement** branché sur cette surface : auth native via
+`quizup-identity`, `GET /api/me` et `GET /api/home` ; les autres écrans restent sur l'ancienne
+surface et sont migrés lot par lot.
 
 ---
 
