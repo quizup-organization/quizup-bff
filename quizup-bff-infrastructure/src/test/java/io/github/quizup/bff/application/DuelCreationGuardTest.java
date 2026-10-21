@@ -24,8 +24,9 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 /**
- * Règles anti-spam : unicité symétrique (joueur + joueur + sujet), un salon créé par sujet, et
- * quotas des intentions <b>créées</b> par le joueur.
+ * Règles anti-spam : unicité symétrique (joueur + joueur + sujet), un salon privé/partagé créé
+ * par sujet, et quotas des intentions <b>créées</b> par le joueur. Les salons bot ont leur
+ * propre quota et ne bloquent jamais un salon privé (ni l'inverse).
  */
 class DuelCreationGuardTest {
 
@@ -120,6 +121,32 @@ class DuelCreationGuardTest {
                 .doesNotThrowAnyException();
     }
 
+    @Test
+    void room_ignoresBotRoomForHumanTopicUniquenessAndQuota() {
+        when(limits.maxOpenRooms(ME)).thenReturn(1);
+        stubRooms(botRoom("r1", ME, TOPIC, RoomStatus.WAITING_PLAYERS, NOW.plusSeconds(60)));
+
+        assertThatCode(() -> guard.ensureRoomAllowed(ME, TOPIC).join())
+                .doesNotThrowAnyException();
+    }
+
+    @Test
+    void botRoom_allowedWhileHumanRoomIsOpenOnTheSameTopic() {
+        stubRooms(room("r1", ME, TOPIC, RoomStatus.WAITING_PLAYERS, NOW.plusSeconds(60)));
+
+        assertThatCode(() -> guard.ensureBotRoomAllowed(ME).join())
+                .doesNotThrowAnyException();
+    }
+
+    @Test
+    void botRoom_hasItsOwnQuota() {
+        when(limits.maxOpenRooms(ME)).thenReturn(1);
+        stubRooms(botRoom("r1", ME, TOPIC, RoomStatus.WAITING_PLAYERS, NOW.plusSeconds(60)));
+
+        assertThatThrownBy(() -> guard.ensureBotRoomAllowed(ME).join())
+                .hasCauseInstanceOf(BffProblems.RoomQuotaExceededProblem.class);
+    }
+
     private void stubChallenges(Challenge... challenges) {
         when(queryGateway.query(
                 any(ChallengeQuery.GetMyChallenges.class),
@@ -156,10 +183,28 @@ class DuelCreationGuardTest {
                              String topic,
                              RoomStatus status,
                              Instant expiresAt) {
+        return room(id, initiator, topic, status, expiresAt, false);
+    }
+
+    private static Room botRoom(String id,
+                                String initiator,
+                                String topic,
+                                RoomStatus status,
+                                Instant expiresAt) {
+        return room(id, initiator, topic, status, expiresAt, true);
+    }
+
+    private static Room room(String id,
+                             String initiator,
+                             String topic,
+                             RoomStatus status,
+                             Instant expiresAt,
+                             boolean vsBot) {
         return Room.builder()
                 .roomId(id)
                 .topicId(topic)
                 .initiatorId(initiator)
+                .vsBot(vsBot)
                 .status(status)
                 .createdAt(NOW)
                 .expiresAt(expiresAt)

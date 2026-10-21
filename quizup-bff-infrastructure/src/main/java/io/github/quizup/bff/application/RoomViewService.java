@@ -73,12 +73,13 @@ public class RoomViewService {
 
     /**
      * Ouvre une salle contre le bot : le second joueur est le bot, joint automatiquement par la
-     * saga salle (l'humain apparaît ensuite côté client).
+     * saga salle (l'humain apparaît ensuite côté client). Un salon privé ouvert sur le même sujet
+     * ne bloque pas l'entraînement : seuls les salons bot sont comptés dans leur quota.
      */
     public CompletableFuture<String> createBot(String playerId, CreateBotRoomRequest request) {
         String roomId = UUID.randomUUID().toString();
         BotDifficulty difficulty = BotDifficulty.fromOrDefault(request.difficulty());
-        return duelCreationGuard.ensureRoomAllowed(playerId, request.topicId())
+        return duelCreationGuard.ensureBotRoomAllowed(playerId)
                 .thenCompose(_ -> commandGateway
                         .send(new RoomCommand.CreateRoomCommand(
                                 roomId, request.topicId(), playerId, QuizUpConstants.SYSTEM_USER_ID,

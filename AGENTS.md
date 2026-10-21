@@ -349,7 +349,7 @@ salle temps réel : l'acceptation crée la salle (saga matchmaking) qui porte pr
 | Endpoint | Réponse | Notes |
 |---|---|---|
 | `POST /api/rooms` | `201 + Location` | Body `{ topicId }` — **salle partagée** par lien `/join/{roomId}` ; le défi nominatif passe par `POST /api/challenges` |
-| `POST /api/rooms/bot` | `201 + Location` | Body `{ topicId, difficulty? }` — **salle bot** : le bot rejoint la salle automatiquement, l'humain y apparaît ensuite |
+| `POST /api/rooms/bot` | `201 + Location` | Body `{ topicId, difficulty? }` — **salle bot** : le bot rejoint la salle automatiquement, l'humain y apparaît ensuite. **Exemptée de l'unicité par sujet** : un salon privé ouvert ne bloque pas l'entraînement ; quota bot propre |
 | `GET /api/rooms/mine` | `List<RoomView>` | Salles `WAITING_PLAYERS` du joueur (initiateur **ou** invité) — filet de reprise |
 | `GET /api/rooms/{roomId}` | `RoomView` | Sujet, `status` (`WAITING_PLAYERS\|FETCHING_PLAYERS\|FETCHING_PLAYED_QUESTIONS\|FETCHING_QUESTIONS\|CREATING_GAME\|GAME_CREATED\|COMPLETED\|CANCELLED\|EXPIRED\|FAILED`), `vsBot`, `canCancel` (viewer = initiateur), adversaire, présences, `gameId` |
 | `POST /api/rooms/{roomId}/join` | `200` | **Apparition** (idempotente) : présence et, pour le second joueur, enregistrement du participant ; nominatif : invité uniquement (403 sinon). Émise par le client quand l'utilisateur est dans la salle ; le BFF prépare le **snapshot `RoomPlayer`** (profil + progression, caches Caffeine) et le porte dans `JoinRoomCommand` — la salle ne résout jamais les joueurs (préparation ensuite non bloquante : profils portés par l'apparition, historique/tirage par requêtes async) |
@@ -362,12 +362,14 @@ salle temps réel : l'acceptation crée la salle (saga matchmaking) qui porte pr
 > puis purgé : les commandes tardives répondent 404 (pré-vérification BFF) ou un `Problem` métier,
 > jamais un 500.
 
-**Garde de création** (`DuelCreationGuard`) : un joueur ne peut avoir qu'un salon
-`WAITING_PLAYERS` **créé** par sujet → `409 urn:quizup:bff:room:alreadyOpenOnTopic`. Le nombre
-total de salons `WAITING_PLAYERS` créés est plafonné par `quizup.duel.limits.open-rooms`
-(défaut 5) → `429 urn:quizup:bff:room:quotaExceeded`. Les salons où le joueur n'est qu'invité ne
-comptent pas. `DuelLimitPolicy` est le point d'extension unique du premium (limites rehaussées ou
-illimitées quand le plan existera) ; les défauts sont surchargeables par
+**Garde de création** (`DuelCreationGuard`) : un joueur ne peut avoir qu'un salon **privé/partagé**
+`WAITING_PLAYERS` **créé** par sujet → `409 urn:quizup:bff:room:alreadyOpenOnTopic`. Le nombre de
+salons privés/partagés `WAITING_PLAYERS` créés est plafonné par `quizup.duel.limits.open-rooms`
+(défaut 5) → `429 urn:quizup:bff:room:quotaExceeded`. Les salons **bot** sont comptés séparément
+(même limite) et sont **exemptés de l'unicité par sujet** : un salon privé ouvert ne bloque pas
+`POST /api/rooms/bot`, et un salon bot ne bloque pas `POST /api/rooms`. Les salons où le joueur
+n'est qu'invité ne comptent pas. `DuelLimitPolicy` est le point d'extension unique du premium
+(limites rehaussées ou illimitées quand le plan existera) ; les défauts sont surchargeables par
 `QUIZUP_DUEL_MAX_PENDING_CHALLENGES` / `QUIZUP_DUEL_MAX_OPEN_ROOMS`.
 
 ### Notifications personnelles (quizup-notification)

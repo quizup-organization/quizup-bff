@@ -1,6 +1,7 @@
 package io.github.quizup.bff.application;
 
 import io.github.quizup.bff.infrastructure.in.api.problem.BffProblems;
+import io.github.quizup.bff.infrastructure.in.api.request.CreateBotRoomRequest;
 import io.github.quizup.bff.infrastructure.in.api.request.CreateRoomRequest;
 import io.github.quizup.matchmaking.domain.command.RoomCommand;
 import io.github.quizup.matchmaking.domain.model.Room;
@@ -55,6 +56,20 @@ class RoomViewServiceTest {
                 service.create("user-1", new CreateRoomRequest("topic-1")).join())
                 .hasCauseInstanceOf(BffProblems.RoomAlreadyOpenOnTopicProblem.class);
         verify(commandGateway, never()).send(any());
+    }
+
+    @Test
+    void createBot_usesBotQuotaWithoutHumanRoomUniqueness() {
+        when(duelCreationGuard.ensureBotRoomAllowed("user-1"))
+                .thenReturn(CompletableFuture.completedFuture(null));
+        when(commandGateway.send(any(RoomCommand.CreateRoomCommand.class)))
+                .thenReturn(CompletableFuture.completedFuture(null));
+
+        service.createBot("user-1", new CreateBotRoomRequest("topic-1", null)).join();
+
+        verify(duelCreationGuard).ensureBotRoomAllowed("user-1");
+        verify(duelCreationGuard, never()).ensureRoomAllowed(any(), any());
+        verify(commandGateway).send(any(RoomCommand.CreateRoomCommand.class));
     }
 
     @Test

@@ -22,8 +22,12 @@ import java.util.concurrent.CompletableFuture;
  *   <li><b>Défi</b> : un défi PENDING ne peut pas être dupliqué entre les deux mêmes joueurs sur
  *   le même sujet, dans aucun sens (symétrique) ; le nombre de défis PENDING <b>créés</b> par le
  *   joueur est plafonné par {@link DuelLimitPolicy}.</li>
- *   <li><b>Salon</b> : un joueur ne peut avoir qu'un salon WAITING_PLAYERS <b>créé</b> par sujet ;
- *   le nombre de salons WAITING_PLAYERS créés est plafonné par {@link DuelLimitPolicy}.</li>
+ *   <li><b>Salon privé/partagé</b> : un joueur ne peut avoir qu'un salon WAITING_PLAYERS
+ *   <b>créé</b> par sujet ; le nombre de salons WAITING_PLAYERS créés est plafonné par
+ *   {@link DuelLimitPolicy}.</li>
+ *   <li><b>Salon bot</b> : il ne partage pas les slots des salons privés/partagés — un salon
+ *   privé ouvert ne bloque pas l'entraînement. Il possède son propre quota de salons bot
+ *   ouverts, pour éviter le spam.</li>
  * </ul>
  *
  * <p>Les listes viennent des queries existantes : les défis où le joueur est invité sont utilisés
@@ -68,15 +72,13 @@ public class DuelCreationGuard {
                 });
     }
 
-    /** Vérifie l'unicité (initiateur + sujet) et le quota de salons créés. */
+    /** Vérifie l'unicité (initiateur + sujet) et le quota des salons privés/partagés. */
     public CompletableFuture<Void> ensureRoomAllowed(String initiatorId, String topicId) {
         return queryGateway
                 .query(new RoomQuery.GetMyOpenRooms(initiatorId),
                         QueryResponseTypes.multipleInstancesOf(Room.class))
                 .thenAccept(rooms -> {
-                    List<Room> active = activeRooms(rooms).stream()
-                            .filter(room -> initiatorId.equals(room.initiatorId()))
-                            .toList();
+                    List<Room> active = humanRooms(rooms, initiatorId);
                     boolean duplicate = active.stream()
                             .anyMatch(room -> topicId.equals(room.topicId()));
                     if (duplicate) {
@@ -87,6 +89,26 @@ public class DuelCreationGuard {
                                 .orElse(null);
                         throw new BffProblems.RoomAlreadyOpenOnTopicProblem(topicId, roomId);
                     }
+                    int limit = limits.maxOpenRooms(initiatorId);
+                    if (active.size() >= limit) {
+                        throw new BffProblems.RoomQuotaExceededProblem(limit);
+                    }
+                });
+    }
+
+    /**
+     * Vérifie le quota des salons bot. Aucune unicité par sujet : un salon privé ouvert ne doit
+     * jamais empêcher un entraînement contre le bot.
+     */
+    public CompletableFuture<Void> ensureBotRoomAllowed(String initiatorId) {
+        return queryGateway
+                .query(new RoomQuery.GetMyOpenRooms(initiatorId),
+                        QueryResponseTypes.multipleInstancesOf(Room.class))
+                .thenAccept(rooms -> {
+                    List<Room> active = activeRooms(rooms).stream()
+                            .filter(room -> initiatorId.equals(room.initiatorId()))
+                            .filter(Room::vsBot)
+                            .toList();
                     int limit = limits.maxOpenRooms(initiatorId);
                     if (active.size() >= limit) {
                         throw new BffProblems.RoomQuotaExceededProblem(limit);
@@ -108,6 +130,14 @@ public class DuelCreationGuard {
         return rooms.stream()
                 .filter(room -> room.status() == RoomStatus.WAITING_PLAYERS)
                 .filter(room -> room.expiresAt() != null && room.expiresAt().isAfter(now))
+                .toList();
+    }
+
+    /** Slots des salons privés/partagés : les salons bot ne les consomment pas. */
+    private static List<Room> humanRooms(List<Room> rooms, String initiatorId) {
+        return activeRooms(rooms).stream()
+                .filter(room -> initiatorId.equals(room.initiatorId()))
+                .filter(room -> !room.vsBot())
                 .toList();
     }
 
