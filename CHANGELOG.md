@@ -1,3 +1,9 @@
+## [11.38.0](https://github.com/quizup-organization/quizup-bff/compare/v11.37.0...v11.38.0) (2026-10-21)
+
+### Features
+
+* **bff:** expose le gain Elo et les ratings d'avatar ([be2d42e](https://github.com/quizup-organization/quizup-bff/commit/be2d42e253af18418129146436d220d260ad9055))
+
 ## [11.37.0](https://github.com/quizup-organization/quizup-bff/compare/v11.36.0...v11.37.0) (2026-10-21)
 
 ### Features
