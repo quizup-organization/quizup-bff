@@ -20,6 +20,7 @@ import io.github.quizup.microservice.core.infrastructure.axon.QueryResponseTypes
 import io.github.quizup.profile.domain.model.MasteryGrade;
 import io.github.quizup.profile.domain.model.ProgressionRules;
 import io.github.quizup.profile.domain.model.TopicProgress;
+import io.github.quizup.profile.domain.model.PlayerProgress;
 import io.github.quizup.profile.domain.query.ProgressionQuery;
 import io.github.quizup.theme.domain.model.QuestionStatus;
 import io.github.quizup.theme.domain.model.Topic;
@@ -244,16 +245,23 @@ public class TopicViewService {
                         CompletableFuture<Map<String, UserAccountStatus>> statusesFuture =
                                 identityLookup.statuses(userIds)
                                         .exceptionally(_ -> Map.<String, UserAccountStatus>of());
-                        return statusesFuture.thenApply(statusById -> {
+                        CompletableFuture<List<PlayerProgress>> ratingsFuture =
+                                queryGateway.query(new ProgressionQuery.GetProgressionsByIdsQuery(userIds),
+                                        QueryResponseTypes.multipleInstancesOf(PlayerProgress.class));
+                        return CompletableFuture.allOf(statusesFuture, ratingsFuture).thenApply(_ -> {
+                            Map<String, UserAccountStatus> statusById = statusesFuture.join();
+                            Map<String, PlayerProgress> ratingById = ratingsFuture.join().stream()
+                                    .collect(java.util.stream.Collectors.toMap(
+                                            PlayerProgress::userId, progress -> progress, (a, _) -> a));
                             List<TopicLeaderboardView.EntryView> entries = java.util.stream.IntStream
                                     .range(0, result.entries().size())
                                     .mapToObj(index -> toEntryView(
                                             result.entries().get(index),
                                             page * size + index + 1,
-                                            statusById))
+                                            statusById, ratingById))
                                     .toList();
                             TopicLeaderboardView.EntryView meView = meFuture.join()
-                                    .map(rank -> toEntryView(rank.entry(), rank.rank(), statusById))
+                                    .map(rank -> toEntryView(rank.entry(), rank.rank(), statusById, ratingById))
                                     .orElse(null);
                             return new TopicLeaderboardView(
                                     PageResponse.of(entries, result.page(), result.size(), result.totalElements()),
@@ -265,8 +273,10 @@ public class TopicViewService {
 
     private static TopicLeaderboardView.EntryView toEntryView(TopicLeaderboardEntry entry,
                                                               int rank,
-                                                              Map<String, UserAccountStatus> statusById) {
+                                                              Map<String, UserAccountStatus> statusById,
+                                                              Map<String, PlayerProgress> ratingById) {
         UserAccountStatus status = statusById.get(entry.userId());
+        PlayerProgress rating = ratingById.get(entry.userId());
         return new TopicLeaderboardView.EntryView(
                 rank,
                 entry.userId(),
@@ -274,6 +284,8 @@ public class TopicViewService {
                 entry.avatarOptions(),
                 entry.country(),
                 entry.level(),
+                rating == null ? 200 : rating.rating(),
+                rating == null || rating.provisional(),
                 entry.totalXp(),
                 entry.monthlyXp(),
                 status != null && status.suspended(Instant.now()));
