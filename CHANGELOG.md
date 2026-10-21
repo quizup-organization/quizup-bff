@@ -1,3 +1,9 @@
+## [11.38.1](https://github.com/quizup-organization/quizup-bff/compare/v11.38.0...v11.38.1) (2026-10-21)
+
+### Bug Fixes
+
+* **bff:** expose l'Elo dans le classement ([24219b6](https://github.com/quizup-organization/quizup-bff/commit/24219b66901fbe4a6c70f6d010a2692c74abc526))
+
 ## [11.38.0](https://github.com/quizup-organization/quizup-bff/compare/v11.37.0...v11.38.0) (2026-10-21)
 
 ### Features
