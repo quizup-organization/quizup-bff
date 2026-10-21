@@ -350,4 +350,54 @@ public final class BffProblems {
                     Map.of("titleKey", titleKey, "reachedGrade", reachedGrade));
         }
     }
+
+    /** Un défi PENDING existe déjà entre ces deux joueurs sur ce sujet (409). */
+    public static class ChallengeAlreadyPendingProblem extends BaseProblem {
+        public ChallengeAlreadyPendingProblem(String topicId, String opponentId) {
+            super("urn:quizup:bff:challenge:alreadyPending",
+                    ProblemCategory.BUSINESS_INVALID_COMMAND,
+                    "Challenge already pending",
+                    "A challenge is already pending with this player on this topic",
+                    Map.of("topicId", topicId, "opponentId", opponentId));
+        }
+    }
+
+    /** Le joueur a atteint son quota de défis PENDING créés (429). */
+    public static class ChallengeQuotaExceededProblem extends BaseProblem {
+        public ChallengeQuotaExceededProblem(int limit) {
+            super("urn:quizup:bff:challenge:quotaExceeded",
+                    ProblemCategory.BUSINESS_INVALID_COMMAND,
+                    "Challenge quota exceeded",
+                    "The player has reached the maximum number of pending challenges (" + limit + ")",
+                    Map.of("limit", limit));
+        }
+    }
+
+    /** Un salon WAITING_PLAYERS existe déjà pour ce joueur sur ce sujet (409). */
+    public static class RoomAlreadyOpenOnTopicProblem extends BaseProblem {
+        public RoomAlreadyOpenOnTopicProblem(String topicId, String roomId) {
+            super("urn:quizup:bff:room:alreadyOpenOnTopic",
+                    ProblemCategory.BUSINESS_INVALID_COMMAND,
+                    "Room already open on this topic",
+                    "A room is already open for this player on this topic",
+                    roomContext(topicId, roomId));
+        }
+
+        private static Map<String, Object> roomContext(String topicId, String roomId) {
+            return roomId == null
+                    ? Map.of("topicId", topicId)
+                    : Map.of("topicId", topicId, "roomId", roomId);
+        }
+    }
+
+    /** Le joueur a atteint son quota de salons WAITING_PLAYERS créés (429). */
+    public static class RoomQuotaExceededProblem extends BaseProblem {
+        public RoomQuotaExceededProblem(int limit) {
+            super("urn:quizup:bff:room:quotaExceeded",
+                    ProblemCategory.BUSINESS_INVALID_COMMAND,
+                    "Room quota exceeded",
+                    "The player has reached the maximum number of open rooms (" + limit + ")",
+                    Map.of("limit", limit));
+        }
+    }
 }

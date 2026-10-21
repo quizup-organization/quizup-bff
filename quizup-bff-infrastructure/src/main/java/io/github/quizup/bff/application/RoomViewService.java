@@ -42,17 +42,20 @@ public class RoomViewService {
     private final ProfileLookup profileLookup;
     private final ProgressionLookup progressionLookup;
     private final IdentityLookup identityLookup;
+    private final DuelCreationGuard duelCreationGuard;
 
     public RoomViewService(QueryGateway queryGateway,
                            CommandGateway commandGateway,
                            ProfileLookup profileLookup,
                            ProgressionLookup progressionLookup,
-                           IdentityLookup identityLookup) {
+                           IdentityLookup identityLookup,
+                           DuelCreationGuard duelCreationGuard) {
         this.queryGateway = queryGateway;
         this.commandGateway = commandGateway;
         this.profileLookup = profileLookup;
         this.progressionLookup = progressionLookup;
         this.identityLookup = identityLookup;
+        this.duelCreationGuard = duelCreationGuard;
     }
 
     /**
@@ -61,8 +64,10 @@ public class RoomViewService {
      */
     public CompletableFuture<String> create(String playerId, CreateRoomRequest request) {
         String roomId = UUID.randomUUID().toString();
-        return commandGateway
-                .send(new RoomCommand.CreateRoomCommand(roomId, request.topicId(), playerId, null, false, null))
+        return duelCreationGuard.ensureRoomAllowed(playerId, request.topicId())
+                .thenCompose(_ -> commandGateway
+                        .send(new RoomCommand.CreateRoomCommand(
+                                roomId, request.topicId(), playerId, null, false, null)))
                 .thenApply(_ -> roomId);
     }
 
@@ -73,9 +78,11 @@ public class RoomViewService {
     public CompletableFuture<String> createBot(String playerId, CreateBotRoomRequest request) {
         String roomId = UUID.randomUUID().toString();
         BotDifficulty difficulty = BotDifficulty.fromOrDefault(request.difficulty());
-        return commandGateway
-                .send(new RoomCommand.CreateRoomCommand(
-                        roomId, request.topicId(), playerId, QuizUpConstants.SYSTEM_USER_ID, true, difficulty.name()))
+        return duelCreationGuard.ensureRoomAllowed(playerId, request.topicId())
+                .thenCompose(_ -> commandGateway
+                        .send(new RoomCommand.CreateRoomCommand(
+                                roomId, request.topicId(), playerId, QuizUpConstants.SYSTEM_USER_ID,
+                                true, difficulty.name())))
                 .thenApply(_ -> roomId);
     }
 

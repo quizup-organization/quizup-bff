@@ -76,6 +76,38 @@ public class BffProblemExceptionHandler {
         return respond(problem, request, HttpStatus.CONFLICT);
     }
 
+    /** Défi déjà en attente avec ce joueur sur ce sujet : 409. */
+    @ExceptionHandler(BffProblems.ChallengeAlreadyPendingProblem.class)
+    public ResponseEntity<ExceptionResponse> handleChallengeAlreadyPending(
+            BffProblems.ChallengeAlreadyPendingProblem problem,
+            HttpServletRequest request) {
+        return respond(problem, request, HttpStatus.CONFLICT);
+    }
+
+    /** Salon déjà ouvert sur ce sujet : 409. */
+    @ExceptionHandler(BffProblems.RoomAlreadyOpenOnTopicProblem.class)
+    public ResponseEntity<ExceptionResponse> handleRoomAlreadyOpenOnTopic(
+            BffProblems.RoomAlreadyOpenOnTopicProblem problem,
+            HttpServletRequest request) {
+        return respond(problem, request, HttpStatus.CONFLICT);
+    }
+
+    /** Quota de défis créés atteint : 429. */
+    @ExceptionHandler(BffProblems.ChallengeQuotaExceededProblem.class)
+    public ResponseEntity<ExceptionResponse> handleChallengeQuota(
+            BffProblems.ChallengeQuotaExceededProblem problem,
+            HttpServletRequest request) {
+        return respond(problem, request, HttpStatus.TOO_MANY_REQUESTS);
+    }
+
+    /** Quota de salons créés atteint : 429. */
+    @ExceptionHandler(BffProblems.RoomQuotaExceededProblem.class)
+    public ResponseEntity<ExceptionResponse> handleRoomQuota(
+            BffProblems.RoomQuotaExceededProblem problem,
+            HttpServletRequest request) {
+        return respond(problem, request, HttpStatus.TOO_MANY_REQUESTS);
+    }
+
     /** Vérification des références indisponible : 503, la suppression est refusée (fail-closed). */
     @ExceptionHandler(BffProblems.MediaReferenceUnavailableProblem.class)
     public ResponseEntity<ExceptionResponse> handleMediaReferenceCheck(BffProblems.MediaReferenceUnavailableProblem problem,

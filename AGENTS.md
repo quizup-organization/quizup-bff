@@ -326,7 +326,7 @@ de sujet, illustration de question, bannière de profil) : objet référencé �
 
 ### Défis nominatifs (matchmaking)
 
-Intention **asynchrone** (TTL 1 h, **5 s pour une revanche** portant un `gameId`) distincte de la
+Intention **asynchrone** (TTL 1 h, **10 s pour une revanche** portant un `gameId`) distincte de la
 salle temps réel : l'acceptation crée la salle (saga matchmaking) qui porte présence, préparation
 (statuts) et création de la partie.
 
@@ -338,6 +338,11 @@ salle temps réel : l'acceptation crée la salle (saga matchmaking) qui porte pr
 | `POST /api/challenges/{challengeId}/accept` | `200` | Invité uniquement ; la salle est créée par la saga (`roomId`) |
 | `POST /api/challenges/{challengeId}/decline` | `200` | Invité uniquement |
 | `POST /api/challenges/{challengeId}/cancel` | `200` | Lanceur uniquement (défi sans réponse) |
+
+**Garde anti-spam** (`DuelCreationGuard`, avant l'envoi de la commande) :
+- un défi `PENDING` ne peut pas être dupliqué entre les **mêmes deux joueurs** sur le **même sujet**, dans aucun sens (`409 urn:quizup:bff:challenge:alreadyPending`) ;
+- le nombre de défis `PENDING` **créés** par le joueur (challenger) est plafonné par `quizup.duel.limits.pending-challenges` (défaut 5) → `429 urn:quizup:bff:challenge:quotaExceeded`. Les défis reçus ne comptent pas.
+- La revanche est soumise aux mêmes règles.
 
 ### Salles (matchmaking)
 
@@ -356,6 +361,14 @@ salle temps réel : l'acceptation crée la salle (saga matchmaking) qui porte pr
 > Un état terminal (`COMPLETED`/`CANCELLED`/`EXPIRED`/`FAILED`) est conservé le temps de la rétention (2 min)
 > puis purgé : les commandes tardives répondent 404 (pré-vérification BFF) ou un `Problem` métier,
 > jamais un 500.
+
+**Garde de création** (`DuelCreationGuard`) : un joueur ne peut avoir qu'un salon
+`WAITING_PLAYERS` **créé** par sujet → `409 urn:quizup:bff:room:alreadyOpenOnTopic`. Le nombre
+total de salons `WAITING_PLAYERS` créés est plafonné par `quizup.duel.limits.open-rooms`
+(défaut 5) → `429 urn:quizup:bff:room:quotaExceeded`. Les salons où le joueur n'est qu'invité ne
+comptent pas. `DuelLimitPolicy` est le point d'extension unique du premium (limites rehaussées ou
+illimitées quand le plan existera) ; les défauts sont surchargeables par
+`QUIZUP_DUEL_MAX_PENDING_CHALLENGES` / `QUIZUP_DUEL_MAX_OPEN_ROOMS`.
 
 ### Notifications personnelles (quizup-notification)
 

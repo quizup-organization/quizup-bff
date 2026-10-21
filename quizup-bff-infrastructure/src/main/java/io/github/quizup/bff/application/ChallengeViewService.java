@@ -40,15 +40,18 @@ public class ChallengeViewService {
     private final CommandGateway commandGateway;
     private final ProfileLookup profileLookup;
     private final IdentityLookup identityLookup;
+    private final DuelCreationGuard duelCreationGuard;
 
     public ChallengeViewService(QueryGateway queryGateway,
                                 CommandGateway commandGateway,
                                 ProfileLookup profileLookup,
-                                IdentityLookup identityLookup) {
+                                IdentityLookup identityLookup,
+                                DuelCreationGuard duelCreationGuard) {
         this.queryGateway = queryGateway;
         this.commandGateway = commandGateway;
         this.profileLookup = profileLookup;
         this.identityLookup = identityLookup;
+        this.duelCreationGuard = duelCreationGuard;
     }
 
     public CompletableFuture<String> create(String challengerId, CreateChallengeRequest request) {
@@ -64,6 +67,8 @@ public class ChallengeViewService {
                     }
                     return validateRematch(challengerId, request);
                 })
+                .thenCompose(_ -> duelCreationGuard.ensureChallengeAllowed(
+                        challengerId, request.opponentId(), request.topicId()))
                 .thenCompose(_ -> commandGateway.send(new ChallengeCommand.CreateChallengeCommand(
                         challengeId, request.topicId(), challengerId, request.opponentId(), request.gameId())))
                 .thenApply(_ -> challengeId);

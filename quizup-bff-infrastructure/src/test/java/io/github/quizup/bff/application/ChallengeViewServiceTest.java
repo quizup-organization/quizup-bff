@@ -37,8 +37,10 @@ class ChallengeViewServiceTest {
     private final CommandGateway commandGateway = mock(CommandGateway.class);
     private final ProfileLookup profileLookup = mock(ProfileLookup.class);
     private final IdentityLookup identityLookup = mock(IdentityLookup.class);
+    private final DuelCreationGuard duelCreationGuard = mock(DuelCreationGuard.class);
     private final ChallengeViewService service =
-            new ChallengeViewService(queryGateway, commandGateway, profileLookup, identityLookup);
+            new ChallengeViewService(queryGateway, commandGateway, profileLookup, identityLookup,
+                    duelCreationGuard);
 
     @BeforeEach
     void setUp() {
@@ -46,6 +48,8 @@ class ChallengeViewServiceTest {
         when(identityLookup.status(any())).thenReturn(CompletableFuture.completedFuture(
                 new io.github.quizup.identity.domain.model.UserAccountStatus(
                         OPPONENT, io.github.quizup.identity.domain.model.AccountStatus.ACTIVE, null)));
+        when(duelCreationGuard.ensureChallengeAllowed(any(), any(), any()))
+                .thenReturn(CompletableFuture.completedFuture(null));
         when(commandGateway.send(any())).thenReturn(CompletableFuture.completedFuture(null));
     }
 
@@ -66,6 +70,17 @@ class ChallengeViewServiceTest {
         service.create(CHALLENGER, request(OPPONENT, "game-1")).join();
 
         assertThat(capturedCommand().gameId()).isEqualTo("game-1");
+    }
+
+    @Test
+    void create_refusedBeforeCommandWhenDuelGuardRejects() {
+        when(duelCreationGuard.ensureChallengeAllowed(CHALLENGER, OPPONENT, "topic-1"))
+                .thenReturn(CompletableFuture.failedFuture(
+                        new BffProblems.ChallengeAlreadyPendingProblem("topic-1", OPPONENT)));
+
+        assertThatThrownBy(() -> service.create(CHALLENGER, request(OPPONENT, null)).join())
+                .hasCauseInstanceOf(BffProblems.ChallengeAlreadyPendingProblem.class);
+        verify(commandGateway, never()).send(any());
     }
 
     @Test

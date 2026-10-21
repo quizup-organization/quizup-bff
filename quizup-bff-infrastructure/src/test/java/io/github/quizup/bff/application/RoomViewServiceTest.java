@@ -1,5 +1,7 @@
 package io.github.quizup.bff.application;
 
+import io.github.quizup.bff.infrastructure.in.api.problem.BffProblems;
+import io.github.quizup.bff.infrastructure.in.api.request.CreateRoomRequest;
 import io.github.quizup.matchmaking.domain.command.RoomCommand;
 import io.github.quizup.matchmaking.domain.model.Room;
 import io.github.quizup.matchmaking.domain.model.RoomStatus;
@@ -19,8 +21,10 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -35,9 +39,23 @@ class RoomViewServiceTest {
     private final ProfileLookup profileLookup = mock(ProfileLookup.class);
     private final ProgressionLookup progressionLookup = mock(ProgressionLookup.class);
     private final IdentityLookup identityLookup = mock(IdentityLookup.class);
+    private final DuelCreationGuard duelCreationGuard = mock(DuelCreationGuard.class);
 
     private final RoomViewService service =
-            new RoomViewService(queryGateway, commandGateway, profileLookup, progressionLookup, identityLookup);
+            new RoomViewService(queryGateway, commandGateway, profileLookup, progressionLookup,
+                    identityLookup, duelCreationGuard);
+
+    @Test
+    void create_refusedBeforeCommandWhenDuelGuardRejects() {
+        when(duelCreationGuard.ensureRoomAllowed("user-1", "topic-1"))
+                .thenReturn(CompletableFuture.failedFuture(
+                        new BffProblems.RoomAlreadyOpenOnTopicProblem("topic-1", "room-1")));
+
+        assertThatThrownBy(() ->
+                service.create("user-1", new CreateRoomRequest("topic-1")).join())
+                .hasCauseInstanceOf(BffProblems.RoomAlreadyOpenOnTopicProblem.class);
+        verify(commandGateway, never()).send(any());
+    }
 
     @Test
     void join_preparesPlayerSnapshotInCommand() {
