@@ -1,3 +1,9 @@
+## [11.35.1](https://github.com/quizup-organization/quizup-bff/compare/v11.35.0...v11.35.1) (2026-10-21)
+
+### Bug Fixes
+
+* **bff:** aligne les contrats sur les dernières releases ([473484f](https://github.com/quizup-organization/quizup-bff/commit/473484f92e5bc4650e870f65420a60c44517fd4c))
+
 ## [11.35.0](https://github.com/quizup-organization/quizup-bff/compare/v11.34.4...v11.35.0) (2026-10-21)
 
 ### Features
