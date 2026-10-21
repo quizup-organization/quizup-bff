@@ -1,3 +1,9 @@
+## [11.35.0](https://github.com/quizup-organization/quizup-bff/compare/v11.34.4...v11.35.0) (2026-10-21)
+
+### Features
+
+* **bff:** garde anti-spam et quotas de défis et salons ([ffe3ccd](https://github.com/quizup-organization/quizup-bff/commit/ffe3ccd7a76115569c3711158f4148e9442274b8))
+
 ## [11.34.4](https://github.com/quizup-organization/quizup-bff/compare/v11.34.3...v11.34.4) (2026-10-21)
 
 ### Bug Fixes
