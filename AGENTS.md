@@ -326,8 +326,9 @@ de sujet, illustration de question, bannière de profil) : objet référencé �
 
 ### Défis nominatifs (matchmaking)
 
-Intention **asynchrone** (TTL 1 h) distincte de la salle temps réel : l'acceptation crée la salle
-(saga matchmaking) qui porte présence, préparation (statuts) et création de la partie.
+Intention **asynchrone** (TTL 1 h, **5 s pour une revanche** portant un `gameId`) distincte de la
+salle temps réel : l'acceptation crée la salle (saga matchmaking) qui porte présence, préparation
+(statuts) et création de la partie.
 
 | Endpoint | Réponse | Notes |
 |---|---|---|
@@ -362,9 +363,9 @@ Intention **asynchrone** (TTL 1 h) distincte de la salle temps réel : l'accepta
 |---|---|---|
 | `GET /api/notifications?unreadOnly=&page=&size=` | `PageResponse<NotificationView>` | Inbox du joueur courant |
 | `GET /api/notifications/unread-count` | `{ count }` | Badge de la cloche |
-| `POST /api/notifications/{notificationId}/read` | `200` | Propriétaire uniquement (404/403 sinon) |
-| `POST /api/notifications/{notificationId}/unread` | `200` | Repasse en non lue — propriétaire uniquement (404/403 sinon) |
-| `DELETE /api/notifications/{notificationId}` | `204` | Hard delete — propriétaire uniquement (404/403 sinon) |
+| `POST /api/notifications/{notificationId}/read` | `200` | Propriétaire uniquement (404/403 sinon). **Sans pré-lecture du read model** : la commande part directement (la projection peut être en retard juste après le toast) ; agrégat absent ⇒ 404, propriétaire invalide ⇒ 403 |
+| `POST /api/notifications/{notificationId}/unread` | `200` | Repasse en non lue — propriétaire uniquement (404/403 sinon), même règle sans pré-lecture |
+| `DELETE /api/notifications/{notificationId}` | `204` | Hard delete — propriétaire uniquement (404/403 sinon), même règle sans pré-lecture |
 | `DELETE /api/notifications` | `204` | Vide l'inbox du joueur courant (hard delete, fan-out de commandes unitaires idempotentes) |
 | `POST /api/notifications/read-all` | `200` | Fan-out de commandes unitaires idempotentes |
 | `GET /api/notification-preferences` | `List<{ category, enabled }>` | `category` ∈ `FOLLOW\|ROOM\|QUESTION` (défaut activé) |
