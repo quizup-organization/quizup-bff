@@ -1,3 +1,9 @@
+## [11.34.4](https://github.com/quizup-organization/quizup-bff/compare/v11.34.3...v11.34.4) (2026-10-21)
+
+### Bug Fixes
+
+* **bff:** marque les notifications lues sans pré-lecture de projection ([b1e889f](https://github.com/quizup-organization/quizup-bff/commit/b1e889f62f4b549cab90188bb673175225efa817))
+
 ## [11.34.3](https://github.com/quizup-organization/quizup-bff/compare/v11.34.2...v11.34.3) (2026-10-18)
 
 ### Bug Fixes
