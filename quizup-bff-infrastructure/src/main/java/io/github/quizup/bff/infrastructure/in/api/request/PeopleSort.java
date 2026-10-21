@@ -6,5 +6,6 @@ package io.github.quizup.bff.infrastructure.in.api.request;
 public enum PeopleSort {
     RECENT,
     LEVEL,
+    ELO,
     ALPHA
 }

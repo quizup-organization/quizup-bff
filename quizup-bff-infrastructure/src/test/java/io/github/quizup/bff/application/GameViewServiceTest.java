@@ -7,6 +7,7 @@ import io.github.quizup.game.domain.model.GameResult;
 import io.github.quizup.game.domain.query.GameQuery;
 import io.github.quizup.microservice.core.domain.model.notification.EventEnvelope;
 import io.github.quizup.profile.domain.model.GameXp;
+import io.github.quizup.profile.domain.model.PlayerProgress;
 import io.github.quizup.profile.domain.model.ProgressionRules;
 import io.github.quizup.profile.domain.query.ProgressionQuery;
 import io.github.quizup.theme.domain.model.Topic;
@@ -36,9 +37,10 @@ class GameViewServiceTest {
     private final CommandGateway commandGateway = mock(CommandGateway.class);
     private final QueryGateway queryGateway = mock(QueryGateway.class);
     private final ProfileLookup profileLookup = mock(ProfileLookup.class);
+    private final ProgressionLookup progressionLookup = mock(ProgressionLookup.class);
     private final IdentityLookup identityLookup = mock(IdentityLookup.class);
     private final GameViewService service =
-            new GameViewService(commandGateway, queryGateway, profileLookup, identityLookup);
+            new GameViewService(commandGateway, queryGateway, profileLookup, progressionLookup, identityLookup);
 
     @Test
     void result_derives_victory_bonus_from_game_xp() {
@@ -139,6 +141,8 @@ class GameViewServiceTest {
                 ArgumentMatchers.<ResponseType<List<Topic>>>any()))
                 .thenReturn(CompletableFuture.completedFuture(List.of()));
         when(profileLookup.get(any())).thenReturn(CompletableFuture.completedFuture(null));
+        when(progressionLookup.get(any())).thenAnswer(invocation ->
+                CompletableFuture.completedFuture(PlayerProgress.empty(invocation.getArgument(0))));
         when(identityLookup.status(any())).thenReturn(CompletableFuture.completedFuture(
                 new io.github.quizup.identity.domain.model.UserAccountStatus(
                         "player-2", io.github.quizup.identity.domain.model.AccountStatus.ACTIVE, null)));

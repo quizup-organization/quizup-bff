@@ -14,7 +14,9 @@ import io.github.quizup.game.domain.query.GameQuery;
 import io.github.quizup.identity.domain.model.UserAccountStatus;
 import io.github.quizup.microservice.core.domain.model.notification.EventEnvelope;
 import io.github.quizup.microservice.core.infrastructure.axon.QueryResponseTypes;
+import io.github.quizup.profile.domain.model.EloRules;
 import io.github.quizup.profile.domain.model.GameXp;
+import io.github.quizup.profile.domain.model.PlayerProgress;
 import io.github.quizup.profile.domain.model.ProgressionRules;
 import io.github.quizup.profile.domain.model.Profile;
 import io.github.quizup.profile.domain.query.ProgressionQuery;
@@ -43,15 +45,18 @@ public class GameViewService {
     private final CommandGateway commandGateway;
     private final QueryGateway queryGateway;
     private final ProfileLookup profileLookup;
+    private final ProgressionLookup progressionLookup;
     private final IdentityLookup identityLookup;
 
     public GameViewService(CommandGateway commandGateway,
                            QueryGateway queryGateway,
                            ProfileLookup profileLookup,
+                           ProgressionLookup progressionLookup,
                            IdentityLookup identityLookup) {
         this.commandGateway = commandGateway;
         this.queryGateway = queryGateway;
         this.profileLookup = profileLookup;
+        this.progressionLookup = progressionLookup;
         this.identityLookup = identityLookup;
     }
 
@@ -204,8 +209,15 @@ public class GameViewService {
                     gameResult.botGame() || gameResult.opponentId() == null
                             ? CompletableFuture.completedFuture(null)
                             : identityLookup.status(gameResult.opponentId()).exceptionally(_ -> null);
+            CompletableFuture<PlayerProgress> playerProgressFuture = progressionLookup.get(playerId)
+                    .exceptionally(_ -> null);
+            CompletableFuture<PlayerProgress> opponentProgressFuture =
+                    gameResult.botGame() || gameResult.opponentId() == null
+                            ? CompletableFuture.completedFuture(null)
+                            : progressionLookup.get(gameResult.opponentId()).exceptionally(_ -> null);
 
-            return CompletableFuture.allOf(topicsFuture, opponentFuture, xpFuture, opponentStatusFuture).thenApply(_ -> {
+            return CompletableFuture.allOf(topicsFuture, opponentFuture, xpFuture, opponentStatusFuture,
+                            playerProgressFuture, opponentProgressFuture).thenApply(_ -> {
                 GameXp gameXp = xpFuture.join().stream().findFirst().orElse(null);
                 Integer xp = gameXp == null ? null : gameXp.xp();
                 // Entraînement (duel bot) : XP nulle par construction, donc aucun bonus de victoire
@@ -216,15 +228,28 @@ public class GameViewService {
 
                 int xpTotal = gameResult.myXpTotal() + (xp == null ? 0 : xp);
                 int level = ProgressionRules.levelFor(xpTotal);
+                PlayerProgress playerProgress = playerProgressFuture.join();
+                int rating = playerProgress == null ? EloRules.INITIAL_RATING : playerProgress.rating();
+                int peakRating = playerProgress == null ? rating : playerProgress.peakRating();
+                int ratedGames = playerProgress == null ? 0 : playerProgress.ratedGames();
+                boolean provisional = playerProgress == null || playerProgress.provisional();
                 GameResultView.ProgressionResultView progression = new GameResultView.ProgressionResultView(
                         xpTotal,
                         level,
                         ProgressionRules.titleFor(level),
                         ProgressionRules.xpForNextLevel(level),
-                        ProgressionViews.levelProgressPercent(xpTotal, level));
+                        ProgressionViews.levelProgressPercent(xpTotal, level),
+                        rating,
+                        peakRating,
+                        ratedGames,
+                        provisional);
 
                 Topic topic = topicsFuture.join().stream().findFirst().orElse(null);
                 Profile opponent = opponentFuture.join();
+                PlayerProgress opponentProgress = opponentProgressFuture.join();
+                int opponentRating = opponentProgress == null
+                        ? EloRules.INITIAL_RATING
+                        : opponentProgress.rating();
                 UserAccountStatus opponentStatus = opponentStatusFuture.join();
                 UserRefView opponentRef = opponent == null
                         ? null
@@ -248,6 +273,7 @@ public class GameViewService {
                         reward,
                         progression,
                         gameResult.opponentLevel(),
+                        opponentRating,
                         ProgressionRules.titleFor(gameResult.opponentLevel()),
                         TopicViews.toRef(gameResult.topicId(), topic),
                         opponentRef,

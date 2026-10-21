@@ -44,7 +44,7 @@ public class MatchmakingViewService {
     }
 
     /**
-     * Entre en recherche : résout niveau/langue du joueur et <b>photo de couverture linguistique</b>
+     * Entre en recherche : résout Elo/langue du joueur et <b>photo de couverture linguistique</b>
      * du sujet (query theme), puis crée l'agrégat. La photo voyage dans l'événement de démarrage :
      * la saga compare localement, sans query bloquante (contrat d'auto-suffisance des événements).
      */
@@ -60,7 +60,7 @@ public class MatchmakingViewService {
             Set<Language> languages = profile.language() == null
                     ? Set.of()
                     : Set.of(profile.language());
-            return new PendingCommand(matchmakingId, topicId, levelOf(progress), languages);
+            return new PendingCommand(matchmakingId, topicId, ratingOf(progress), languages);
         }).thenCombine(coverageFuture, (pending, coverage) ->
                 new PreparedCommand(pending, toTopicCoverage(coverage))
         ).thenCompose(prepared -> commandGateway
@@ -68,7 +68,7 @@ public class MatchmakingViewService {
                         prepared.pending().matchmakingId(),
                         playerId,
                         prepared.pending().topicId(),
-                        prepared.pending().level(),
+                        prepared.pending().rating(),
                         prepared.pending().languages(),
                         prepared.topicCoverage()))
                 .thenApply(_ -> new MatchmakingTicketView(
@@ -101,8 +101,8 @@ public class MatchmakingViewService {
                         }));
     }
 
-    private static int levelOf(PlayerProgress progress) {
-        return progress == null ? 1 : Math.max(1, progress.level());
+    private static int ratingOf(PlayerProgress progress) {
+        return progress == null ? 200 : Math.max(0, progress.rating());
     }
 
     /** Mapping theme → modèle local matchmaking (un {@code *-domain} ne dépend jamais d'un autre service). */
@@ -125,7 +125,7 @@ public class MatchmakingViewService {
                 matchmaking.updatedAt());
     }
 
-    private record PendingCommand(String matchmakingId, String topicId, int level, Set<Language> languages) {
+    private record PendingCommand(String matchmakingId, String topicId, int rating, Set<Language> languages) {
     }
 
     private record PreparedCommand(PendingCommand pending, TopicLanguageCoverage topicCoverage) {

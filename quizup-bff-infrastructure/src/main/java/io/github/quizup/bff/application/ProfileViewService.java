@@ -106,7 +106,10 @@ public class ProfileViewService {
                     false,
                     null,
                     new ProgressionView(0, 1, ProgressionRules.titleFor(1),
-                            ProgressionRules.xpForNextLevel(1), 0, List.of()),
+                            ProgressionRules.xpForNextLevel(1), 0, List.of(),
+                            io.github.quizup.profile.domain.model.EloRules.INITIAL_RATING,
+                            io.github.quizup.profile.domain.model.EloRules.INITIAL_RATING,
+                            0, true),
                     new DuelStatsView(0, 0, 0, 0, 0, 0, 0, 0),
                     0,
                     0,
@@ -491,6 +494,8 @@ public class ProfileViewService {
                 profile.pseudonym(),
                 profile.avatarOptions(),
                 progression.level(),
+                progression.rating(),
+                progression.provisional(),
                 progression.title(),
                 viewerFollowing.contains(userId),
                 presence == null ? null : toPresence(presence),
@@ -498,8 +503,8 @@ public class ProfileViewService {
     }
 
     private static Comparator<PlayerCardView> peopleComparator(PeopleSort sort) {
-        if (sort == PeopleSort.LEVEL) {
-            return Comparator.comparingInt(PlayerCardView::level).reversed()
+        if (sort == PeopleSort.LEVEL || sort == PeopleSort.ELO) {
+            return Comparator.comparingInt(PlayerCardView::rating).reversed()
                     .thenComparing(PlayerCardView::pseudonym, String.CASE_INSENSITIVE_ORDER);
         }
         if (sort == PeopleSort.ALPHA) {

@@ -22,6 +22,7 @@ public record GameResultView(
         RewardView reward,
         ProgressionResultView progression,
         int opponentLevel,
+        int opponentRating,
         String opponentTitle,
         TopicRefView topic,
         UserRefView opponent,
@@ -39,7 +40,11 @@ public record GameResultView(
             int level,
             String title,
             int xpForNextLevel,
-            int levelProgressPercent
+            int levelProgressPercent,
+            int rating,
+            int peakRating,
+            int ratedGames,
+            boolean provisional
     ) {
     }
 }

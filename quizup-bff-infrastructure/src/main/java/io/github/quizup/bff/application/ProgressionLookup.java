@@ -4,6 +4,7 @@ import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import io.github.quizup.microservice.core.infrastructure.axon.QueryResponseTypes;
 import io.github.quizup.profile.domain.model.PlayerProgress;
+import io.github.quizup.profile.domain.model.TopicProgress;
 import io.github.quizup.profile.domain.query.ProgressionQuery;
 import org.axonframework.queryhandling.QueryGateway;
 import org.springframework.stereotype.Service;
@@ -47,6 +48,13 @@ public class ProgressionLookup {
                     }
                     return progress;
                 });
+    }
+
+    /** XP de maîtrise du joueur dans un sujet (difficulté des questions de la salle). */
+    public CompletableFuture<TopicProgress> getTopic(String userId, String topicId) {
+        return queryGateway.query(
+                new ProgressionQuery.GetTopicProgressionQuery(userId, topicId),
+                QueryResponseTypes.instanceOf(TopicProgress.class));
     }
 
     /** Purge l'entrée d'un joueur (aucune écriture BFF de progression aujourd'hui : filet). */

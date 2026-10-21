@@ -59,7 +59,7 @@ class MeControllerTest {
     void me_returns_current_player_view() throws Exception {
         MeView view = new MeView(USER_ID, "user@quizup.io", "Alpha", null, "FR", null, null, null,
                 Language.FR,
-                new ProgressionView(120, 2, "Apprenti", 400, 6, List.of()),
+                new ProgressionView(120, 2, "Apprenti", 400, 6, List.of(), 200, 200, 0, true),
                 new DuelStatsView(4, 3, 1, 0, 75, 160, 2, 3), 3, 5);
         when(meService.me(USER_ID)).thenReturn(CompletableFuture.completedFuture(view));
 

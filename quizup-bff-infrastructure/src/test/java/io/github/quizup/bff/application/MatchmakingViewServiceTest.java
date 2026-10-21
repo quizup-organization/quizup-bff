@@ -58,7 +58,7 @@ class MatchmakingViewServiceTest {
         MatchmakingCommand.CreateMatchmakingCommand command = captor.getValue();
         assertThat(command.playerId()).isEqualTo("user-1");
         assertThat(command.topicId()).isEqualTo("topic-1");
-        assertThat(command.level()).isEqualTo(12);
+        assertThat(command.rating()).isEqualTo(842);
         assertThat(command.languages()).containsExactly(Language.FR);
         assertThat(command.topicCoverage().approvedCountFor(Set.of(Language.FR))).isEqualTo(10);
         assertThat(command.topicCoverage().approvedCountFor(Set.of(Language.EN))).isEqualTo(8);
@@ -85,6 +85,7 @@ class MatchmakingViewServiceTest {
                 .userId("user-1")
                 .xpTotal(250)
                 .level(12)
+                .rating(842)
                 .xpByTopic(Map.of())
                 .badges(Set.of())
                 .gamesPlayed(10)

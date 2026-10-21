@@ -31,7 +31,11 @@ public final class ProgressionViews {
                                 badge.label(),
                                 badge.family().name(),
                                 badge.tier().name()))
-                        .toList());
+                        .toList(),
+                progress.rating(),
+                progress.peakRating(),
+                progress.ratedGames(),
+                progress.provisional());
     }
 
     public static DuelStatsView toStats(PlayerProgress progress) {

@@ -10,6 +10,7 @@ import io.github.quizup.matchmaking.domain.query.RoomQuery;
 import io.github.quizup.microservice.core.domain.model.i18n.Language;
 import io.github.quizup.profile.domain.model.PlayerProgress;
 import io.github.quizup.profile.domain.model.Profile;
+import io.github.quizup.profile.domain.model.TopicProgress;
 import org.axonframework.commandhandling.gateway.CommandGateway;
 import org.axonframework.messaging.responsetypes.ResponseType;
 import org.axonframework.queryhandling.QueryGateway;
@@ -77,6 +78,8 @@ class RoomViewServiceTest {
         stubRoom();
         when(profileLookup.get("user-1")).thenReturn(CompletableFuture.completedFuture(profile()));
         when(progressionLookup.get("user-1")).thenReturn(CompletableFuture.completedFuture(progress()));
+        when(progressionLookup.getTopic("user-1", "topic-1"))
+                .thenReturn(CompletableFuture.completedFuture(TopicProgress.of("topic-1", 1_200, 5)));
         when(commandGateway.send(any(RoomCommand.JoinRoomCommand.class)))
                 .thenReturn(CompletableFuture.completedFuture(null));
 
@@ -92,6 +95,7 @@ class RoomViewServiceTest {
         assertThat(command.player().language()).isEqualTo(Language.FR);
         assertThat(command.player().level()).isEqualTo(12);
         assertThat(command.player().xpTotal()).isEqualTo(250);
+        assertThat(command.player().topicXp()).isEqualTo(1_200);
     }
 
     @Test
@@ -100,6 +104,8 @@ class RoomViewServiceTest {
         when(profileLookup.get("user-1")).thenReturn(CompletableFuture.completedFuture(profile()));
         when(progressionLookup.get("user-1"))
                 .thenReturn(CompletableFuture.failedFuture(new IllegalStateException("no progression")));
+        when(progressionLookup.getTopic("user-1", "topic-1"))
+                .thenReturn(CompletableFuture.failedFuture(new IllegalStateException("no topic progression")));
         when(commandGateway.send(any(RoomCommand.JoinRoomCommand.class)))
                 .thenReturn(CompletableFuture.completedFuture(null));
 
@@ -110,6 +116,7 @@ class RoomViewServiceTest {
         verify(commandGateway).send(captor.capture());
         assertThat(captor.getValue().player().level()).isEqualTo(1);
         assertThat(captor.getValue().player().xpTotal()).isZero();
+        assertThat(captor.getValue().player().topicXp()).isZero();
     }
 
     @Test

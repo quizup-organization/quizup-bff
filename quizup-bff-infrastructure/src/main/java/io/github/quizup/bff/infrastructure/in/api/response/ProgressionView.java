@@ -16,7 +16,12 @@ public record ProgressionView(
         String title,
         int xpForNextLevel,
         int levelProgressPercent,
-        List<BadgeView> badges
+        List<BadgeView> badges,
+        /** Elo global du profil (profil, matchmaking, bordure). */
+        int rating,
+        int peakRating,
+        int ratedGames,
+        boolean provisional
 ) {
 
     public record BadgeView(String code, String label, String family, String tier) {
