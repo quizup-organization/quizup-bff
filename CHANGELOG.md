@@ -1,3 +1,9 @@
+## [11.37.0](https://github.com/quizup-organization/quizup-bff/compare/v11.36.0...v11.37.0) (2026-10-21)
+
+### Features
+
+* **bff:** expose l'Elo et l'apparie par rating ([ba64535](https://github.com/quizup-organization/quizup-bff/commit/ba6453583e82de066e7521f10085c549634b48fd))
+
 ## [11.36.0](https://github.com/quizup-organization/quizup-bff/compare/v11.35.1...v11.36.0) (2026-10-21)
 
 ### Features
