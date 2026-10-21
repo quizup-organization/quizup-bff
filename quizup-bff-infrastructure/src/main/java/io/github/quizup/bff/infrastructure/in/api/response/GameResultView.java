@@ -21,8 +21,14 @@ public record GameResultView(
         int totalRounds,
         RewardView reward,
         ProgressionResultView progression,
+        /** Variation d'Elo du joueur (0 si non classé). */
+        int eloDelta,
+        boolean rated,
         int opponentLevel,
         int opponentRating,
+        /** Variation d'Elo de l'adversaire (0 si non classé). */
+        int opponentEloDelta,
+        boolean opponentRated,
         String opponentTitle,
         TopicRefView topic,
         UserRefView opponent,

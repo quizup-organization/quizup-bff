@@ -38,14 +38,6 @@ class AchievementPublisherTest {
     }
 
     @Test
-    void levelReached_publishesLevelAchievement() {
-        publisher.onLevelReached(new ProgressionEvent.LevelReachedEvent(USER_ID, 12, "Confirmé", AT));
-
-        verify(messagingTemplate).convertAndSend(eq(DESTINATION), eq(
-                AchievementView.level(12, "Confirmé", AT)));
-    }
-
-    @Test
     void masteryGradeReached_publishesTitleAchievement() {
         publisher.onMasteryGradeReached(new ProgressionEvent.MasteryGradeReachedEvent(
                 USER_ID, "topic-1", MasteryGrade.CONFIRME, AT));

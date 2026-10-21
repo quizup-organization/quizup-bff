@@ -55,6 +55,7 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -300,6 +301,25 @@ public class ProfileViewService {
      * Le périmètre est borné côté service social ({@value FollowLookup#MAX_LIST_SIZE}), puis
      * filtré/trié/paginé ici.
      */
+
+    /**
+     * Elo minimal en lot pour les bordures d'avatar : une seule query pour tous les joueurs
+     * visibles, sans fan-out N+1.
+     */
+    public CompletableFuture<List<io.github.quizup.bff.infrastructure.in.api.response.PlayerRatingView>> ratings(
+            List<String> userIds) {
+        List<String> ids = userIds.stream().filter(Objects::nonNull).distinct().limit(100).toList();
+        if (ids.isEmpty()) {
+            return CompletableFuture.completedFuture(List.of());
+        }
+        return queryGateway.query(new ProgressionQuery.GetProgressionsByIdsQuery(ids),
+                        QueryResponseTypes.multipleInstancesOf(PlayerProgress.class))
+                .thenApply(progressions -> progressions.stream()
+                        .map(progress -> new io.github.quizup.bff.infrastructure.in.api.response.PlayerRatingView(
+                                progress.userId(), progress.rating(), progress.provisional()))
+                        .toList());
+    }
+
     public CompletableFuture<PageResponse<PlayerCardView>> people(String viewerId,
                                                                   String userId,
                                                                   FollowDirection direction,

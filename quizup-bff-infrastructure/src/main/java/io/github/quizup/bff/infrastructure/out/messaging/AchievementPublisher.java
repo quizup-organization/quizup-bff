@@ -10,7 +10,7 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 /**
- * Fan-out **éphémère** des **déblocages** du joueur : badge gagné, niveau franchi, titre
+ * Fan-out **éphémère** des **déblocages** du joueur : badge gagné et titre
  * thématique débloqué → poussés sur {@code /topic/achievements/{userId}} pour que le client
  * célèbre (popup + jingle) où qu'il soit — hors écran immersif, où la célébration est reportée.
  *
@@ -41,12 +41,6 @@ public class AchievementPublisher {
                 event.badge().metric().name(),
                 event.badge().target(),
                 event.earnedAt()));
-    }
-
-    @EventHandler
-    public void onLevelReached(ProgressionEvent.LevelReachedEvent event) {
-        publish(event.userId(), AchievementView.level(
-                event.level(), event.title(), event.reachedAt()));
     }
 
     @EventHandler

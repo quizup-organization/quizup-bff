@@ -198,6 +198,7 @@ public class GameViewService {
                 new ProgressionQuery.GetGamesXpQuery(playerId, List.of(gameId)),
                 QueryResponseTypes.multipleInstancesOf(GameXp.class));
 
+
         return resultFuture.thenCompose(gameResult -> {
             CompletableFuture<List<Topic>> topicsFuture = queryGateway.query(
                     new TopicQuery.GetTopicsByIdsQuery(List.of(gameResult.topicId())),
@@ -215,11 +216,22 @@ public class GameViewService {
                     gameResult.botGame() || gameResult.opponentId() == null
                             ? CompletableFuture.completedFuture(null)
                             : progressionLookup.get(gameResult.opponentId()).exceptionally(_ -> null);
+            CompletableFuture<List<GameXp>> opponentXpFuture =
+                    gameResult.botGame() || gameResult.opponentId() == null
+                            ? CompletableFuture.completedFuture(List.of())
+                            : queryGateway.query(
+                                    new ProgressionQuery.GetGamesXpQuery(gameResult.opponentId(), List.of(gameId)),
+                                    QueryResponseTypes.multipleInstancesOf(GameXp.class));
 
-            return CompletableFuture.allOf(topicsFuture, opponentFuture, xpFuture, opponentStatusFuture,
-                            playerProgressFuture, opponentProgressFuture).thenApply(_ -> {
+            return CompletableFuture.allOf(topicsFuture, opponentFuture, xpFuture, opponentXpFuture,
+                            opponentStatusFuture, playerProgressFuture, opponentProgressFuture).thenApply(_ -> {
                 GameXp gameXp = xpFuture.join().stream().findFirst().orElse(null);
                 Integer xp = gameXp == null ? null : gameXp.xp();
+                int eloDelta = gameXp == null ? 0 : gameXp.ratingDelta();
+                boolean rated = gameXp != null && gameXp.rated();
+                GameXp opponentGameXp = opponentXpFuture.join().stream().findFirst().orElse(null);
+                int opponentEloDelta = opponentGameXp == null ? 0 : opponentGameXp.ratingDelta();
+                boolean opponentRated = opponentGameXp != null && opponentGameXp.rated();
                 // Entraînement (duel bot) : XP nulle par construction, donc aucun bonus de victoire
                 // à dériver — `xp - score` produirait un bonus négatif.
                 GameResultView.RewardView reward = xp == null
@@ -272,8 +284,12 @@ public class GameViewService {
                         gameResult.totalRounds(),
                         reward,
                         progression,
+                        eloDelta,
+                        rated,
                         gameResult.opponentLevel(),
                         opponentRating,
+                        opponentEloDelta,
+                        opponentRated,
                         ProgressionRules.titleFor(gameResult.opponentLevel()),
                         TopicViews.toRef(gameResult.topicId(), topic),
                         opponentRef,

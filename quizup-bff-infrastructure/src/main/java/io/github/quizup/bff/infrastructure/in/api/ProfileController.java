@@ -18,6 +18,7 @@ import io.github.quizup.bff.infrastructure.in.api.response.BadgeCollectionView;
 import io.github.quizup.bff.infrastructure.in.api.response.PageResponse;
 import io.github.quizup.bff.infrastructure.in.api.response.PlayerCardView;
 import io.github.quizup.bff.infrastructure.in.api.response.PlayerProfileView;
+import io.github.quizup.bff.infrastructure.in.api.response.PlayerRatingView;
 import io.github.quizup.bff.infrastructure.in.api.response.TitlesView;
 import io.github.quizup.bff.infrastructure.in.api.response.TopicStatView;
 import io.github.quizup.game.domain.model.GameHistoryOutcome;
@@ -64,6 +65,12 @@ public class ProfileController {
         this.profileUpdateService = profileUpdateService;
         this.followLookup = followLookup;
         this.commandGateway = commandGateway;
+    }
+
+    @GetMapping("/ratings")
+    public CompletableFuture<ResponseEntity<List<PlayerRatingView>>> ratings(
+            @RequestParam List<String> ids) {
+        return profileViewService.ratings(ids).thenApply(ResponseEntity::ok);
     }
 
     @GetMapping("/{userId}")

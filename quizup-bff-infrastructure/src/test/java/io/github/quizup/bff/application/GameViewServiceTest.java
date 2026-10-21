@@ -44,7 +44,7 @@ class GameViewServiceTest {
 
     @Test
     void result_derives_victory_bonus_from_game_xp() {
-        stubResult(gameResult(120, 90), List.of(new GameXp("game-1", 150)));
+        stubResult(gameResult(120, 90), List.of(new GameXp("game-1", 150, 18, true)));
 
         GameResultView view = service.result("game-1", "player-1").join();
 
@@ -57,7 +57,7 @@ class GameViewServiceTest {
 
     @Test
     void result_builds_progression_from_game_snapshot_plus_gained_xp() {
-        stubResult(gameResult(120, 90), List.of(new GameXp("game-1", 150)));
+        stubResult(gameResult(120, 90), List.of(new GameXp("game-1", 150, 18, true)));
 
         GameResultView view = service.result("game-1", "player-1").join();
 
@@ -84,7 +84,7 @@ class GameViewServiceTest {
 
     @Test
     void result_training_bot_game_has_zero_reward_without_negative_victory_bonus() {
-        stubResult(gameResult(120, 90, true), List.of(new GameXp("game-1", 0)));
+        stubResult(gameResult(120, 90, true), List.of(new GameXp("game-1", 0, 0, false)));
 
         GameResultView view = service.result("game-1", "player-1").join();
 
