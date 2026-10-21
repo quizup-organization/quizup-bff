@@ -1,3 +1,9 @@
+## [11.36.0](https://github.com/quizup-organization/quizup-bff/compare/v11.35.1...v11.36.0) (2026-10-21)
+
+### Features
+
+* **bff:** autorise l'entraînement bot malgré un salon privé ([9fddfb0](https://github.com/quizup-organization/quizup-bff/commit/9fddfb0675a439df4f40dd1d62a078897867cb36))
+
 ## [11.35.1](https://github.com/quizup-organization/quizup-bff/compare/v11.35.0...v11.35.1) (2026-10-21)
 
 ### Bug Fixes
