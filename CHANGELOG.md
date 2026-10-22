@@ -1,3 +1,9 @@
+## [11.41.0](https://github.com/quizup-organization/quizup-bff/compare/v11.40.1...v11.41.0) (2026-10-22)
+
+### Features
+
+* **bff:** autorise les événements d'onboarding ([1b005fe](https://github.com/quizup-organization/quizup-bff/commit/1b005feeba4d243f9116f194a1b30ba13e3999ee))
+
 ## [11.40.1](https://github.com/quizup-organization/quizup-bff/compare/v11.40.0...v11.40.1) (2026-10-22)
 
 ### Bug Fixes
