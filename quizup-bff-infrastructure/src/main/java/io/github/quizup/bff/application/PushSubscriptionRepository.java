@@ -16,4 +16,7 @@ public interface PushSubscriptionRepository {
 
     /** Abonnements d'un joueur, du plus récent au plus ancien. */
     List<PushSubscription> findByUserId(String userId);
+
+    /** Supprime tous les abonnements d'un compte supprimé. */
+    long deleteByUserId(String userId);
 }

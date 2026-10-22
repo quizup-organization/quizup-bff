@@ -50,6 +50,14 @@ public class MediaAssetRepositoryAdapter implements MediaAssetRepository {
 
     @Override
     @Transactional(readOnly = true)
+    public List<MediaAsset> findByUploadedBy(String uploadedBy) {
+        return repository.findByUploadedBy(uploadedBy).stream()
+                .map(MediaAssetRepositoryAdapter::toDomain)
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public long sumBytesByUploadedBy(String uploadedBy) {
         return repository.sumBytesByUploadedBy(uploadedBy);
     }

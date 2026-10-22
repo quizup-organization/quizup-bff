@@ -98,6 +98,21 @@ public class MediaService {
         }
     }
 
+    /** Supprime toutes les images personnelles d'un compte (les objets partagés restent). */
+    @org.springframework.transaction.annotation.Transactional
+    public void deleteAllForUser(String userId) {
+        for (MediaAsset asset : repository.findByUploadedBy(userId)) {
+            repository.delete(asset);
+            if (repository.countByObjectKey(asset.objectKey()) == 0) {
+                try {
+                    storage.delete(asset.objectKey());
+                } catch (RuntimeException e) {
+                    logger.warn("Objet média orphelin non supprimé : {}", asset.objectKey(), e);
+                }
+            }
+        }
+    }
+
     private String urlFor(String objectKey) {
         return MediaPublicUrl.urlFor(properties, objectKey);
     }

@@ -17,6 +17,9 @@ public interface MediaAssetRepository {
 
     long countByUploadedBy(String uploadedBy);
 
+    /** Références possédées par un joueur (suppression de compte). */
+    List<MediaAsset> findByUploadedBy(String uploadedBy);
+
     long sumBytesByUploadedBy(String uploadedBy);
 
     long countByObjectKey(String objectKey);

@@ -51,6 +51,12 @@ public class PushSubscriptionRepositoryAdapter implements PushSubscriptionReposi
     }
 
     @Override
+    @Transactional
+    public long deleteByUserId(String userId) {
+        return repository.deleteByUserId(userId);
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public List<PushSubscription> findByUserId(String userId) {
         return repository.findByUserIdOrderByUpdatedAtDesc(userId).stream()

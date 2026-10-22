@@ -205,7 +205,7 @@ public class GameViewService {
                     QueryResponseTypes.multipleInstancesOf(Topic.class));
             CompletableFuture<Profile> opponentFuture = gameResult.botGame() || gameResult.opponentId() == null
                     ? CompletableFuture.completedFuture(null)
-                    : profileLookup.get(gameResult.opponentId());
+                    : profileLookup.get(gameResult.opponentId()).exceptionally(_ -> null);
             CompletableFuture<UserAccountStatus> opponentStatusFuture =
                     gameResult.botGame() || gameResult.opponentId() == null
                             ? CompletableFuture.completedFuture(null)

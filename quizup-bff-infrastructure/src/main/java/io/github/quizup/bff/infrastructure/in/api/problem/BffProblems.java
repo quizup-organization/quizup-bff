@@ -13,6 +13,16 @@ public final class BffProblems {
     private BffProblems() {
     }
 
+    public static class InvalidAccountDeletionCodeProblem extends BaseProblem {
+        public InvalidAccountDeletionCodeProblem() {
+            super("urn:quizup:bff:account:invalidDeletionCode",
+                    ProblemCategory.VALIDATION,
+                    "Invalid account deletion code",
+                    "The account deletion code is invalid, expired or already used",
+                    Map.of());
+        }
+    }
+
     public static class InvalidGameRequestProblem extends BaseProblem {
         public InvalidGameRequestProblem(String detail) {
             super("urn:quizup:bff:game:invalidRequest",

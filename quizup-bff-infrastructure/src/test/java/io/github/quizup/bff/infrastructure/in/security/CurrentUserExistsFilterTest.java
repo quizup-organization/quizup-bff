@@ -104,6 +104,23 @@ class CurrentUserExistsFilterTest {
     }
 
     @Test
+    void rejectsWith401WhenUserIsDeleted() throws Exception {
+        authenticate("deleted");
+        when(identityLookup.status("deleted")).thenReturn(CompletableFuture.completedFuture(
+                new UserAccountStatus("deleted", AccountStatus.DELETED, null)));
+        MockHttpServletRequest request = request("/api/me");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        MockFilterChain chain = new MockFilterChain();
+
+        filter().doFilter(request, response, chain);
+
+        assertEquals(401, response.getStatus());
+        assertTrue(response.getContentAsString().contains("urn:quizup:authentification:unknownUser"));
+        assertNull(chain.getRequest());
+        assertNull(SecurityContextHolder.getContext().getAuthentication());
+    }
+
+    @Test
     void rejectsWith403WhenUserIsSuspended() throws Exception {
         authenticate("suspended");
         Instant until = Instant.parse("2030-02-01T00:00:00Z");

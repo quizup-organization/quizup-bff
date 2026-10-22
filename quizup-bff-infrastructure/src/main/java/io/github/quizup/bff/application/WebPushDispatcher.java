@@ -83,7 +83,7 @@ public class WebPushDispatcher {
                     ? "/rooms/" + event.sourceId()
                     : "/notifications";
             case FOLLOW -> event.actorId() != null ? "/players/" + event.actorId() : "/notifications";
-            case QUESTION_REPORTED -> event.topicId() != null
+            case QUESTION_REPORTED, TOPIC_DRAFTED -> event.topicId() != null
                     ? "/topics/" + event.topicId()
                     : "/notifications";
             default -> "/notifications";

@@ -108,6 +108,11 @@ public class FollowLookup {
         recentlyInvalidated.put(userId, Instant.now());
     }
 
+    /** Un compte supprimé peut modifier les compteurs de plusieurs joueurs suivis. */
+    public void invalidateAllCounts() {
+        countsCache.invalidateAll();
+    }
+
     public CompletableFuture<Boolean> userFollowed(String followerId, String followedId) {
         return queryGateway.query(
                 new UserFollowerQuery.ExistsUserFollowerQuery(followerId, followedId),

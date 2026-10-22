@@ -3,7 +3,9 @@ package io.github.quizup.bff.infrastructure.out.messaging;
 import io.github.quizup.bff.application.FollowLookup;
 import io.github.quizup.bff.application.IdentityLookup;
 import io.github.quizup.bff.application.ProfileLookup;
+import io.github.quizup.bff.application.ProgressionLookup;
 import io.github.quizup.identity.domain.event.UserEvent;
+import io.github.quizup.identity.domain.event.UserEvent.UserAccountDeletedEvent;
 import io.github.quizup.profile.domain.event.ProfileEvent;
 import io.github.quizup.social.domain.event.UserFollowerEvent;
 import org.axonframework.config.ProcessingGroup;
@@ -31,13 +33,16 @@ public class CacheInvalidationHandler {
     private final FollowLookup followLookup;
     private final ProfileLookup profileLookup;
     private final IdentityLookup identityLookup;
+    private final ProgressionLookup progressionLookup;
 
     public CacheInvalidationHandler(FollowLookup followLookup,
                                     ProfileLookup profileLookup,
-                                    IdentityLookup identityLookup) {
+                                    IdentityLookup identityLookup,
+                                    ProgressionLookup progressionLookup) {
         this.followLookup = followLookup;
         this.profileLookup = profileLookup;
         this.identityLookup = identityLookup;
+        this.progressionLookup = progressionLookup;
     }
 
     @EventHandler
@@ -83,6 +88,14 @@ public class CacheInvalidationHandler {
     @EventHandler
     public void on(ProfileEvent.ProfileEquippedTitleUpdatedEvent event) {
         invalidateProfile(event.userId());
+    }
+
+    @EventHandler
+    public void on(UserAccountDeletedEvent event) {
+        profileLookup.invalidate(event.userId());
+        progressionLookup.invalidate(event.userId());
+        followLookup.invalidateAllCounts();
+        identityLookup.invalidate(event.userId());
     }
 
     @EventHandler

@@ -1,5 +1,6 @@
 package io.github.quizup.bff.infrastructure.in.api;
 
+import io.github.quizup.bff.application.AccountDeletionService;
 import io.github.quizup.bff.application.MeService;
 import io.github.quizup.bff.infrastructure.in.api.response.DuelStatsView;
 import io.github.quizup.bff.infrastructure.in.api.response.MeView;
@@ -19,9 +20,12 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.asyncDispatch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -31,11 +35,12 @@ class MeControllerTest {
     private static final String USER_ID = "user-1";
 
     private final MeService meService = mock(MeService.class);
+    private final AccountDeletionService accountDeletionService = mock(AccountDeletionService.class);
     private MockMvc mockMvc;
 
     @BeforeEach
     void setUp() {
-        mockMvc = MockMvcBuilders.standaloneSetup(new MeController(meService)).build();
+        mockMvc = MockMvcBuilders.standaloneSetup(new MeController(meService, accountDeletionService)).build();
         QuizUpPrincipal principal = new QuizUpPrincipal() {
             @Override
             public String getUserId() {
@@ -72,5 +77,22 @@ class MeControllerTest {
                 .andExpect(jsonPath("$.userId").value(USER_ID))
                 .andExpect(jsonPath("$.language").value("fr"))
                 .andExpect(jsonPath("$.progression.level").value(2));
+    }
+    @Test
+    void requestDeletionCode_returnsAccepted() throws Exception {
+        mockMvc.perform(post("/api/me/deletion-code"))
+                .andExpect(status().isAccepted());
+
+        verify(accountDeletionService).requestCode(USER_ID);
+    }
+
+    @Test
+    void deleteAccount_returnsAccepted() throws Exception {
+        mockMvc.perform(delete("/api/me")
+                        .contentType("application/json")
+                        .content("{\"confirmation\":\"SUPPRIMER\",\"code\":\"123456\"}"))
+                .andExpect(status().isAccepted());
+
+        verify(accountDeletionService).delete(USER_ID, "123456", "SUPPRIMER");
     }
 }

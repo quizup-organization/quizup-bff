@@ -16,6 +16,8 @@ public interface MediaAssetJpaRepository extends JpaRepository<MediaAssetEntity,
 
     long countByUploadedBy(String uploadedBy);
 
+    List<MediaAssetEntity> findByUploadedBy(String uploadedBy);
+
     @Query("select coalesce(sum(asset.sizeBytes), 0) from MediaAssetEntity asset where asset.uploadedBy = :uploadedBy")
     long sumBytesByUploadedBy(@Param("uploadedBy") String uploadedBy);
 

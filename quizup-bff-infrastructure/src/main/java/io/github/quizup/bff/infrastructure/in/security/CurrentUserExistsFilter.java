@@ -103,6 +103,12 @@ public class CurrentUserExistsFilter extends OncePerRequestFilter {
             writeUnauthorized(request, response);
             return;
         }
+        if (result.status() != null && result.status().deleted()) {
+            logger.warn("Deleted session rejected: user {}", userId);
+            SecurityContextHolder.clearContext();
+            writeUnauthorized(request, response);
+            return;
+        }
         if (result.status() != null && result.status().suspended(Instant.now())) {
             logger.warn("Suspended session rejected: user {}", userId);
             SecurityContextHolder.clearContext();
