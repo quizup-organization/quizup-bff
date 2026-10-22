@@ -135,7 +135,7 @@ l'ancienne surface et sont migrés lot par lot.
 | `GET /api/me` | `MeView` | Profil (+ `language` fr/en, + `equippedTitle` = clé du titre porté) + progression + stats de duel + `followingCount` + `followersCount` |
 | `GET /api/suggestions?q=&limit=` | `List<SuggestionView>` | Palette ⌘K : sujets + joueurs (`type`, `id`, libellé, visuel) |
 | `GET /api/clock` | `ServerTimeView` | `serverTime`, `epochMillis` |
-| `POST /api/telemetry/events` | `202` | Événement produit allowlisté (`name`, `properties` bornées) → compteur Prometheus `quizup_product_events_total`, logs debug ; jamais de SaaS. Rate-limit 120/min/joueur |
+| `POST /api/telemetry/events` | `202` | Événement produit allowlisté (`name`, `properties` bornées) → compteur Prometheus `quizup_product_events_total` (tags `event/mode/first/outcome/bot/auto`), logs debug ; jamais de SaaS. Rate-limit 120/min/joueur |
 | `POST /api/telemetry/client-errors` | `202` | Erreur navigateur (`type`, `message`, `stack`, `route`, `buildId`, `source`) → compteur `quizup_client_errors_total` + log `client_error` (Loki). Route normalisée, stack tronquée, rate-limit 20/min/joueur |
 
 ### Accueil
@@ -322,7 +322,7 @@ de sujet, illustration de question, bannière de profil) : objet référencé �
 
 | Endpoint | Réponse | Notes |
 |---|---|---|
-| `POST /api/matchmaking/tickets` | `201 + Location` | Body `{ topicId }` — lance la recherche ; l'appariement crée une **salle** nominative (jamais la partie, jamais de repli bot : à l'échéance **10 s** le ticket expire et le client propose relance ou entraînement). Le BFF prépare la **photo de couverture linguistique** du sujet (`GetTopicLanguageCoverageQuery`) et la porte dans la commande : la saga compare localement |
+| `POST /api/matchmaking/tickets` | `201 + Location` | Body `{ topicId }` — lance la recherche ; l'appariement crée une **salle** nominative (jamais la partie). Le serveur ne bascule **jamais** seul vers un bot : à l'échéance **10 s** le ticket expire ; le client applique la préférence locale `autoTrainOnTimeout` (entraînement automatique par défaut, sinon popup relance/entraînement). Le BFF prépare la **photo de couverture linguistique** du sujet (`GetTopicLanguageCoverageQuery`) et la porte dans la commande : la saga compare localement |
 | `GET /api/matchmaking/tickets/{ticketId}` | `MatchmakingTicketView` | Statut `SEARCHING\|COMPLETED\|CANCELLED\|EXPIRED\|FAILED`, `roomId`, `opponentId`, `vsBot` |
 | `POST /api/matchmaking/tickets/{ticketId}/cancel` | `200` | Annule la recherche |
 | `GET /api/matchmaking/tickets/{ticketId}/notifications` | `List<EventEnvelopeResponse>` (payload `MatchmakingNotification`) | Même contrat que le push WS |

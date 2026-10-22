@@ -80,7 +80,8 @@ public class TelemetryService {
                         "mode", safeMode(safe.get("mode")),
                         "first", safeBoolean(safe.get("first")),
                         "outcome", safeOutcome(safe.get("outcome")),
-                        "bot", safeBoolean(safe.get("bot")))
+                        "bot", safeBoolean(safe.get("bot")),
+                        "auto", safeBoolean(safe.get("auto")))
                 .register(meterRegistry)
                 .increment();
         return RecordResult.ACCEPTED;

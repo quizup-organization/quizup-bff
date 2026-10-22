@@ -26,7 +26,8 @@ class TelemetryServiceTest {
                         "mode", "public",
                         "first", "true",
                         "outcome", "",
-                        "bot", "")
+                        "bot", "",
+                        "auto", "")
                 .counter()
                 .count()).isEqualTo(1.0);
     }
