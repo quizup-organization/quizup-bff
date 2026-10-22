@@ -1,3 +1,9 @@
+## [11.43.2](https://github.com/quizup-organization/quizup-bff/compare/v11.43.1...v11.43.2) (2026-10-22)
+
+### Bug Fixes
+
+* **game:** expose l'Elo relatif à la partie et le snapshot de salle ([a3b9b3e](https://github.com/quizup-organization/quizup-bff/commit/a3b9b3ed2e7ac849b8a25a50aac7ebe4f58952a0))
+
 ## [11.43.1](https://github.com/quizup-organization/quizup-bff/compare/v11.43.0...v11.43.1) (2026-10-22)
 
 ### Bug Fixes
