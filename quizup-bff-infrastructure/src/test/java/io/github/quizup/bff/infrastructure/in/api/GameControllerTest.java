@@ -150,7 +150,8 @@ class GameControllerTest {
                 new TopicRefView("topic-1", java.util.Map.of(io.github.quizup.microservice.core.domain.model.i18n.Language.FR, "Culture générale"), "GENERAL", "🌍", "#ffffff", null, null),
                 new UserRefView("opponent-1", "Bob", null),
                 "opponent-1",
-                null);
+                null,
+                false);
         when(gameViewService.result("game-1", USER_ID)).thenReturn(CompletableFuture.completedFuture(view));
 
         MvcResult mvcResult = mockMvc.perform(get("/api/games/game-1/result"))

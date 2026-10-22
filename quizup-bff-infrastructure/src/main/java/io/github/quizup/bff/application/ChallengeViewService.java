@@ -56,17 +56,22 @@ public class ChallengeViewService {
 
     public CompletableFuture<String> create(String challengerId, CreateChallengeRequest request) {
         String challengeId = UUID.randomUUID().toString();
-        // L'adversaire doit exister (404 sinon, jamais de défi orphelin) ; une revanche doit
-        // référencer une partie terminée où le challenger a réellement joué.
-        return profileLookup.get(request.opponentId())
-                .thenCompose(_ -> identityLookup.status(request.opponentId()).exceptionally(_ -> null))
+        // L'adversaire doit exister (404 sinon, jamais de défi orphelin) et être actif ; un
+        // compte supprimé ne peut plus recevoir de défi ni de revanche. On vérifie le statut
+        // identity avant le profil, car le profil est déjà supprimé pour un compte DELETED.
+        return identityLookup.status(request.opponentId())
+                .exceptionally(_ -> null)
                 .thenCompose(status -> {
                     UserAccountStatus account = status;
+                    if (account != null && account.deleted()) {
+                        throw new BffProblems.ChallengeOpponentDeletedProblem(request.opponentId());
+                    }
                     if (account != null && account.suspended(Instant.now())) {
                         throw new BffProblems.ChallengeOpponentSuspendedProblem(request.opponentId());
                     }
-                    return validateRematch(challengerId, request);
+                    return profileLookup.get(request.opponentId());
                 })
+                .thenCompose(_ -> validateRematch(challengerId, request))
                 .thenCompose(_ -> duelCreationGuard.ensureChallengeAllowed(
                         challengerId, request.opponentId(), request.topicId()))
                 .thenCompose(_ -> commandGateway.send(new ChallengeCommand.CreateChallengeCommand(

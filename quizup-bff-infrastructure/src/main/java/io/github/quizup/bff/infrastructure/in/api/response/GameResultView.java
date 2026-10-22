@@ -33,7 +33,9 @@ public record GameResultView(
         TopicRefView topic,
         UserRefView opponent,
         String opponentId,
-        BotDifficulty botDifficulty
+        BotDifficulty botDifficulty,
+        /** L'adversaire a supprimé son compte : pseudo anonymisé et revanche interdite. */
+        boolean opponentDeleted
 ) {
 
     /** Récompense de la partie : XP totale gagnée et bonus de victoire dérivé du score. */

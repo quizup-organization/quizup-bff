@@ -263,6 +263,7 @@ public class GameViewService {
                         ? EloRules.INITIAL_RATING
                         : opponentProgress.rating();
                 UserAccountStatus opponentStatus = opponentStatusFuture.join();
+                boolean opponentDeleted = opponentStatus != null && opponentStatus.deleted();
                 UserRefView opponentRef = opponent == null
                         ? null
                         : new UserRefView(
@@ -294,7 +295,8 @@ public class GameViewService {
                         TopicViews.toRef(gameResult.topicId(), topic),
                         opponentRef,
                         gameResult.opponentId(),
-                        gameResult.botDifficulty());
+                        gameResult.botDifficulty(),
+                        opponentDeleted);
             });
         });
     }

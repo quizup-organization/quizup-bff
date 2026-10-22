@@ -193,6 +193,28 @@ public final class BffProblems {
         }
     }
 
+    /** Défi interdit : l'adversaire a supprimé son compte. */
+    public static class ChallengeOpponentDeletedProblem extends BaseProblem {
+        public ChallengeOpponentDeletedProblem(String opponentId) {
+            super("urn:quizup:bff:challenge:opponentDeleted",
+                    ProblemCategory.BUSINESS_INVALID_COMMAND,
+                    "Opponent deleted",
+                    "The opponent " + opponentId + " has deleted their account",
+                    Map.of("opponentId", opponentId));
+        }
+    }
+
+    /** Signalement interdit : la cible a supprimé son compte. */
+    public static class UserReportTargetDeletedProblem extends BaseProblem {
+        public UserReportTargetDeletedProblem(String targetUserId) {
+            super("urn:quizup:bff:userReport:targetDeleted",
+                    ProblemCategory.BUSINESS_INVALID_COMMAND,
+                    "Target account deleted",
+                    "The user " + targetUserId + " has deleted their account",
+                    Map.of("targetUserId", targetUserId));
+        }
+    }
+
     /** Le challenger n'a pas joué la partie d'origine de la revanche. */
     public static class RematchNotAllowedProblem extends BaseProblem {        public RematchNotAllowedProblem(String gameId, String playerId) {
             super("urn:quizup:bff:challenge:rematchNotAllowed",

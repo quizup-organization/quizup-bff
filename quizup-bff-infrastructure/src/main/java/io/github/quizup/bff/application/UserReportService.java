@@ -11,6 +11,7 @@ import io.github.quizup.game.domain.model.GameStatus;
 import io.github.quizup.game.domain.query.GameQuery;
 import io.github.quizup.identity.domain.command.UserReportCommand;
 import io.github.quizup.identity.domain.exception.UserProblems;
+import io.github.quizup.identity.domain.model.UserAccountStatus;
 import io.github.quizup.identity.domain.model.UserReport;
 import io.github.quizup.identity.domain.model.UserReportContext;
 import io.github.quizup.identity.domain.model.UserReportResolution;
@@ -43,13 +44,16 @@ public class UserReportService {
     private final QueryGateway queryGateway;
     private final CommandGateway commandGateway;
     private final ProfileLookup profileLookup;
+    private final IdentityLookup identityLookup;
 
     public UserReportService(QueryGateway queryGateway,
                              CommandGateway commandGateway,
-                             ProfileLookup profileLookup) {
+                             ProfileLookup profileLookup,
+                             IdentityLookup identityLookup) {
         this.queryGateway = queryGateway;
         this.commandGateway = commandGateway;
         this.profileLookup = profileLookup;
+        this.identityLookup = identityLookup;
     }
 
     public CompletableFuture<UserReportAckView> report(String targetUserId,
@@ -72,10 +76,18 @@ public class UserReportService {
                         QueryResponseTypes.instanceOf(Game.class));
         CompletableFuture<Profile> profileFuture = profileLookup.get(targetUserId)
                 .exceptionally(_ -> null);
+        CompletableFuture<UserAccountStatus> targetStatusFuture = identityLookup.status(targetUserId)
+                .exceptionally(_ -> null);
 
-        return CompletableFuture.allOf(targetExistsFuture, gameFuture, profileFuture).thenCompose(_ -> {
+        return CompletableFuture.allOf(
+                        targetExistsFuture, gameFuture, profileFuture, targetStatusFuture)
+                .thenCompose(_ -> {
             if (!Boolean.TRUE.equals(targetExistsFuture.join())) {
                 throw new UserProblems.UserNotFoundProblem(targetUserId);
+            }
+            UserAccountStatus targetStatus = targetStatusFuture.join();
+            if (targetStatus != null && targetStatus.deleted()) {
+                throw new BffProblems.UserReportTargetDeletedProblem(targetUserId);
             }
             Game game = gameFuture.join();
             validateGame(game, targetUserId, reporterId);

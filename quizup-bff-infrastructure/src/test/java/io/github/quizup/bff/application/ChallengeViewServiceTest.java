@@ -64,6 +64,19 @@ class ChallengeViewServiceTest {
     }
 
     @Test
+    void create_refusedWhenOpponentDeleted() {
+        when(identityLookup.status(OPPONENT)).thenReturn(CompletableFuture.completedFuture(
+                new io.github.quizup.identity.domain.model.UserAccountStatus(
+                        OPPONENT,
+                        io.github.quizup.identity.domain.model.AccountStatus.DELETED,
+                        null)));
+
+        assertThatThrownBy(() -> service.create(CHALLENGER, request(OPPONENT, "game-1")).join())
+                .hasCauseInstanceOf(BffProblems.ChallengeOpponentDeletedProblem.class);
+        verify(commandGateway, never()).send(any());
+    }
+
+    @Test
     void create_rematch_passesSourceGameIdToCommand() {
         stubGame(game(CHALLENGER, OPPONENT, GamePlayerType.HUMAN));
 
