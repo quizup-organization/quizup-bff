@@ -1,3 +1,9 @@
+## [11.42.0](https://github.com/quizup-organization/quizup-bff/compare/v11.41.0...v11.42.0) (2026-10-22)
+
+### Features
+
+* **account:** expose la suppression de compte et purge médias/push ([9700cfd](https://github.com/quizup-organization/quizup-bff/commit/9700cfd875542cceb1490f5996590c9ae1bae619))
+
 ## [11.41.0](https://github.com/quizup-organization/quizup-bff/compare/v11.40.1...v11.41.0) (2026-10-22)
 
 ### Features
