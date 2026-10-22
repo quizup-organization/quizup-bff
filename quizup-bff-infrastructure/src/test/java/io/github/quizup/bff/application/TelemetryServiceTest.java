@@ -33,6 +33,16 @@ class TelemetryServiceTest {
     }
 
     @Test
+    void records_onboarding_events() {
+        assertThat(service.recordEvent("user-1", "onboarding_started", Map.of()))
+                .isEqualTo(TelemetryService.RecordResult.ACCEPTED);
+        assertThat(service.recordEvent("user-1", "onboarding_completed", Map.of("topics", "3")))
+                .isEqualTo(TelemetryService.RecordResult.ACCEPTED);
+        assertThat(service.recordEvent("user-1", "onboarding_skipped", Map.of()))
+                .isEqualTo(TelemetryService.RecordResult.ACCEPTED);
+    }
+
+    @Test
     void rejects_unknown_event_without_creating_a_counter() {
         TelemetryService.RecordResult result = service.recordEvent(
                 "user-1", "event_libre", Map.of());

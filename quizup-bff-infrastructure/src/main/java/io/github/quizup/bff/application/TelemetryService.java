@@ -34,6 +34,9 @@ public class TelemetryService {
     private static final Logger logger = LoggerFactory.getLogger(TelemetryService.class);
 
     private static final Set<String> EVENTS = Set.of(
+            "onboarding_started",
+            "onboarding_completed",
+            "onboarding_skipped",
             "play_mode_opened",
             "duel_start_requested",
             "matchmaking_expired",

@@ -135,7 +135,7 @@ l'ancienne surface et sont migrés lot par lot.
 | `GET /api/me` | `MeView` | Profil (+ `language` fr/en, + `equippedTitle` = clé du titre porté) + progression + stats de duel + `followingCount` + `followersCount` |
 | `GET /api/suggestions?q=&limit=` | `List<SuggestionView>` | Palette ⌘K : sujets + joueurs (`type`, `id`, libellé, visuel) |
 | `GET /api/clock` | `ServerTimeView` | `serverTime`, `epochMillis` |
-| `POST /api/telemetry/events` | `202` | Événement produit allowlisté (`name`, `properties` bornées) → compteur Prometheus `quizup_product_events_total` (tags `event/mode/first/outcome/bot/auto`), logs debug ; jamais de SaaS. Rate-limit 120/min/joueur |
+| `POST /api/telemetry/events` | `202` | Événement produit allowlisté (`onboarding_started/completed/skipped`, `play_mode_opened`, `duel_start_requested`, `matchmaking_expired`, `result_viewed`, `paywall_viewed` ; `properties` bornées) → compteur Prometheus `quizup_product_events_total` (tags `event/mode/first/outcome/bot/auto`), logs debug ; jamais de SaaS. Rate-limit 120/min/joueur |
 | `POST /api/telemetry/client-errors` | `202` | Erreur navigateur (`type`, `message`, `stack`, `route`, `buildId`, `source`) → compteur `quizup_client_errors_total` + log `client_error` (Loki). Route normalisée, stack tronquée, rate-limit 20/min/joueur |
 
 ### Accueil
