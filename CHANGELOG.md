@@ -1,3 +1,9 @@
+## [11.40.1](https://github.com/quizup-organization/quizup-bff/compare/v11.40.0...v11.40.1) (2026-10-22)
+
+### Bug Fixes
+
+* **bff:** expose le mode auto du repli bot en télémétrie ([ecc2c67](https://github.com/quizup-organization/quizup-bff/commit/ecc2c67537df65d9e1af1e4b0b6ec17caa8eabbf))
+
 ## [11.40.0](https://github.com/quizup-organization/quizup-bff/compare/v11.39.0...v11.40.0) (2026-10-22)
 
 ### Features
