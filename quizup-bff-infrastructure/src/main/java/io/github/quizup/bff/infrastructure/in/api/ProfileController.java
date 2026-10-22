@@ -3,6 +3,7 @@ package io.github.quizup.bff.infrastructure.in.api;
 import io.github.quizup.bff.application.FollowLookup;
 import io.github.quizup.bff.application.ProfileUpdateService;
 import io.github.quizup.bff.application.ProfileViewService;
+import io.github.quizup.bff.infrastructure.in.api.problem.BffProblems;
 import io.github.quizup.bff.infrastructure.in.api.request.PageParams;
 import io.github.quizup.bff.infrastructure.in.api.request.PeopleSort;
 import io.github.quizup.bff.infrastructure.in.api.request.UpdateAvatarOptionsRequest;
@@ -12,6 +13,7 @@ import io.github.quizup.bff.infrastructure.in.api.request.UpdateCountryRequest;
 import io.github.quizup.bff.infrastructure.in.api.request.UpdateLanguageRequest;
 import io.github.quizup.bff.infrastructure.in.api.request.UpdatePseudonymRequest;
 import io.github.quizup.bff.infrastructure.in.api.request.UpdateTitleRequest;
+import io.github.quizup.bff.infrastructure.in.api.response.ActivityViewResponse;
 import io.github.quizup.bff.infrastructure.in.api.response.GameHistoryItemView;
 import io.github.quizup.bff.infrastructure.in.api.response.HeadToHeadView;
 import io.github.quizup.bff.infrastructure.in.api.response.BadgeCollectionView;
@@ -30,6 +32,7 @@ import io.github.quizup.social.domain.model.FollowDirection;
 import io.github.quizup.social.domain.model.FollowerIds;
 import jakarta.validation.Valid;
 import org.axonframework.commandhandling.gateway.CommandGateway;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -40,6 +43,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
@@ -141,6 +146,23 @@ public class ProfileController {
     @GetMapping("/{userId}/badges")
     public CompletableFuture<ResponseEntity<BadgeCollectionView>> badges(@PathVariable String userId) {
         return profileViewService.badges(userId).thenApply(ResponseEntity::ok);
+    }
+
+    /**
+     * Activité journalière d'un joueur (calendrier de série) : 365 jours par défaut, fenêtre
+     * explicite possible. La série courante est recalculée à la date de la requête.
+     */
+    @GetMapping("/{userId}/activity")
+    public CompletableFuture<ResponseEntity<ActivityViewResponse>> activity(
+            @PathVariable String userId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+        LocalDate end = to == null ? LocalDate.now() : to;
+        LocalDate start = from == null ? end.minusDays(364) : from;
+        if (start.isAfter(end) || ChronoUnit.DAYS.between(start, end) > 366) {
+            throw new BffProblems.InvalidActivityRangeProblem();
+        }
+        return profileViewService.activity(userId, start, end).thenApply(ResponseEntity::ok);
     }
 
     /**

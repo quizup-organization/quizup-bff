@@ -3,6 +3,8 @@ package io.github.quizup.bff.infrastructure.in.api;
 import io.github.quizup.bff.application.FollowLookup;
 import io.github.quizup.bff.application.ProfileUpdateService;
 import io.github.quizup.bff.application.ProfileViewService;
+import io.github.quizup.bff.infrastructure.in.api.problem.BffProblemExceptionHandler;
+import io.github.quizup.bff.infrastructure.in.api.response.ActivityViewResponse;
 import io.github.quizup.bff.infrastructure.in.api.response.BadgeCollectionView;
 import io.github.quizup.bff.infrastructure.in.api.response.DuelStatsView;
 import io.github.quizup.bff.infrastructure.in.api.response.PageResponse;
@@ -25,6 +27,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -55,7 +58,9 @@ class ProfileControllerTest {
     @BeforeEach
     void setUp() {
         mockMvc = MockMvcBuilders.standaloneSetup(
-                new ProfileController(profileViewService, profileUpdateService, followLookup, commandGateway)).build();
+                        new ProfileController(profileViewService, profileUpdateService, followLookup, commandGateway))
+                .setControllerAdvice(new BffProblemExceptionHandler())
+                .build();
         TestSecurity.authenticate(USER_ID);
     }
 
@@ -221,6 +226,40 @@ class ProfileControllerTest {
 
         mockMvc.perform(asyncDispatch(result)).andExpect(status().isNoContent());
         verify(profileUpdateService).updateEquippedTitle(USER_ID, USER_ID, null);
+    }
+
+    @Test
+    void activity_returns_the_streak_calendar_for_an_explicit_window() throws Exception {
+        when(profileViewService.activity("user-2", LocalDate.parse("2026-01-01"),
+                LocalDate.parse("2026-01-31")))
+                .thenReturn(CompletableFuture.completedFuture(new ActivityViewResponse(
+                        "user-2",
+                        3,
+                        7,
+                        LocalDate.parse("2026-01-31"),
+                        5,
+                        List.of(new ActivityViewResponse.Day(LocalDate.parse("2026-01-31"), 2)))));
+
+        MvcResult result = mockMvc.perform(get("/api/profiles/user-2/activity")
+                        .param("from", "2026-01-01")
+                        .param("to", "2026-01-31"))
+                .andExpect(request().asyncStarted())
+                .andReturn();
+
+        mockMvc.perform(asyncDispatch(result))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.currentStreak").value(3))
+                .andExpect(jsonPath("$.longestStreak").value(7))
+                .andExpect(jsonPath("$.days[0].games").value(2));
+    }
+
+    @Test
+    void activity_rejects_a_window_longer_than_one_year() throws Exception {
+        mockMvc.perform(get("/api/profiles/user-2/activity")
+                        .param("from", "2024-01-01")
+                        .param("to", "2026-01-31"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.type").value("urn:quizup:bff:profile:invalidActivityRange"));
     }
 
     @Test

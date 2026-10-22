@@ -1,15 +1,19 @@
 package io.github.quizup.bff.application;
 
+import io.github.quizup.bff.infrastructure.in.api.response.ActivityViewResponse;
 import io.github.quizup.bff.infrastructure.in.api.response.BadgeCollectionView;
 import io.github.quizup.bff.infrastructure.in.api.response.PlayerProfileView;
 import io.github.quizup.bff.infrastructure.in.api.response.TitlesView;
 import io.github.quizup.bff.infrastructure.in.api.response.TopicStatView;
 import io.github.quizup.microservice.core.domain.constant.QuizUpConstants;
 import io.github.quizup.microservice.core.domain.model.i18n.Language;
+import io.github.quizup.profile.domain.model.ActivityDay;
+import io.github.quizup.profile.domain.model.ActivityView;
 import io.github.quizup.profile.domain.model.Badge;
 import io.github.quizup.profile.domain.model.PlayerProgress;
 import io.github.quizup.profile.domain.model.Profile;
 import io.github.quizup.profile.domain.model.TopicProgress;
+import io.github.quizup.profile.domain.query.ActivityQuery;
 import io.github.quizup.profile.domain.query.ProgressionQuery;
 import io.github.quizup.theme.domain.model.Topic;
 import io.github.quizup.theme.domain.query.TopicQuery;
@@ -18,6 +22,7 @@ import org.axonframework.queryhandling.QueryGateway;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentMatchers;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -201,6 +206,43 @@ class ProfileViewServiceTest {
     }
 
     @Test
+    void daily_streak_progress_resets_after_a_missed_day() {
+        when(progressionLookup.get("user-1")).thenReturn(CompletableFuture.completedFuture(
+                PlayerProgress.empty("user-1").toBuilder()
+                        .currentDayStreak(5)
+                        .bestDayStreak(10)
+                        .lastActiveDate(LocalDate.now().minusDays(2))
+                        .build()));
+
+        BadgeCollectionView view = service.badges("user-1").join();
+
+        assertThat(item(view, Badge.ASSIDUITY_BRONZE).progress()).isZero();
+    }
+
+    @Test
+    void activity_maps_the_streak_calendar() {
+        when(queryGateway.query(
+                any(ActivityQuery.GetActivityQuery.class),
+                ArgumentMatchers.<ResponseType<ActivityView>>any()))
+                .thenReturn(CompletableFuture.completedFuture(new ActivityView(
+                        "user-1",
+                        3,
+                        7,
+                        LocalDate.parse("2026-03-03"),
+                        2,
+                        List.of(
+                                new ActivityDay(LocalDate.parse("2026-03-02"), 1),
+                                new ActivityDay(LocalDate.parse("2026-03-03"), 2)))));
+
+        ActivityViewResponse view = service.activity("user-1",
+                LocalDate.parse("2026-03-01"), LocalDate.parse("2026-03-03")).join();
+
+        assertThat(view.currentStreak()).isEqualTo(3);
+        assertThat(view.days()).hasSize(2);
+        assertThat(view.days().get(1).games()).isEqualTo(2);
+    }
+
+    @Test
     void badges_expose_the_whole_catalogue_with_capped_progress() {
         when(progressionLookup.get("user-1")).thenReturn(CompletableFuture.completedFuture(
                 PlayerProgress.empty("user-1").toBuilder()
@@ -208,7 +250,9 @@ class ProfileViewServiceTest {
                         .wins(3)
                         .perfectDuels(4)
                         .fastAnswersTotal(80)
-                        .bestDayStreak(5)
+                        .currentDayStreak(5)
+                        .bestDayStreak(10)
+                        .lastActiveDate(LocalDate.now())
                         .followersGained(7)
                         .challengesSent(2)
                         .imageCorrectTotal(20)
@@ -244,7 +288,8 @@ class ProfileViewServiceTest {
         assertThat(item(view, Badge.PRECISION_BRONZE).progress()).isEqualTo(3);
         assertThat(item(view, Badge.SPEED_BRONZE).progress()).isEqualTo(25);
 
-        // Assiduité : meilleure série de jours joués, plafonnée au seuil du palier (5).
+        // Assiduité : série **courante** (5), pas le record historique (10) — une série
+        // interrompue doit faire repartir la progression du palier suivant.
         assertThat(item(view, Badge.ASSIDUITY_BRONZE).progress()).isEqualTo(5);
 
         // Social / Défis : compteurs alimentés par les autres services (abonnés, défis lancés).

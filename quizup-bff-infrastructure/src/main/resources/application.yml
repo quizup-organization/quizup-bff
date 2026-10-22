@@ -32,6 +32,9 @@ microservice:
 # token initial à la queue du flux — aucun replay Kafka). Le Web Push reste sur le groupe global
 # `notification-push` (une seule notification OS, quel que soit le nombre de répliques).
 quizup:
+  # Fuseau de découpage des jours d'activité (aligné sur `quizup-profile`).
+  activity:
+    zone: ${QUIZUP_ACTIVITY_ZONE:Europe/Paris}
   # Quotas de création de duels (référence gratuite ; le premium lèvera ces bornes via
   # `DuelLimitPolicy`). 0 = illimité.
   duel:

@@ -1,6 +1,7 @@
 package io.github.quizup.bff.application;
 
 import io.github.quizup.bff.infrastructure.in.api.request.PeopleSort;
+import io.github.quizup.bff.infrastructure.in.api.response.ActivityViewResponse;
 import io.github.quizup.bff.infrastructure.in.api.response.BadgeCollectionView;
 import io.github.quizup.bff.infrastructure.in.api.response.DuelStatsView;
 import io.github.quizup.bff.infrastructure.in.api.response.GameHistoryItemView;
@@ -25,6 +26,7 @@ import io.github.quizup.identity.domain.model.UserAccountStatus;
 import io.github.quizup.microservice.core.domain.constant.QuizUpConstants;
 import io.github.quizup.microservice.core.domain.model.i18n.Language;
 import io.github.quizup.microservice.core.infrastructure.axon.QueryResponseTypes;
+import io.github.quizup.profile.domain.model.ActivityView;
 import io.github.quizup.profile.domain.model.Badge;
 import io.github.quizup.profile.domain.model.BadgeFamily;
 import io.github.quizup.profile.domain.model.BadgeMetric;
@@ -36,6 +38,7 @@ import io.github.quizup.profile.domain.model.PlayerTitle;
 import io.github.quizup.profile.domain.model.Profile;
 import io.github.quizup.profile.domain.model.ProgressionRules;
 import io.github.quizup.profile.domain.model.TopicProgress;
+import io.github.quizup.profile.domain.query.ActivityQuery;
 import io.github.quizup.profile.domain.query.PresenceQuery;
 import io.github.quizup.profile.domain.query.ProgressionQuery;
 import io.github.quizup.social.domain.model.FollowDirection;
@@ -45,10 +48,13 @@ import io.github.quizup.social.domain.query.UserFollowerQuery;
 import io.github.quizup.theme.domain.model.Topic;
 import io.github.quizup.theme.domain.query.TopicQuery;
 import org.axonframework.queryhandling.QueryGateway;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.text.Normalizer;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -72,6 +78,14 @@ public class ProfileViewService {
     private static final int MAX_PEOPLE_SCAN = FollowLookup.MAX_LIST_SIZE;
     private static final int HEAD_TO_HEAD_PAGE_SIZE = 200;
     private static final int HEAD_TO_HEAD_MAX_PAGES = 5;
+
+    /** Fuseau des journées d'activité, aligné sur `quizup-profile` par défaut. */
+    private ZoneId activityZone = ZoneId.of("Europe/Paris");
+
+    @Value("${quizup.activity.zone:Europe/Paris}")
+    void setActivityZone(String zone) {
+        this.activityZone = ZoneId.of(zone);
+    }
 
     private final QueryGateway queryGateway;
     private final ProfileLookup profileLookup;
@@ -164,6 +178,22 @@ public class ProfileViewService {
                 .thenApply(presences -> presences.stream().findFirst().map(ProfileViewService::toPresence));
     }
 
+    /** Activité journalière et séries d'un joueur, sur la fenêtre demandée (calendrier). */
+    public CompletableFuture<ActivityViewResponse> activity(String userId, LocalDate from, LocalDate to) {
+        return queryGateway.query(
+                        new ActivityQuery.GetActivityQuery(userId, from, to),
+                        QueryResponseTypes.instanceOf(ActivityView.class))
+                .thenApply(activity -> new ActivityViewResponse(
+                        activity.userId(),
+                        activity.currentStreak(),
+                        activity.longestStreak(),
+                        activity.lastActiveDate(),
+                        activity.totalActiveDays(),
+                        activity.days().stream()
+                                .map(day -> new ActivityViewResponse.Day(day.date(), day.games()))
+                                .toList()));
+    }
+
     /**
      * Titres thématiques débloqués par un joueur : **tous les grades atteints** de chaque sujet
      * avec **au moins une partie humaine terminée** (abandon inclus, entraînement bot exclu) — le
@@ -231,7 +261,7 @@ public class ProfileViewService {
         });
     }
 
-    private static BadgeCollectionView.BadgeItemView toBadgeItem(Badge badge, PlayerProgress progress) {
+    private BadgeCollectionView.BadgeItemView toBadgeItem(Badge badge, PlayerProgress progress) {
         boolean earned = progress.badges().contains(badge);
         int target = badge.target();
         int current = earned && badge.isOneShot()
@@ -249,7 +279,7 @@ public class ProfileViewService {
     }
 
     /** Valeur courante du compteur d'un badge, telle que la mesure le read model de progression. */
-    private static int metricValue(BadgeMetric metric, PlayerProgress progress) {
+    private int metricValue(BadgeMetric metric, PlayerProgress progress) {
         return switch (metric) {
             case HUMAN_DUELS -> progress.gamesPlayed();
             case HUMAN_WINS -> progress.wins();
@@ -263,13 +293,27 @@ public class ProfileViewService {
             case WIN_STREAK -> progress.bestWinStreak();
             case PERFECT_DUELS -> progress.perfectDuels();
             case FAST_ANSWERS -> progress.fastAnswersTotal();
-            case DAILY_STREAK -> progress.bestDayStreak();
+            // La progression affichée est la série **courante** (elle retombe à zéro après un
+            // jour manqué). Les paliers déjà acquis restent acquis, mais la marche suivante
+            // repart de la série effective, pas du record historique.
+            case DAILY_STREAK -> effectiveCurrentDayStreak(progress);
             case FOLLOWERS_GAINED -> progress.followersGained();
             case CHALLENGES_SENT -> progress.challengesSent();
             case IMAGE_CORRECT -> progress.imageCorrectTotal();
             case EARNED_BADGES -> progress.badges().size();
             case ONE_SHOT -> 0;
         };
+    }
+
+    private int effectiveCurrentDayStreak(PlayerProgress progress) {
+        if (progress.lastActiveDate() == null) {
+            return 0;
+        }
+        LocalDate today = LocalDate.now(activityZone);
+        if (progress.lastActiveDate().isBefore(today.minusDays(1))) {
+            return 0;
+        }
+        return progress.currentDayStreak();
     }
 
     private static TitlesView.TitleView toTitle(String topicId, int topicXp,

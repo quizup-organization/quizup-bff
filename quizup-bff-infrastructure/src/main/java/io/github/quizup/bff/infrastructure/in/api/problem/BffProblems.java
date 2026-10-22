@@ -44,6 +44,17 @@ public final class BffProblems {
         }
     }
 
+    /** Fenêtre d'activité invalide (ordre des dates ou plus d'un an). */
+    public static class InvalidActivityRangeProblem extends BaseProblem {
+        public InvalidActivityRangeProblem() {
+            super("urn:quizup:bff:profile:invalidActivityRange",
+                    ProblemCategory.VALIDATION,
+                    "Invalid activity range",
+                    "The activity range must be ordered and span at most 366 days",
+                    Map.of());
+        }
+    }
+
     public static class InvalidTopicListRequestProblem extends BaseProblem {
         public InvalidTopicListRequestProblem(String detail) {
             super("urn:quizup:bff:topic:invalidListRequest",
