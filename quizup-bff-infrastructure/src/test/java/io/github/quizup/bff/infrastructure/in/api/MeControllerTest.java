@@ -90,9 +90,9 @@ class MeControllerTest {
     void deleteAccount_returnsAccepted() throws Exception {
         mockMvc.perform(delete("/api/me")
                         .contentType("application/json")
-                        .content("{\"confirmation\":\"SUPPRIMER\",\"code\":\"123456\"}"))
+                        .content("{\"code\":\"123456\"}"))
                 .andExpect(status().isAccepted());
 
-        verify(accountDeletionService).delete(USER_ID, "123456", "SUPPRIMER");
+        verify(accountDeletionService).delete(USER_ID, "123456");
     }
 }

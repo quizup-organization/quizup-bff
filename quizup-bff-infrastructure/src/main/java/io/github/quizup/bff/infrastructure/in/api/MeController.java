@@ -44,11 +44,10 @@ public class MeController {
         return ResponseEntity.accepted().build();
     }
 
-    /** Supprime définitivement le compte après vérification du code OTP et de la phrase. */
+    /** Supprime définitivement le compte après vérification du code OTP. */
     @DeleteMapping
     public ResponseEntity<Void> delete(@Valid @RequestBody DeleteAccountRequest request) {
-        accountDeletionService.delete(
-                SecurityHelper.getUserId(), request.code(), request.confirmation());
+        accountDeletionService.delete(SecurityHelper.getUserId(), request.code());
         return ResponseEntity.accepted().build();
     }
 }

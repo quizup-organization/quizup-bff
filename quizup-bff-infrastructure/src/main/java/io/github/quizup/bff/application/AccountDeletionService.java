@@ -43,10 +43,7 @@ public class AccountDeletionService {
         }
     }
 
-    public void delete(String userId, String code, String confirmation) {
-        if (!isConfirmed(confirmation)) {
-            throw new BffProblems.InvalidAccountDeletionCodeProblem();
-        }
+    public void delete(String userId, String code) {
         String email = meService.me(userId).join().email();
         if (email == null || email.isBlank()) {
             throw new BffProblems.InvalidAccountDeletionCodeProblem();
@@ -90,9 +87,4 @@ public class AccountDeletionService {
                 DELETION_WAIT_MS, userId);
     }
 
-    private static boolean isConfirmed(String value) {
-        if (value == null) return false;
-        String normalized = value.trim().toUpperCase(java.util.Locale.ROOT);
-        return "SUPPRIMER".equals(normalized) || "DELETE".equals(normalized);
-    }
 }
