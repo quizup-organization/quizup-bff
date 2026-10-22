@@ -241,7 +241,11 @@ public class GameViewService {
                 int xpTotal = gameResult.myXpTotal() + (xp == null ? 0 : xp);
                 int level = ProgressionRules.levelFor(xpTotal);
                 PlayerProgress playerProgress = playerProgressFuture.join();
-                int rating = playerProgress == null ? EloRules.INITIAL_RATING : playerProgress.rating();
+                // Elo relatif à la partie : snapshot de création + variation du duel. Les anciens
+                // événements sans snapshot retombent sur l'Elo courant (compatibilité).
+                int rating = gameResult.myRating() != null
+                        ? Math.max(0, gameResult.myRating() + eloDelta)
+                        : playerProgress == null ? EloRules.INITIAL_RATING : playerProgress.rating();
                 int peakRating = playerProgress == null ? rating : playerProgress.peakRating();
                 int ratedGames = playerProgress == null ? 0 : playerProgress.ratedGames();
                 boolean provisional = playerProgress == null || playerProgress.provisional();
@@ -259,9 +263,11 @@ public class GameViewService {
                 Topic topic = topicsFuture.join().stream().findFirst().orElse(null);
                 Profile opponent = opponentFuture.join();
                 PlayerProgress opponentProgress = opponentProgressFuture.join();
-                int opponentRating = opponentProgress == null
-                        ? EloRules.INITIAL_RATING
-                        : opponentProgress.rating();
+                int opponentRating = gameResult.opponentRating() != null
+                        ? Math.max(0, gameResult.opponentRating() + opponentEloDelta)
+                        : opponentProgress == null
+                            ? EloRules.INITIAL_RATING
+                            : opponentProgress.rating();
                 UserAccountStatus opponentStatus = opponentStatusFuture.join();
                 boolean opponentDeleted = opponentStatus != null && opponentStatus.deleted();
                 UserRefView opponentRef = opponent == null

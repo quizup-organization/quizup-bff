@@ -70,6 +70,9 @@ class GameViewServiceTest {
         assertThat(view.progression().xpForNextLevel()).isEqualTo(ProgressionRules.xpForNextLevel(level));
         assertThat(view.progression().levelProgressPercent())
                 .isEqualTo(ProgressionViews.levelProgressPercent(xpTotal, level));
+        // Elo relatif à la partie : snapshot 800 + delta 18, pas l'Elo courant.
+        assertThat(view.progression().rating()).isEqualTo(818);
+        assertThat(view.opponentRating()).isEqualTo(918);
     }
 
     @Test
@@ -171,6 +174,6 @@ class GameViewServiceTest {
                 botGame,
                 null,
                 100, 20, 6, 3, 7, 7,
-                2, 100, 3, 400);
+                2, 100, 3, 400, 800, 900);
     }
 }

@@ -139,7 +139,8 @@ public class RoomViewService {
                         player.profile().language(),
                         player.progress() == null ? 1 : Math.max(1, player.progress().level()),
                         player.progress() == null ? 0 : Math.max(0, player.progress().xpTotal()),
-                        topicProgress == null ? 0 : Math.max(0, topicProgress.xp())));
+                        topicProgress == null ? 0 : Math.max(0, topicProgress.xp()),
+                        player.progress() == null ? null : player.progress().rating()));
     }
 
     private record PlayerWithProgress(Profile profile, PlayerProgress progress) {

@@ -20,10 +20,10 @@
         <!-- 5.9.0 : comptage des références d'images (console média). -->
         <quizup.theme-domain.version>6.14.0</quizup.theme-domain.version>
         <quizup.social-domain.version>5.3.1</quizup.social-domain.version>
-        <quizup.game-domain.version>8.6.0</quizup.game-domain.version>
+        <quizup.game-domain.version>8.7.2</quizup.game-domain.version>
         <!-- 4.8.0 : palier Fer, catalogue recalibré et rang des titres (MasteryGrade.rank()). -->
         <quizup.profile-domain.version>4.9.3</quizup.profile-domain.version>
-        <quizup.matchmaking-domain.version>11.5.0</quizup.matchmaking-domain.version>
+        <quizup.matchmaking-domain.version>11.6.1</quizup.matchmaking-domain.version>
         <quizup.leaderboard-domain.version>4.3.1</quizup.leaderboard-domain.version>
         <!-- 2.5.0 : delete-all. -->
         <quizup.notification-domain.version>3.10.0</quizup.notification-domain.version>
