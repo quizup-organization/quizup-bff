@@ -1,3 +1,9 @@
+## [11.39.0](https://github.com/quizup-organization/quizup-bff/compare/v11.38.1...v11.39.0) (2026-10-22)
+
+### Features
+
+* **bff:** télémétrie produit et erreurs client interne ([604ea57](https://github.com/quizup-organization/quizup-bff/commit/604ea57542886dc471c3efd183789e8c0734fdcf))
+
 ## [11.38.1](https://github.com/quizup-organization/quizup-bff/compare/v11.38.0...v11.38.1) (2026-10-21)
 
 ### Bug Fixes
