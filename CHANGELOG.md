@@ -1,3 +1,9 @@
+## [11.43.1](https://github.com/quizup-organization/quizup-bff/compare/v11.43.0...v11.43.1) (2026-10-22)
+
+### Bug Fixes
+
+* **game:** masque les comptes supprimés et bloque revanche/signalement ([2d9e6bf](https://github.com/quizup-organization/quizup-bff/commit/2d9e6bfd7634ab0c014eef3dfaffdc4c083a2612))
+
 ## [11.43.0](https://github.com/quizup-organization/quizup-bff/compare/v11.42.0...v11.43.0) (2026-10-22)
 
 ### Features
