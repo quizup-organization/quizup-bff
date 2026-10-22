@@ -1,3 +1,9 @@
+## [11.43.0](https://github.com/quizup-organization/quizup-bff/compare/v11.42.0...v11.43.0) (2026-10-22)
+
+### Features
+
+* **account:** valide la suppression par OTP seul, sans phrase à recopier ([7d29b78](https://github.com/quizup-organization/quizup-bff/commit/7d29b783120ff643172ea926234b33dcd14f6f83))
+
 ## [11.42.0](https://github.com/quizup-organization/quizup-bff/compare/v11.41.0...v11.42.0) (2026-10-22)
 
 ### Features
