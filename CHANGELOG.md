@@ -1,3 +1,9 @@
+## [11.40.0](https://github.com/quizup-organization/quizup-bff/compare/v11.39.0...v11.40.0) (2026-10-22)
+
+### Features
+
+* **bff:** calendrier de série et progression assiduité courante ([55b9ddf](https://github.com/quizup-organization/quizup-bff/commit/55b9ddfed21a11fce3053eac1e3d3971c4e8d945))
+
 ## [11.39.0](https://github.com/quizup-organization/quizup-bff/compare/v11.38.1...v11.39.0) (2026-10-22)
 
 ### Features
