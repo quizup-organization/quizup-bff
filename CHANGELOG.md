@@ -1,3 +1,13 @@
+## [12.0.0](https://github.com/quizup-organization/quizup-bff/compare/v11.46.0...v12.0.0) (2026-10-23)
+
+### ⚠ BREAKING CHANGES
+
+* **bff:** expose les récompenses Micah et passe la progression joueur à l'Elo
+
+### Features
+
+* **bff:** expose les récompenses Micah et passe la progression joueur à l'Elo ([e267552](https://github.com/quizup-organization/quizup-bff/commit/e267552e669e8cfa1fc00e9c6c2ef4978ada61df))
+
 ## [11.46.0](https://github.com/quizup-organization/quizup-bff/compare/v11.45.0...v11.46.0) (2026-10-23)
 
 ### Features
