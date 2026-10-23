@@ -1,3 +1,9 @@
+## [11.44.3](https://github.com/quizup-organization/quizup-bff/compare/v11.44.2...v11.44.3) (2026-10-23)
+
+### Bug Fixes
+
+* **session:** rejette les JWT des comptes supprimés après reset ([bbbca10](https://github.com/quizup-organization/quizup-bff/commit/bbbca107ebefc5e31fb7db4cb9bfd5fd9450ae7d))
+
 ## [11.44.2](https://github.com/quizup-organization/quizup-bff/compare/v11.44.1...v11.44.2) (2026-10-23)
 
 ### Bug Fixes
