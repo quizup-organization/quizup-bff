@@ -84,7 +84,10 @@ l'ancienne surface et sont migrés lot par lot.
   (`equippedTitle` + `GET …/titles`), l'UI devant basculer dans un lot dédié.
   Chaque titre expose aussi son **rang** (`rank`, `FER`…`DIAMANT`), dérivé du grade via
   `MasteryGrade.rank()`.
-  > Pin `quizup.profile-domain.version` : **4.11.1** (palier Fer + rang des titres).
+  > Pin `quizup.profile-domain.version` : **4.12.0** (recalibrage des seuils de badges/titres :
+  > première victoire à 3 badges, maîtrise `0/500/1 500/4 000/9 000/21 000/45 000`).
+  > Ce pin doit rester aligné sur la release `quizup-profile` qui porte ces seuils, sinon les
+  > vues serviront d'anciennes cibles.
 - **Titres thématiques** : le serveur ne compose **jamais** le libellé (« Confirmé · Histoire ») —
   il expose le grade (`MasteryGrade`, à traduire côté client) et le sujet (`names`), le client
   combine. Un titre est débloqué par un sujet avec **au moins une partie humaine terminée**

@@ -3,6 +3,7 @@ package io.github.quizup.bff.application;
 import io.github.quizup.bff.infrastructure.in.api.problem.BffProblems;
 import io.github.quizup.microservice.core.domain.model.i18n.Language;
 import io.github.quizup.profile.domain.command.ProfileCommand;
+import io.github.quizup.profile.domain.model.MasteryGrade;
 import io.github.quizup.profile.domain.model.PlayerProgress;
 import org.axonframework.commandhandling.gateway.CommandGateway;
 import org.junit.jupiter.api.Test;
@@ -71,7 +72,7 @@ class ProfileUpdateServiceTest {
 
     @Test
     void equippedTitle_sendsTheCommandAndInvalidatesCacheWhenEarned() {
-        stubProgress(Map.of("topic-1", 2_600));
+        stubProgress(Map.of("topic-1", MasteryGrade.CONFIRME.xpThreshold() + 100));
         when(commandGateway.send(any())).thenReturn(CompletableFuture.completedFuture(null));
 
         service.updateEquippedTitle("u1", "u1", "topic-1:CONFIRME").join();
@@ -83,7 +84,7 @@ class ProfileUpdateServiceTest {
 
     @Test
     void equippedTitle_isRejectedAndNoCommandIsSentWhenTheGradeIsNotReached() {
-        stubProgress(Map.of("topic-1", 2_600));
+        stubProgress(Map.of("topic-1", MasteryGrade.CONFIRME.xpThreshold() + 100));
 
         assertThatThrownBy(() -> service.updateEquippedTitle("u1", "u1", "topic-1:EXPERT").join())
                 .isInstanceOf(CompletionException.class)
@@ -138,7 +139,7 @@ class ProfileUpdateServiceTest {
 
     @Test
     void equippedTitle_withUnknownTopic_isRejectedAsNotEarned() {
-        stubProgress(Map.of("topic-1", 30_000));
+        stubProgress(Map.of("topic-1", MasteryGrade.LEGENDE.xpThreshold()));
 
         assertThatThrownBy(() -> service.updateEquippedTitle("u1", "u1", "topic-9:LEGENDE").join())
                 .isInstanceOf(CompletionException.class)

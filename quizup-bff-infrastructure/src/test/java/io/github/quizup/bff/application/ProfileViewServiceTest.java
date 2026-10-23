@@ -10,6 +10,7 @@ import io.github.quizup.microservice.core.domain.model.i18n.Language;
 import io.github.quizup.profile.domain.model.ActivityDay;
 import io.github.quizup.profile.domain.model.ActivityView;
 import io.github.quizup.profile.domain.model.Badge;
+import io.github.quizup.profile.domain.model.MasteryGrade;
 import io.github.quizup.profile.domain.model.PlayerProgress;
 import io.github.quizup.profile.domain.model.Profile;
 import io.github.quizup.profile.domain.model.TopicProgress;
@@ -97,10 +98,11 @@ class ProfileViewServiceTest {
         when(progressionLookup.get("user-1")).thenReturn(CompletableFuture.completedFuture(
                 PlayerProgress.empty("user-1").toBuilder()
                         .xpByTopic(Map.of(
-                                "topic-1", 2_600,   // Confirmé
-                                "topic-2", 6_000,   // Expert
+                                "topic-1", MasteryGrade.CONFIRME.xpThreshold(),
+                                "topic-2", MasteryGrade.EXPERT.xpThreshold(),
                                 "topic-3", 120,     // Novice : titre débloqué dès une partie humaine
-                                "topic-4", 500))    // XP seule, aucune partie humaine : exclu
+                                "topic-4", MasteryGrade.APPRENTI.xpThreshold()))
+                        // XP seule, aucune partie humaine : topic-4 est exclu
                         .gamesByTopic(Map.of("topic-1", 1, "topic-2", 1, "topic-3", 1))
                         .build()));
         when(queryGateway.query(
@@ -136,9 +138,10 @@ class ProfileViewServiceTest {
                         "BRONZE", "BRONZE",
                         "FER", "FER", "FER");
         assertThat(view.titles().get(0).topic().names()).containsEntry(Language.FR, "Java");
-        // Le grade d'entrée porte sa progression réelle (120 / 300 XP avant Apprenti).
+        // Le grade d'entrée porte sa progression réelle (120 XP avant Apprenti).
         assertThat(view.titles().get(7).nextGrade()).isEqualTo("APPRENTI");
-        assertThat(view.titles().get(7).gradeRemainingXp()).isEqualTo(180);
+        assertThat(view.titles().get(7).gradeRemainingXp())
+                .isEqualTo(MasteryGrade.APPRENTI.xpThreshold() - 120);
     }
 
     @Test
@@ -147,7 +150,7 @@ class ProfileViewServiceTest {
                 Profile.builder().userId("user-1").equippedTitle("topic-2:APPRENTI").build()));
         when(progressionLookup.get("user-1")).thenReturn(CompletableFuture.completedFuture(
                 PlayerProgress.empty("user-1").toBuilder()
-                        .xpByTopic(Map.of("topic-2", 6_000)) // grade courant : Expert
+                        .xpByTopic(Map.of("topic-2", MasteryGrade.EXPERT.xpThreshold()))
                         .gamesByTopic(Map.of("topic-2", 1))
                         .build()));
         when(queryGateway.query(
@@ -244,6 +247,7 @@ class ProfileViewServiceTest {
 
     @Test
     void badges_expose_the_whole_catalogue_with_capped_progress() {
+        int bestTopicXp = MasteryGrade.CONFIRME.xpThreshold();
         when(progressionLookup.get("user-1")).thenReturn(CompletableFuture.completedFuture(
                 PlayerProgress.empty("user-1").toBuilder()
                         .gamesPlayed(12)
@@ -256,7 +260,7 @@ class ProfileViewServiceTest {
                         .followersGained(7)
                         .challengesSent(2)
                         .imageCorrectTotal(20)
-                        .xpByTopic(Map.of("topic-1", 2_600))
+                        .xpByTopic(Map.of("topic-1", bestTopicXp))
                         .badges(Set.of(Badge.FIRST_WIN, Badge.DUELIST_BRONZE))
                         .build()));
 
@@ -271,33 +275,44 @@ class ProfileViewServiceTest {
 
         // Volume : acquis au palier bronze (plafonné), en cours pour l'argent.
         assertThat(item(view, Badge.DUELIST_BRONZE).earned()).isTrue();
-        assertThat(item(view, Badge.DUELIST_BRONZE).progress()).isEqualTo(3);
+        assertThat(item(view, Badge.DUELIST_BRONZE).progress())
+                .isEqualTo(Math.min(12, Badge.DUELIST_BRONZE.target()));
         assertThat(item(view, Badge.DUELIST_ARGENT).earned()).isFalse();
-        assertThat(item(view, Badge.DUELIST_ARGENT).progress()).isEqualTo(10);
-        assertThat(item(view, Badge.WINNER_BRONZE).progress()).isEqualTo(3);
+        assertThat(item(view, Badge.DUELIST_ARGENT).progress())
+                .isEqualTo(Math.min(12, Badge.DUELIST_ARGENT.target()));
+        assertThat(item(view, Badge.WINNER_BRONZE).progress())
+                .isEqualTo(Math.min(3, Badge.WINNER_BRONZE.target()));
 
-        // Maîtrise : meilleur sujet du joueur (2 600 XP), plafonné au seuil d'Apprenti.
-        assertThat(item(view, Badge.MASTER_BRONZE).progress()).isEqualTo(300);
+        // Maîtrise : meilleur sujet du joueur, plafonné au seuil du palier bronze.
+        assertThat(item(view, Badge.MASTER_BRONZE).progress())
+                .isEqualTo(Math.min(bestTopicXp, Badge.MASTER_BRONZE.target()));
 
         // Collection : nombre de badges acquis ; exploits : faits ponctuels.
-        assertThat(item(view, Badge.COLLECTOR_BRONZE).progress()).isEqualTo(2);
+        assertThat(item(view, Badge.COLLECTOR_BRONZE).progress())
+                .isEqualTo(Math.min(2, Badge.COLLECTOR_BRONZE.target()));
         assertThat(item(view, Badge.FIRST_WIN).progress()).isEqualTo(1);
         assertThat(item(view, Badge.PERFECT).progress()).isZero();
 
         // Précision / Rapidité : compteurs d'exploits cumulés, plafonnés au seuil du palier.
-        assertThat(item(view, Badge.PRECISION_BRONZE).progress()).isEqualTo(3);
-        assertThat(item(view, Badge.SPEED_BRONZE).progress()).isEqualTo(25);
+        assertThat(item(view, Badge.PRECISION_BRONZE).progress())
+                .isEqualTo(Math.min(4, Badge.PRECISION_BRONZE.target()));
+        assertThat(item(view, Badge.SPEED_BRONZE).progress())
+                .isEqualTo(Math.min(80, Badge.SPEED_BRONZE.target()));
 
         // Assiduité : série **courante** (5), pas le record historique (10) — une série
         // interrompue doit faire repartir la progression du palier suivant.
-        assertThat(item(view, Badge.ASSIDUITY_BRONZE).progress()).isEqualTo(5);
+        assertThat(item(view, Badge.ASSIDUITY_BRONZE).progress())
+                .isEqualTo(Math.min(5, Badge.ASSIDUITY_BRONZE.target()));
 
         // Social / Défis : compteurs alimentés par les autres services (abonnés, défis lancés).
-        assertThat(item(view, Badge.SOCIAL_BRONZE).progress()).isEqualTo(5);
-        assertThat(item(view, Badge.CHALLENGES_ARGENT).progress()).isEqualTo(2);
+        assertThat(item(view, Badge.SOCIAL_BRONZE).progress())
+                .isEqualTo(Math.min(7, Badge.SOCIAL_BRONZE.target()));
+        assertThat(item(view, Badge.CHALLENGES_ARGENT).progress())
+                .isEqualTo(Math.min(2, Badge.CHALLENGES_ARGENT.target()));
 
         // Vision : bonnes réponses cumulées sur les questions illustrées.
-        assertThat(item(view, Badge.VISION_ARGENT).progress()).isEqualTo(20);
+        assertThat(item(view, Badge.VISION_ARGENT).progress())
+                .isEqualTo(Math.min(20, Badge.VISION_ARGENT.target()));
     }
 
     @Test
