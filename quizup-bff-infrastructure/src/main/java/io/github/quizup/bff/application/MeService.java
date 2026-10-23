@@ -19,16 +19,26 @@ public class MeService {
     private final ProfileLookup profileLookup;
     private final ProgressionLookup progressionLookup;
     private final FollowLookup followLookup;
+    private final PremiumAccessPolicy premiumAccessPolicy;
 
     public MeService(ProfileLookup profileLookup,
                      ProgressionLookup progressionLookup,
-                     FollowLookup followLookup) {
+                     FollowLookup followLookup,
+                     PremiumAccessPolicy premiumAccessPolicy) {
         this.profileLookup = profileLookup;
         this.progressionLookup = progressionLookup;
         this.followLookup = followLookup;
+        this.premiumAccessPolicy = premiumAccessPolicy;
     }
 
     public CompletableFuture<MeView> me(String userId) {
+        // Capturé sur le thread HTTP : le callback Axon peut s'exécuter sur un autre thread sans
+        // SecurityContext, ce qui ferait perdre le rôle admin/premium.
+        return me(userId, premiumAccessPolicy.isPremium());
+    }
+
+    /** Variante pour les appels déclenchés depuis un callback asynchrone (fin d'onboarding). */
+    public CompletableFuture<MeView> me(String userId, boolean premium) {
         CompletableFuture<Profile> profileFuture = profileLookup.get(userId);
         CompletableFuture<PlayerProgress> progressFuture = progressionLookup.get(userId);
         CompletableFuture<UserFollowCounts> countsFuture = followLookup.userCounts(userId);
@@ -51,7 +61,12 @@ public class MeService {
                             ProgressionViews.toView(progress),                            ProgressionViews.toStats(progress),
                             counts.following(),
                             counts.followers(),
-                            profile.onboardingCompletedAt() != null || progress.gamesPlayed() > 0);
+                            profile.onboardingCompletedAt() != null || progress.gamesPlayed() > 0,
+                            premium);
                 });
+    }
+
+    public boolean isPremium() {
+        return premiumAccessPolicy.isPremium();
     }
 }

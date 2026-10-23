@@ -23,13 +23,16 @@ public class ProfileUpdateService {
     private final CommandGateway commandGateway;
     private final ProfileLookup profileLookup;
     private final ProgressionLookup progressionLookup;
+    private final AvatarEntitlementPolicy avatarEntitlementPolicy;
 
     public ProfileUpdateService(CommandGateway commandGateway,
                                 ProfileLookup profileLookup,
-                                ProgressionLookup progressionLookup) {
+                                ProgressionLookup progressionLookup,
+                                AvatarEntitlementPolicy avatarEntitlementPolicy) {
         this.commandGateway = commandGateway;
         this.profileLookup = profileLookup;
         this.progressionLookup = progressionLookup;
+        this.avatarEntitlementPolicy = avatarEntitlementPolicy;
     }
 
     /** Fin explicite ou skip de l'onboarding ; idempotent côté agrégat. */
@@ -53,6 +56,7 @@ public class ProfileUpdateService {
     }
 
     public CompletableFuture<Void> updateAvatarOptions(String userId, String requestedBy, String avatarOptions) {
+        avatarEntitlementPolicy.assertCanSave(avatarOptions);
         return dispatch(userId,
                 new ProfileCommand.UpdateProfileAvatarCommand(userId, requestedBy, avatarOptions));
     }

@@ -29,8 +29,19 @@ class ProfileUpdateServiceTest {
     private final CommandGateway commandGateway = mock(CommandGateway.class);
     private final ProfileLookup profileLookup = mock(ProfileLookup.class);
     private final ProgressionLookup progressionLookup = mock(ProgressionLookup.class);
+    private final AvatarEntitlementPolicy avatarEntitlementPolicy = mock(AvatarEntitlementPolicy.class);
     private final ProfileUpdateService service =
-            new ProfileUpdateService(commandGateway, profileLookup, progressionLookup);
+            new ProfileUpdateService(commandGateway, profileLookup, progressionLookup, avatarEntitlementPolicy);
+
+    @Test
+    void updateAvatarChecksPremiumEntitlementBeforeDispatch() {
+        when(commandGateway.send(any())).thenReturn(CompletableFuture.completedFuture(null));
+
+        service.updateAvatarOptions("u1", "u1", "{\"style\":\"base\"}").join();
+
+        verify(avatarEntitlementPolicy).assertCanSave("{\"style\":\"base\"}");
+        verify(profileLookup).invalidate("u1");
+    }
 
     @Test
     void updatePseudonymInvalidatesCacheOnSuccess() {

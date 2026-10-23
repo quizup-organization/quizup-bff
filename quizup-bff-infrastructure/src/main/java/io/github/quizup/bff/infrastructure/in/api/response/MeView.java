@@ -21,12 +21,14 @@ public record MeView(
         long followingCount,
         long followersCount,
         /** Onboarding terminé (ou première partie humaine jouée). */
-        boolean onboardingCompleted
+        boolean onboardingCompleted,
+        /** Styles d'avatar DiceBear débloqués (admin ou abonnement Premium). */
+        boolean premium
 ) {
 
     /** Copie avec le flag forcé (la projection profile peut être en retard juste après la commande). */
     public MeView withOnboardingCompleted(boolean completed) {
         return new MeView(userId, email, pseudonym, bio, country, avatarOptions, bannerUrl,
-                equippedTitle, language, progression, stats, followingCount, followersCount, completed);
+                equippedTitle, language, progression, stats, followingCount, followersCount, completed, premium);
     }
 }

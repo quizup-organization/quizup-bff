@@ -45,8 +45,9 @@ public class MeController {
     @PostMapping("/onboarding/complete")
     public CompletableFuture<ResponseEntity<MeView>> completeOnboarding() {
         String userId = SecurityHelper.getUserId();
+        boolean premium = meService.isPremium();
         return profileUpdateService.completeOnboarding(userId)
-                .thenCompose(_ -> meService.me(userId))
+                .thenCompose(_ -> meService.me(userId, premium))
                 // La projection profile est asynchrone : le flag renvoyé doit refléter la commande
                 // déjà acceptée, sinon le guard web renvoie le joueur sur l'onboarding.
                 .thenApply(view -> ResponseEntity.ok(view.withOnboardingCompleted(true)));

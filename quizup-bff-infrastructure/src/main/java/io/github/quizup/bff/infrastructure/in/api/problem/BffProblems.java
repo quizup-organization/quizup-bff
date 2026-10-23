@@ -13,6 +13,27 @@ public final class BffProblems {
     private BffProblems() {
     }
 
+    /** Les styles d'avatar DiceBear sont réservés aux comptes Premium (admin inclus). */
+    public static class PremiumRequiredProblem extends BaseProblem {
+        public PremiumRequiredProblem() {
+            super("urn:quizup:authorization:premiumRequired",
+                    ProblemCategory.PERMISSION,
+                    "Premium required",
+                    "Cette fonctionnalité est réservée aux comptes Premium",
+                    Map.of());
+        }
+    }
+
+    public static class InvalidAvatarOptionsProblem extends BaseProblem {
+        public InvalidAvatarOptionsProblem() {
+            super("urn:quizup:bff:profile:invalidAvatarOptions",
+                    ProblemCategory.VALIDATION,
+                    "Invalid avatar options",
+                    "Les options d'avatar sont invalides",
+                    Map.of());
+        }
+    }
+
     public static class InvalidAccountDeletionCodeProblem extends BaseProblem {
         public InvalidAccountDeletionCodeProblem() {
             super("urn:quizup:bff:account:invalidDeletionCode",
