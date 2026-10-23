@@ -1,3 +1,9 @@
+## [11.45.0](https://github.com/quizup-organization/quizup-bff/compare/v11.44.3...v11.45.0) (2026-10-23)
+
+### Features
+
+* **bff:** aligne les seuils de progression sur quizup-profile 4.12.0 ([ead0acf](https://github.com/quizup-organization/quizup-bff/commit/ead0acf12b34e112c438361e6ec125b3b79889ae))
+
 ## [11.44.3](https://github.com/quizup-organization/quizup-bff/compare/v11.44.2...v11.44.3) (2026-10-23)
 
 ### Bug Fixes
