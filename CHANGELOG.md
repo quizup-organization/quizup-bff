@@ -1,3 +1,9 @@
+## [12.1.0](https://github.com/quizup-organization/quizup-bff/compare/v12.0.0...v12.1.0) (2026-10-23)
+
+### Features
+
+* **bff:** expose le catalogue des récompenses du joueur ([36aeaf1](https://github.com/quizup-organization/quizup-bff/commit/36aeaf1743f6de9c62a6ccea90e0467c71f3795a))
+
 ## [12.0.0](https://github.com/quizup-organization/quizup-bff/compare/v11.46.0...v12.0.0) (2026-10-23)
 
 ### ⚠ BREAKING CHANGES
