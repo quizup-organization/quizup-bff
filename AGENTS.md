@@ -84,7 +84,7 @@ l'ancienne surface et sont migrés lot par lot.
   (`equippedTitle` + `GET …/titles`), l'UI devant basculer dans un lot dédié.
   Chaque titre expose aussi son **rang** (`rank`, `FER`…`DIAMANT`), dérivé du grade via
   `MasteryGrade.rank()`.
-  > Pin `quizup.profile-domain.version` : **4.8.0** (palier Fer + rang des titres).
+  > Pin `quizup.profile-domain.version` : **4.11.1** (palier Fer + rang des titres).
 - **Titres thématiques** : le serveur ne compose **jamais** le libellé (« Confirmé · Histoire ») —
   il expose le grade (`MasteryGrade`, à traduire côté client) et le sujet (`names`), le client
   combine. Un titre est débloqué par un sujet avec **au moins une partie humaine terminée**
