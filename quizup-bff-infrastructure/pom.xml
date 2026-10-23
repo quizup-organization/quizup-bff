@@ -21,8 +21,8 @@
         <quizup.theme-domain.version>6.14.0</quizup.theme-domain.version>
         <quizup.social-domain.version>5.3.1</quizup.social-domain.version>
         <quizup.game-domain.version>9.0.0</quizup.game-domain.version>
-        <!-- 5.0.0 : XP par thème, Elo seul, suppression du niveau et récompenses persistées. -->
-        <quizup.profile-domain.version>5.0.0</quizup.profile-domain.version>
+        <!-- 5.1.0 : détail et catalogue des récompenses persistées. -->
+        <quizup.profile-domain.version>5.1.0</quizup.profile-domain.version>
         <quizup.matchmaking-domain.version>12.0.0</quizup.matchmaking-domain.version>
         <quizup.leaderboard-domain.version>5.0.0</quizup.leaderboard-domain.version>
         <!-- 2.5.0 : delete-all. -->

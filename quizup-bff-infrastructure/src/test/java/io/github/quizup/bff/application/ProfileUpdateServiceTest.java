@@ -53,8 +53,10 @@ class ProfileUpdateServiceTest {
     void updateAvatarPassesMicahRewardToThePolicy() {
         when(commandGateway.send(any())).thenReturn(CompletableFuture.completedFuture(null));
         when(rewardLookup.get("u1")).thenReturn(CompletableFuture.completedFuture(
-                new PlayerRewards("u1", java.util.Set.of(
-                        io.github.quizup.profile.domain.model.RewardCode.MICAH_AVATAR))));
+                new PlayerRewards("u1", java.util.List.of(new io.github.quizup.profile.domain.model.RewardGrant(
+                        io.github.quizup.profile.domain.model.RewardCode.MICAH_AVATAR,
+                        io.github.quizup.profile.domain.model.RewardSource.BADGE,
+                        java.time.Instant.now())))));
 
         service.updateAvatarOptions("u1", "u1", "{\"style\":\"micah\"}").join();
 

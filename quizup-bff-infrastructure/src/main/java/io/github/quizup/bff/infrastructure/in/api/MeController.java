@@ -3,8 +3,10 @@ package io.github.quizup.bff.infrastructure.in.api;
 import io.github.quizup.bff.application.AccountDeletionService;
 import io.github.quizup.bff.application.MeService;
 import io.github.quizup.bff.application.ProfileUpdateService;
+import io.github.quizup.bff.application.RewardService;
 import io.github.quizup.bff.infrastructure.in.api.request.DeleteAccountRequest;
 import io.github.quizup.bff.infrastructure.in.api.response.MeView;
+import io.github.quizup.bff.infrastructure.in.api.response.RewardsView;
 import io.github.quizup.microservice.security.SecurityHelper;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -27,18 +29,27 @@ public class MeController {
     private final MeService meService;
     private final AccountDeletionService accountDeletionService;
     private final ProfileUpdateService profileUpdateService;
+    private final RewardService rewardService;
 
     public MeController(MeService meService,
                         AccountDeletionService accountDeletionService,
-                        ProfileUpdateService profileUpdateService) {
+                        ProfileUpdateService profileUpdateService,
+                        RewardService rewardService) {
         this.meService = meService;
         this.accountDeletionService = accountDeletionService;
         this.profileUpdateService = profileUpdateService;
+        this.rewardService = rewardService;
     }
 
     @GetMapping
     public CompletableFuture<ResponseEntity<MeView>> me() {
         return meService.me(SecurityHelper.getUserId()).thenApply(ResponseEntity::ok);
+    }
+
+    /** Catalogue des récompenses du joueur courant, verrouillées comprises. */
+    @GetMapping("/rewards")
+    public CompletableFuture<ResponseEntity<RewardsView>> rewards() {
+        return rewardService.rewards(SecurityHelper.getUserId()).thenApply(ResponseEntity::ok);
     }
 
     /** Termine (ou passe) l'onboarding du joueur courant. */

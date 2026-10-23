@@ -85,10 +85,11 @@ l'ancienne surface et sont migrés lot par lot.
   expose aussi son **rang** (`rank`, `FER`…`DIAMANT`), dérivé du grade via
   `MasteryGrade.rank()`. `MeView.rewards` expose les récompenses persistées
   (`MICAH_AVATAR`, …) ; l'avatar de base est gratuit, Micah exige `MICAH_AVATAR` ou Premium,
-  Lorelei/Notionists restent Premium.
-  > Pin `quizup.profile-domain.version` : **5.0.0** (XP par thème, Elo, suppression du niveau
-  > de compte et récompenses persistées). Le pin doit rester aligné sur la release qui porte ces
-  > contrats, sinon les vues ne résoudront pas `rewards`/le nouveau `ProgressionView`.
+  Lorelei/Notionists restent Premium. `GET /api/me/rewards` expose le catalogue complet
+  (débloquées avec date/source, verrouillées avec leur condition).
+  > Pin `quizup.profile-domain.version` : **5.1.0** (XP par thème, Elo, suppression du niveau
+  > de compte, récompenses persistées et catalogue complet). Le pin doit rester aligné sur la
+  > release qui porte ces contrats, sinon les vues ne résoudront pas `rewards`/`RewardsView`.
 - **Titres thématiques** : le serveur ne compose **jamais** le libellé (« Confirmé · Histoire ») —
   il expose le grade (`MasteryGrade`, à traduire côté client) et le sujet (`names`), le client
   combine. Un titre est débloqué par un sujet avec **au moins une partie humaine terminée**
@@ -140,7 +141,8 @@ l'ancienne surface et sont migrés lot par lot.
 
 | Endpoint | Réponse | Notes |
 |---|---|---|
-| `GET /api/me` | `MeView` | Profil (+ `language` fr/en, + `equippedTitle` = clé du titre porté) + progression + stats de duel + `followingCount` + `followersCount` + `onboardingCompleted` (flag serveur, ou première partie humaine déjà jouée) + `rewards` (récompenses persistées, ex. `MICAH_AVATAR`) + `premium` (`ROLE_ADMIN` par défaut ou `ROLE_PREMIUM`) |
+| `GET /api/me` | `MeView` | Profil (+ `language` fr/en, + `equippedTitle` = clé du titre porté) + progression + stats de duel + `followingCount` + `followersCount` + `onboardingCompleted` (flag serveur, ou première partie humaine déjà jouée) + `rewards` (codes des récompenses persistées, ex. `MICAH_AVATAR`) + `premium` (`ROLE_ADMIN` par défaut ou `ROLE_PREMIUM`) |
+| `GET /api/me/rewards` | `RewardsView` | Catalogue complet des récompenses : `code`, `unlocked`, `unlockedAt`, `source`, `condition` (`badgeCode`, `badgeLabel`, `target`). Les déblocages viennent de `player_reward`, les verrouillées de `RewardRules.catalog()` ; réponse privée au joueur courant. |
 | `POST /api/me/onboarding/complete` | `MeView` | Fin explicite ou skip de l'onboarding ; idempotent, renvoie le flag `onboardingCompleted=true` sans attendre la projection profile |
 | `GET /api/suggestions?q=&limit=` | `List<SuggestionView>` | Palette ⌘K : sujets + joueurs (`type`, `id`, libellé, visuel) |
 | `GET /api/clock` | `ServerTimeView` | `serverTime`, `epochMillis` |

@@ -69,7 +69,7 @@ public class MeService {
                             counts.following(),
                             counts.followers(),
                             profile.onboardingCompletedAt() != null || progress.gamesPlayed() > 0,
-                            rewards.rewards().stream().map(Enum::name).sorted().toList(),
+                            rewards.codes().stream().map(Enum::name).sorted().toList(),
                             premium);
                 });
     }

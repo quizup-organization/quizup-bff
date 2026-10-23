@@ -3,9 +3,11 @@ package io.github.quizup.bff.infrastructure.in.api;
 import io.github.quizup.bff.application.AccountDeletionService;
 import io.github.quizup.bff.application.MeService;
 import io.github.quizup.bff.application.ProfileUpdateService;
+import io.github.quizup.bff.application.RewardService;
 import io.github.quizup.bff.infrastructure.in.api.response.DuelStatsView;
 import io.github.quizup.bff.infrastructure.in.api.response.MeView;
 import io.github.quizup.bff.infrastructure.in.api.response.ProgressionView;
+import io.github.quizup.bff.infrastructure.in.api.response.RewardsView;
 import io.github.quizup.microservice.core.domain.model.i18n.Language;
 import io.github.quizup.microservice.core.domain.model.security.QuizUpPrincipal;
 import org.junit.jupiter.api.AfterEach;
@@ -38,11 +40,12 @@ class MeControllerTest {
     private final MeService meService = mock(MeService.class);
     private final AccountDeletionService accountDeletionService = mock(AccountDeletionService.class);
     private final ProfileUpdateService profileUpdateService = mock(ProfileUpdateService.class);
+    private final RewardService rewardService = mock(RewardService.class);
     private MockMvc mockMvc;
 
     @BeforeEach
     void setUp() {
-        mockMvc = MockMvcBuilders.standaloneSetup(new MeController(meService, accountDeletionService, profileUpdateService)).build();
+        mockMvc = MockMvcBuilders.standaloneSetup(new MeController(meService, accountDeletionService, profileUpdateService, rewardService)).build();
         QuizUpPrincipal principal = new QuizUpPrincipal() {
             @Override
             public String getUserId() {
@@ -82,6 +85,27 @@ class MeControllerTest {
                 .andExpect(jsonPath("$.rewards").isEmpty())
                 .andExpect(jsonPath("$.premium").value(false));
     }
+    @Test
+    void rewards_returnsRewardCatalogue() throws Exception {
+        RewardsView view = new RewardsView(List.of(
+                new RewardsView.RewardView(
+                        "MICAH_AVATAR", false, null, null,
+                        new RewardsView.ConditionView("ASSIDUITY_BRONZE", "Régulier", 7))));
+        when(rewardService.rewards(USER_ID)).thenReturn(CompletableFuture.completedFuture(view));
+
+        MvcResult result = mockMvc.perform(get("/api/me/rewards"))
+                .andExpect(request().asyncStarted())
+                .andReturn();
+
+        mockMvc.perform(asyncDispatch(result))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.rewards[0].code").value("MICAH_AVATAR"))
+                .andExpect(jsonPath("$.rewards[0].unlocked").value(false))
+                .andExpect(jsonPath("$.rewards[0].condition.badgeCode").value("ASSIDUITY_BRONZE"))
+                .andExpect(jsonPath("$.rewards[0].condition.target").value(7));
+        verify(rewardService).rewards(USER_ID);
+    }
+
     @Test
     void completeOnboarding_returnsUpdatedMeView() throws Exception {
         MeView view = new MeView(USER_ID, "user@quizup.io", "Alpha", null, "FR", null, null, null,

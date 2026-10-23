@@ -3,10 +3,13 @@ package io.github.quizup.bff.application;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.quizup.bff.infrastructure.in.api.problem.BffProblems;
 import io.github.quizup.profile.domain.model.RewardCode;
+import io.github.quizup.profile.domain.model.RewardGrant;
+import io.github.quizup.profile.domain.model.RewardSource;
 import io.github.quizup.profile.domain.model.PlayerRewards;
 import org.junit.jupiter.api.Test;
 
-import java.util.Set;
+import java.time.Instant;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThatNoException;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -50,7 +53,8 @@ class AvatarEntitlementPolicyTest {
 
     @Test
     void rewardEntityIsNotNeededForThePolicyItself() {
-        var rewards = new PlayerRewards("u1", Set.of(RewardCode.MICAH_AVATAR));
+        var rewards = new PlayerRewards("u1", List.of(new RewardGrant(
+                RewardCode.MICAH_AVATAR, RewardSource.BADGE, Instant.now())));
         assertThatNoException().isThrownBy(() ->
                 policy.assertCanSave("{\"style\":\"micah\"}", false, rewards.has(RewardCode.MICAH_AVATAR)));
     }
