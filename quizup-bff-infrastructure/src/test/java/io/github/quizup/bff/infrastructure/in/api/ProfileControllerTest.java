@@ -74,7 +74,7 @@ class ProfileControllerTest {
         PlayerProfileView view = new PlayerProfileView("user-2", "Bravo", null, "FR", null, null,
                 null,
                 false, false, null,
-                new ProgressionView(120, 2, "Apprenti", 400, 6, List.of(), 200, 200, 0, true),
+                new ProgressionView(List.of(), 200, 200, 0, true),
                 new DuelStatsView(4, 3, 1, 0, 75, 160, 2, 3), 5, 7, false, false);
         when(profileViewService.profileView(USER_ID, "user-2"))
                 .thenReturn(CompletableFuture.completedFuture(view));
@@ -130,7 +130,7 @@ class ProfileControllerTest {
         when(profileViewService.topics("user-2"))
                 .thenReturn(CompletableFuture.completedFuture(List.of(
                         new TopicStatView("topic-1", Map.of(Language.FR, "DotA"), "🎮", "#f00",
-                                "https://example.com/img.png", 7, 200, 2))));
+                                "https://example.com/img.png", 7, 200))));
 
         MvcResult result = mockMvc.perform(get("/api/profiles/user-2/topics"))
                 .andExpect(request().asyncStarted())
@@ -140,8 +140,7 @@ class ProfileControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].topicId").value("topic-1"))
                 .andExpect(jsonPath("$[0].games").value(7))
-                .andExpect(jsonPath("$[0].xp").value(200))
-                .andExpect(jsonPath("$[0].level").value(2));
+                .andExpect(jsonPath("$[0].xp").value(200));
     }
 
     @Test

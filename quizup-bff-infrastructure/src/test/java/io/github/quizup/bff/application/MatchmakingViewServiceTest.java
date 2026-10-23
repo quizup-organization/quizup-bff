@@ -83,8 +83,6 @@ class MatchmakingViewServiceTest {
     private static PlayerProgress progress() {
         return PlayerProgress.builder()
                 .userId("user-1")
-                .xpTotal(250)
-                .level(12)
                 .rating(842)
                 .xpByTopic(Map.of())
                 .badges(Set.of())

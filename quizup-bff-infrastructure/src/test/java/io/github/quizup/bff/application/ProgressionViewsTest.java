@@ -1,29 +1,31 @@
 package io.github.quizup.bff.application;
 
+import io.github.quizup.profile.domain.model.Badge;
+import io.github.quizup.profile.domain.model.PlayerProgress;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import java.util.Set;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 class ProgressionViewsTest {
 
     @Test
-    void level_progress_starts_at_zero_for_level_one() {
-        assertEquals(0, ProgressionViews.levelProgressPercent(0, 1));
-        assertEquals(50, ProgressionViews.levelProgressPercent(40, 1));
-        assertEquals(98, ProgressionViews.levelProgressPercent(79, 1));
-    }
+    void toView_exposes_badges_and_elo_only() {
+        PlayerProgress progress = PlayerProgress.empty("user-1").toBuilder()
+                .badges(Set.of(Badge.FIRST_WIN))
+                .rating(842)
+                .peakRating(900)
+                .ratedGames(12)
+                .provisional(false)
+                .build();
 
-    @Test
-    void level_progress_follows_the_accelerated_curve_bounds() {
-        // Courbe explicite : le niveau 2 va de 80 à 260 XP, le niveau 3 démarre à 260.
-        assertEquals(0, ProgressionViews.levelProgressPercent(80, 2));
-        assertEquals(50, ProgressionViews.levelProgressPercent(170, 2));
-        assertEquals(99, ProgressionViews.levelProgressPercent(259, 2));
-        assertEquals(0, ProgressionViews.levelProgressPercent(260, 3));
-    }
+        var view = ProgressionViews.toView(progress);
 
-    @Test
-    void level_progress_is_capped_at_hundred_when_input_is_inconsistent() {
-        assertEquals(100, ProgressionViews.levelProgressPercent(150, 1));
+        assertThat(view.badges()).extracting("code").containsExactly("FIRST_WIN");
+        assertThat(view.rating()).isEqualTo(842);
+        assertThat(view.peakRating()).isEqualTo(900);
+        assertThat(view.ratedGames()).isEqualTo(12);
+        assertThat(view.provisional()).isFalse();
     }
 }

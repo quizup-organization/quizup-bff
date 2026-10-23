@@ -122,7 +122,7 @@ public class RoomViewService {
 
     /**
      * Snapshot de profil du joueur qui apparaît. Une progression absente ne bloque pas l'entrée
-     * (repli niveau 1 / XP 0, comme l'ancienne résolution côté saga) ; un profil introuvable, si.
+     * (repli XP de sujet 0), un profil introuvable, si.
      */
     private CompletableFuture<RoomPlayer> roomPlayer(String playerId, String topicId) {
         CompletableFuture<Profile> profileFuture = profileLookup.get(playerId);
@@ -137,8 +137,6 @@ public class RoomViewService {
                         player.profile().userId(),
                         player.profile().pseudonym(),
                         player.profile().language(),
-                        player.progress() == null ? 1 : Math.max(1, player.progress().level()),
-                        player.progress() == null ? 0 : Math.max(0, player.progress().xpTotal()),
                         topicProgress == null ? 0 : Math.max(0, topicProgress.xp()),
                         player.progress() == null ? null : player.progress().rating()));
     }

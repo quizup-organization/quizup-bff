@@ -66,8 +66,8 @@ class MeControllerTest {
     void me_returns_current_player_view() throws Exception {
         MeView view = new MeView(USER_ID, "user@quizup.io", "Alpha", null, "FR", null, null, null,
                 Language.FR,
-                new ProgressionView(120, 2, "Apprenti", 400, 6, List.of(), 200, 200, 0, true),
-                new DuelStatsView(4, 3, 1, 0, 75, 160, 2, 3), 3, 5, false, false);
+                new ProgressionView(List.of(), 200, 200, 0, true),
+                new DuelStatsView(4, 3, 1, 0, 75, 160, 2, 3), 3, 5, false, List.of(), false);
         when(meService.me(USER_ID)).thenReturn(CompletableFuture.completedFuture(view));
 
         MvcResult result = mockMvc.perform(get("/api/me"))
@@ -78,15 +78,16 @@ class MeControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.userId").value(USER_ID))
                 .andExpect(jsonPath("$.language").value("fr"))
-                .andExpect(jsonPath("$.progression.level").value(2))
+                .andExpect(jsonPath("$.progression.rating").value(200))
+                .andExpect(jsonPath("$.rewards").isEmpty())
                 .andExpect(jsonPath("$.premium").value(false));
     }
     @Test
     void completeOnboarding_returnsUpdatedMeView() throws Exception {
         MeView view = new MeView(USER_ID, "user@quizup.io", "Alpha", null, "FR", null, null, null,
                 Language.FR,
-                new ProgressionView(120, 2, "Apprenti", 400, 6, List.of(), 200, 200, 0, true),
-                new DuelStatsView(4, 3, 1, 0, 75, 160, 2, 3), 3, 5, false, false);
+                new ProgressionView(List.of(), 200, 200, 0, true),
+                new DuelStatsView(4, 3, 1, 0, 75, 160, 2, 3), 3, 5, false, List.of(), false);
         when(profileUpdateService.completeOnboarding(USER_ID))
                 .thenReturn(CompletableFuture.completedFuture(null));
         when(meService.isPremium()).thenReturn(false);

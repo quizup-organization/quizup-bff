@@ -16,9 +16,10 @@ import io.github.quizup.microservice.core.domain.model.notification.EventEnvelop
 import io.github.quizup.microservice.core.infrastructure.axon.QueryResponseTypes;
 import io.github.quizup.profile.domain.model.EloRules;
 import io.github.quizup.profile.domain.model.GameXp;
+import io.github.quizup.profile.domain.model.MasteryGrade;
 import io.github.quizup.profile.domain.model.PlayerProgress;
-import io.github.quizup.profile.domain.model.ProgressionRules;
 import io.github.quizup.profile.domain.model.Profile;
+import io.github.quizup.profile.domain.model.TopicProgress;
 import io.github.quizup.profile.domain.query.ProgressionQuery;
 import io.github.quizup.theme.domain.model.Topic;
 import io.github.quizup.theme.domain.query.TopicQuery;
@@ -154,10 +155,10 @@ public class GameViewService {
 
     /**
      * Résultat détaillé d'une partie terminée pour le joueur courant, enrichi de la récompense
-     * XP de cette partie ({@code null} tant que la projection n'est pas disponible) et de la
-     * progression <b>à l'instant de la partie</b> : snapshot de progression porté par l'agrégat
-     * game (niveau/XP à la création) + XP gagnée sur ce duel. Le résultat est **privé** : la
-     * partie doit exister et le lecteur doit en être l'un des deux joueurs (403 sinon).
+     * XP de cette partie ({@code null} tant que la projection n'est pas disponible), de l'Elo
+     * <b>à l'instant de la partie</b> (snapshot porté par l'agrégat game + variation du duel) et
+     * de la maîtrise du sujet après le duel. Le résultat est **privé** : la partie doit exister
+     * et le lecteur doit en être l'un des deux joueurs (403 sinon).
      */
     public CompletableFuture<GameResultView> result(String gameId, String playerId) {
         return requireParticipant(gameId, playerId)
@@ -212,6 +213,9 @@ public class GameViewService {
                             : identityLookup.status(gameResult.opponentId()).exceptionally(_ -> null);
             CompletableFuture<PlayerProgress> playerProgressFuture = progressionLookup.get(playerId)
                     .exceptionally(_ -> null);
+            CompletableFuture<TopicProgress> topicProgressFuture = progressionLookup
+                    .getTopic(playerId, gameResult.topicId())
+                    .exceptionally(_ -> null);
             CompletableFuture<PlayerProgress> opponentProgressFuture =
                     gameResult.botGame() || gameResult.opponentId() == null
                             ? CompletableFuture.completedFuture(null)
@@ -224,7 +228,8 @@ public class GameViewService {
                                     QueryResponseTypes.multipleInstancesOf(GameXp.class));
 
             return CompletableFuture.allOf(topicsFuture, opponentFuture, xpFuture, opponentXpFuture,
-                            opponentStatusFuture, playerProgressFuture, opponentProgressFuture).thenApply(_ -> {
+                            opponentStatusFuture, playerProgressFuture, topicProgressFuture,
+                            opponentProgressFuture).thenApply(_ -> {
                 GameXp gameXp = xpFuture.join().stream().findFirst().orElse(null);
                 Integer xp = gameXp == null ? null : gameXp.xp();
                 int eloDelta = gameXp == null ? 0 : gameXp.ratingDelta();
@@ -238,8 +243,6 @@ public class GameViewService {
                         ? null
                         : new GameResultView.RewardView(xp, gameResult.botGame() ? 0 : xp - gameResult.myScore());
 
-                int xpTotal = gameResult.myXpTotal() + (xp == null ? 0 : xp);
-                int level = ProgressionRules.levelFor(xpTotal);
                 PlayerProgress playerProgress = playerProgressFuture.join();
                 // Elo relatif à la partie : snapshot de création + variation du duel. Les anciens
                 // événements sans snapshot retombent sur l'Elo courant (compatibilité).
@@ -250,15 +253,24 @@ public class GameViewService {
                 int ratedGames = playerProgress == null ? 0 : playerProgress.ratedGames();
                 boolean provisional = playerProgress == null || playerProgress.provisional();
                 GameResultView.ProgressionResultView progression = new GameResultView.ProgressionResultView(
-                        xpTotal,
-                        level,
-                        ProgressionRules.titleFor(level),
-                        ProgressionRules.xpForNextLevel(level),
-                        ProgressionViews.levelProgressPercent(xpTotal, level),
                         rating,
                         peakRating,
                         ratedGames,
                         provisional);
+
+                int xpGained = xp == null ? 0 : xp;
+                TopicProgress topicProgress = topicProgressFuture.join();
+                int topicXp = topicProgress == null
+                        ? xpGained
+                        : Math.max(topicProgress.xp(), xpGained);
+                MasteryGrade grade = MasteryGrade.gradeFor(topicXp);
+                GameResultView.TopicMasteryView topicMastery = new GameResultView.TopicMasteryView(
+                        topicXp,
+                        xpGained,
+                        grade.name(),
+                        grade.next() == null ? null : grade.next().name(),
+                        grade.progressPercent(topicXp),
+                        grade.remainingXp(topicXp));
 
                 Topic topic = topicsFuture.join().stream().findFirst().orElse(null);
                 Profile opponent = opponentFuture.join();
@@ -291,13 +303,12 @@ public class GameViewService {
                         gameResult.totalRounds(),
                         reward,
                         progression,
+                        topicMastery,
                         eloDelta,
                         rated,
-                        gameResult.opponentLevel(),
                         opponentRating,
                         opponentEloDelta,
                         opponentRated,
-                        ProgressionRules.titleFor(gameResult.opponentLevel()),
                         TopicViews.toRef(gameResult.topicId(), topic),
                         opponentRef,
                         gameResult.opponentId(),

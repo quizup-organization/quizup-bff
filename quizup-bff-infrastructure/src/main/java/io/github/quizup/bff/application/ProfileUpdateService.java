@@ -5,6 +5,7 @@ import io.github.quizup.microservice.core.domain.model.i18n.Language;
 import io.github.quizup.profile.domain.command.ProfileCommand;
 import io.github.quizup.profile.domain.model.MasteryGrade;
 import io.github.quizup.profile.domain.model.PlayerTitle;
+import io.github.quizup.profile.domain.model.RewardCode;
 import org.axonframework.commandhandling.gateway.CommandGateway;
 import org.springframework.stereotype.Service;
 
@@ -23,16 +24,22 @@ public class ProfileUpdateService {
     private final CommandGateway commandGateway;
     private final ProfileLookup profileLookup;
     private final ProgressionLookup progressionLookup;
+    private final RewardLookup rewardLookup;
     private final AvatarEntitlementPolicy avatarEntitlementPolicy;
+    private final PremiumAccessPolicy premiumAccessPolicy;
 
     public ProfileUpdateService(CommandGateway commandGateway,
                                 ProfileLookup profileLookup,
                                 ProgressionLookup progressionLookup,
-                                AvatarEntitlementPolicy avatarEntitlementPolicy) {
+                                RewardLookup rewardLookup,
+                                AvatarEntitlementPolicy avatarEntitlementPolicy,
+                                PremiumAccessPolicy premiumAccessPolicy) {
         this.commandGateway = commandGateway;
         this.profileLookup = profileLookup;
         this.progressionLookup = progressionLookup;
+        this.rewardLookup = rewardLookup;
         this.avatarEntitlementPolicy = avatarEntitlementPolicy;
+        this.premiumAccessPolicy = premiumAccessPolicy;
     }
 
     /** Fin explicite ou skip de l'onboarding ; idempotent côté agrégat. */
@@ -56,9 +63,14 @@ public class ProfileUpdateService {
     }
 
     public CompletableFuture<Void> updateAvatarOptions(String userId, String requestedBy, String avatarOptions) {
-        avatarEntitlementPolicy.assertCanSave(avatarOptions);
-        return dispatch(userId,
-                new ProfileCommand.UpdateProfileAvatarCommand(userId, requestedBy, avatarOptions));
+        // Capture le rôle sur le thread HTTP : le callback Axon peut perdre le SecurityContext.
+        boolean premium = premiumAccessPolicy.isPremium();
+        return rewardLookup.get(userId).thenCompose(rewards -> {
+            avatarEntitlementPolicy.assertCanSave(
+                    avatarOptions, premium, rewards.has(RewardCode.MICAH_AVATAR));
+            return dispatch(userId,
+                    new ProfileCommand.UpdateProfileAvatarCommand(userId, requestedBy, avatarOptions));
+        });
     }
 
     public CompletableFuture<Void> updateBanner(String userId, String requestedBy, String bannerUrl) {

@@ -139,14 +139,13 @@ class GameControllerTest {
                 7,
                 7,
                 new GameResultView.RewardView(150, 30),
-                new GameResultView.ProgressionResultView(250, 2, "Apprenti", 400, 50, 200, 200, 0, true),
+                new GameResultView.ProgressionResultView(818, 818, 1, true),
+                new GameResultView.TopicMasteryView(250, 150, "NOVICE", "APPRENTI", 30, 250),
                 18,
                 true,
-                3,
                 200,
                 -12,
                 true,
-                "Apprenti",
                 new TopicRefView("topic-1", java.util.Map.of(io.github.quizup.microservice.core.domain.model.i18n.Language.FR, "Culture générale"), "GENERAL", "🌍", "#ffffff", null, null),
                 new UserRefView("opponent-1", "Bob", null),
                 "opponent-1",
@@ -162,8 +161,8 @@ class GameControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.myScore").value(120))
                 .andExpect(jsonPath("$.reward.xp").value(150))
-                .andExpect(jsonPath("$.progression.level").value(2))
-                .andExpect(jsonPath("$.opponentLevel").value(3))
+                .andExpect(jsonPath("$.progression.rating").value(818))
+                .andExpect(jsonPath("$.topicMastery.xp").value(250))
                 .andExpect(jsonPath("$.opponentId").value("opponent-1"))
                 .andExpect(jsonPath("$.topic.topicId").value("topic-1"));
         verify(gameViewService).result("game-1", USER_ID);

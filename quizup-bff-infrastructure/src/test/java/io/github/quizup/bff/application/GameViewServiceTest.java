@@ -8,7 +8,7 @@ import io.github.quizup.game.domain.query.GameQuery;
 import io.github.quizup.microservice.core.domain.model.notification.EventEnvelope;
 import io.github.quizup.profile.domain.model.GameXp;
 import io.github.quizup.profile.domain.model.PlayerProgress;
-import io.github.quizup.profile.domain.model.ProgressionRules;
+import io.github.quizup.profile.domain.model.TopicProgress;
 import io.github.quizup.profile.domain.query.ProgressionQuery;
 import io.github.quizup.theme.domain.model.Topic;
 import io.github.quizup.theme.domain.query.TopicQuery;
@@ -51,8 +51,9 @@ class GameViewServiceTest {
         assertThat(view.myScore()).isEqualTo(120);
         assertThat(view.opponentScore()).isEqualTo(90);
         assertThat(view.reward()).isEqualTo(new GameResultView.RewardView(150, 30));
-        assertThat(view.opponentLevel()).isEqualTo(3);
-        assertThat(view.opponentTitle()).isEqualTo(ProgressionRules.titleFor(3));
+        assertThat(view.opponentRating()).isEqualTo(918);
+        assertThat(view.topicMastery().xp()).isEqualTo(250);
+        assertThat(view.topicMastery().xpGained()).isEqualTo(150);
     }
 
     @Test
@@ -61,18 +62,12 @@ class GameViewServiceTest {
 
         GameResultView view = service.result("game-1", "player-1").join();
 
-        // Snapshot à la création (100) + XP gagnée sur ce duel (150).
-        int xpTotal = 250;
-        int level = ProgressionRules.levelFor(xpTotal);
-        assertThat(view.progression().xpTotal()).isEqualTo(xpTotal);
-        assertThat(view.progression().level()).isEqualTo(level);
-        assertThat(view.progression().title()).isEqualTo(ProgressionRules.titleFor(level));
-        assertThat(view.progression().xpForNextLevel()).isEqualTo(ProgressionRules.xpForNextLevel(level));
-        assertThat(view.progression().levelProgressPercent())
-                .isEqualTo(ProgressionViews.levelProgressPercent(xpTotal, level));
         // Elo relatif à la partie : snapshot 800 + delta 18, pas l'Elo courant.
         assertThat(view.progression().rating()).isEqualTo(818);
         assertThat(view.opponentRating()).isEqualTo(918);
+        // Maîtrise du sujet : XP courante 250, dont 150 gagnée sur ce duel.
+        assertThat(view.topicMastery().xp()).isEqualTo(250);
+        assertThat(view.topicMastery().xpGained()).isEqualTo(150);
     }
 
     @Test
@@ -82,7 +77,8 @@ class GameViewServiceTest {
         GameResultView view = service.result("game-1", "player-1").join();
 
         assertThat(view.reward()).isNull();
-        assertThat(view.progression().xpTotal()).isEqualTo(100);
+        assertThat(view.topicMastery().xp()).isEqualTo(250);
+        assertThat(view.topicMastery().xpGained()).isZero();
     }
 
     @Test
@@ -146,6 +142,8 @@ class GameViewServiceTest {
         when(profileLookup.get(any())).thenReturn(CompletableFuture.completedFuture(null));
         when(progressionLookup.get(any())).thenAnswer(invocation ->
                 CompletableFuture.completedFuture(PlayerProgress.empty(invocation.getArgument(0))));
+        when(progressionLookup.getTopic(any(), any())).thenReturn(
+                CompletableFuture.completedFuture(TopicProgress.of("topic-1", 250, 1)));
         when(identityLookup.status(any())).thenReturn(CompletableFuture.completedFuture(
                 new io.github.quizup.identity.domain.model.UserAccountStatus(
                         "player-2", io.github.quizup.identity.domain.model.AccountStatus.ACTIVE, null)));
@@ -174,6 +172,6 @@ class GameViewServiceTest {
                 botGame,
                 null,
                 100, 20, 6, 3, 7, 7,
-                2, 100, 3, 400, 800, 900);
+                800, 900);
     }
 }

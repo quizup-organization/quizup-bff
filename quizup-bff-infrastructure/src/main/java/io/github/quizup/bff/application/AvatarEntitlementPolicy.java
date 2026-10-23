@@ -8,25 +8,24 @@ import org.springframework.stereotype.Component;
 import java.util.Set;
 
 /**
- * Sépare l'avatar de base gratuit (icône + fond) des styles DiceBear Premium.
- * Le BFF ne fait pas confiance au client : il relit le preset persisté avant la commande.
+ * Sépare l'avatar de base gratuit (icône + fond), Micah (récompense ou Premium) et les styles
+ * DiceBear Premium (Lorelei, Notionists). Le BFF ne fait pas confiance au client : il relit le
+ * preset et vérifie les droits avant la commande.
  */
 @Component
 public class AvatarEntitlementPolicy {
 
     private static final String BASE_STYLE = "base";
-    private static final Set<String> PREMIUM_STYLES = Set.of("micah", "lorelei", "notionists");
+    private static final String MICAH_STYLE = "micah";
+    private static final Set<String> PREMIUM_ONLY_STYLES = Set.of("lorelei", "notionists");
 
     private final ObjectMapper objectMapper;
-    private final PremiumAccessPolicy premiumAccessPolicy;
 
-    public AvatarEntitlementPolicy(ObjectMapper objectMapper,
-                                   PremiumAccessPolicy premiumAccessPolicy) {
+    public AvatarEntitlementPolicy(ObjectMapper objectMapper) {
         this.objectMapper = objectMapper;
-        this.premiumAccessPolicy = premiumAccessPolicy;
     }
 
-    public void assertCanSave(String avatarOptions) {
+    public void assertCanSave(String avatarOptions, boolean premium, boolean micahUnlocked) {
         if (avatarOptions == null || avatarOptions.isBlank()) {
             return;
         }
@@ -39,14 +38,20 @@ public class AvatarEntitlementPolicy {
         if (node == null || !node.isObject()) {
             throw new BffProblems.InvalidAvatarOptionsProblem();
         }
-        String style = node.path("style").asText("micah");
+        String style = node.path("style").asText(MICAH_STYLE);
         if (BASE_STYLE.equals(style)) {
             return;
         }
-        if (!PREMIUM_STYLES.contains(style)) {
+        if (MICAH_STYLE.equals(style)) {
+            if (!micahUnlocked && !premium) {
+                throw new BffProblems.MicahLockedProblem();
+            }
+            return;
+        }
+        if (!PREMIUM_ONLY_STYLES.contains(style)) {
             throw new BffProblems.InvalidAvatarOptionsProblem();
         }
-        if (!premiumAccessPolicy.isPremium()) {
+        if (!premium) {
             throw new BffProblems.PremiumRequiredProblem();
         }
     }

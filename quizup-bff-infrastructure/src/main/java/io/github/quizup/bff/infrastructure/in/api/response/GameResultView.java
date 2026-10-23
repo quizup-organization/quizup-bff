@@ -4,9 +4,8 @@ import io.github.quizup.game.domain.model.BotDifficulty;
 
 /**
  * Écran de résultat d'un duel terminé : score, détail de la performance, récompense XP de la
- * partie ({@code null} si la progression n'est pas encore projetée) et état de progression du
- * joueur (niveau, titre, palier). Enrichi du sujet et de l'adversaire pour que la page résultat
- * soit autosuffisante (un seul GET + l'historique de revue).
+ * partie ({@code null} si la progression n'est pas encore projetée), Elo et maîtrise du sujet.
+ * Enrichi du sujet et de l'adversaire pour que la page résultat soit autosuffisante.
  */
 public record GameResultView(
         int myScore,
@@ -21,15 +20,14 @@ public record GameResultView(
         int totalRounds,
         RewardView reward,
         ProgressionResultView progression,
+        TopicMasteryView topicMastery,
         /** Variation d'Elo du joueur (0 si non classé). */
         int eloDelta,
         boolean rated,
-        int opponentLevel,
         int opponentRating,
         /** Variation d'Elo de l'adversaire (0 si non classé). */
         int opponentEloDelta,
         boolean opponentRated,
-        String opponentTitle,
         TopicRefView topic,
         UserRefView opponent,
         String opponentId,
@@ -38,21 +36,27 @@ public record GameResultView(
         boolean opponentDeleted
 ) {
 
-    /** Récompense de la partie : XP totale gagnée et bonus de victoire dérivé du score. */
+    /** Récompense de la partie : XP gagnée dans le sujet et bonus de victoire dérivé du score. */
     public record RewardView(int xp, int victoryBonus) {
     }
 
-    /** Progression courante du joueur (mêmes règles que {@link ProgressionView}). */
+    /** État Elo du joueur à l'issue de la partie. */
     public record ProgressionResultView(
-            int xpTotal,
-            int level,
-            String title,
-            int xpForNextLevel,
-            int levelProgressPercent,
             int rating,
             int peakRating,
             int ratedGames,
             boolean provisional
+    ) {
+    }
+
+    /** Maîtrise du sujet après la partie : XP courante, gain du duel et grade atteint. */
+    public record TopicMasteryView(
+            int xp,
+            int xpGained,
+            String grade,
+            String nextGrade,
+            int gradeProgressPercent,
+            int gradeRemainingXp
     ) {
     }
 }

@@ -25,10 +25,6 @@ public record TopicOverviewView(
             int xp,
             /** Parties humaines terminées dans le sujet (abandon inclus) — condition du titre Fer. */
             int games,
-            int level,
-            String title,
-            int xpForNextLevel,
-            int levelProgressPercent,
             /** Grade de **maîtrise du sujet** atteint (`MasteryGrade`), ex. {@code CONFIRME}. */
             String grade,
             /** Progression (0–100) vers le grade suivant du sujet ; 100 au dernier grade. */

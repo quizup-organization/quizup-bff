@@ -24,6 +24,17 @@ public final class BffProblems {
         }
     }
 
+    /** Micah est débloqué par la récompense d'assiduité (ou Premium/admin). */
+    public static class MicahLockedProblem extends BaseProblem {
+        public MicahLockedProblem() {
+            super("urn:quizup:authorization:micahLocked",
+                    ProblemCategory.PERMISSION,
+                    "Micah locked",
+                    "Le style Micah se débloque après 7 jours d'activité consécutive",
+                    Map.of());
+        }
+    }
+
     public static class InvalidAvatarOptionsProblem extends BaseProblem {
         public InvalidAvatarOptionsProblem() {
             super("urn:quizup:bff:profile:invalidAvatarOptions",

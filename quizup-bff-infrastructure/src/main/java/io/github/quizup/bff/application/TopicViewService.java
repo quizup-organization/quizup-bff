@@ -18,7 +18,6 @@ import io.github.quizup.leaderboard.domain.model.TopicLeaderboardEntry;
 import io.github.quizup.leaderboard.domain.query.LeaderboardQuery;
 import io.github.quizup.microservice.core.infrastructure.axon.QueryResponseTypes;
 import io.github.quizup.profile.domain.model.MasteryGrade;
-import io.github.quizup.profile.domain.model.ProgressionRules;
 import io.github.quizup.profile.domain.model.TopicProgress;
 import io.github.quizup.profile.domain.model.PlayerProgress;
 import io.github.quizup.profile.domain.query.ProgressionQuery;
@@ -183,7 +182,6 @@ public class TopicViewService {
                     TopicCardView card = TopicViews.toCard(topic, followedFuture.join());
                     TopicProgress topicProgress = progressFuture.join();
                     int xp = topicProgress.xp();
-                    int level = ProgressionRules.levelFor(xp);
                     MasteryGrade grade = MasteryGrade.gradeFor(xp);
                     int totalQuestions = card.questionsCount();
                     Integer answered = completedFuture.join();
@@ -194,10 +192,6 @@ public class TopicViewService {
                     TopicOverviewView.MyProgressView progress = new TopicOverviewView.MyProgressView(
                             xp,
                             topicProgress.games(),
-                            level,
-                            ProgressionRules.titleFor(level),
-                            ProgressionRules.xpForNextLevel(level),
-                            ProgressionViews.levelProgressPercent(xp, level),
                             grade.name(),
                             grade.progressPercent(xp),
                             grade.remainingXp(xp),
@@ -283,7 +277,6 @@ public class TopicViewService {
                 entry.pseudonym(),
                 entry.avatarOptions(),
                 entry.country(),
-                entry.level(),
                 rating == null ? 200 : rating.rating(),
                 rating == null || rating.provisional(),
                 entry.totalXp(),

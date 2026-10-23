@@ -2,6 +2,8 @@ package io.github.quizup.bff.infrastructure.in.api.response;
 
 import io.github.quizup.microservice.core.domain.model.i18n.Language;
 
+import java.util.List;
+
 /**
  * Joueur courant (coquille, écrans profil) : profil + progression + compteurs d'abonnements.
  */
@@ -22,6 +24,8 @@ public record MeView(
         long followersCount,
         /** Onboarding terminé (ou première partie humaine jouée). */
         boolean onboardingCompleted,
+        /** Récompenses persistées du joueur (`MICAH_AVATAR`, …). */
+        List<String> rewards,
         /** Styles d'avatar DiceBear débloqués (admin ou abonnement Premium). */
         boolean premium
 ) {
@@ -29,6 +33,7 @@ public record MeView(
     /** Copie avec le flag forcé (la projection profile peut être en retard juste après la commande). */
     public MeView withOnboardingCompleted(boolean completed) {
         return new MeView(userId, email, pseudonym, bio, country, avatarOptions, bannerUrl,
-                equippedTitle, language, progression, stats, followingCount, followersCount, completed, premium);
+                equippedTitle, language, progression, stats, followingCount, followersCount, completed,
+                rewards, premium);
     }
 }

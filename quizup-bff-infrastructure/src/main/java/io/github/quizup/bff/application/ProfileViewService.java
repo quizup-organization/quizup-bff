@@ -36,7 +36,6 @@ import io.github.quizup.profile.domain.model.PlayerPresence;
 import io.github.quizup.profile.domain.model.PlayerProgress;
 import io.github.quizup.profile.domain.model.PlayerTitle;
 import io.github.quizup.profile.domain.model.Profile;
-import io.github.quizup.profile.domain.model.ProgressionRules;
 import io.github.quizup.profile.domain.model.TopicProgress;
 import io.github.quizup.profile.domain.query.ActivityQuery;
 import io.github.quizup.profile.domain.query.PresenceQuery;
@@ -120,8 +119,7 @@ public class ProfileViewService {
                     false,
                     false,
                     null,
-                    new ProgressionView(0, 1, ProgressionRules.titleFor(1),
-                            ProgressionRules.xpForNextLevel(1), 0, List.of(),
+                    new ProgressionView(List.of(),
                             io.github.quizup.profile.domain.model.EloRules.INITIAL_RATING,
                             io.github.quizup.profile.domain.model.EloRules.INITIAL_RATING,
                             0, true),
@@ -341,7 +339,7 @@ public class ProfileViewService {
     }
 
     /**
-     * Liste des abonnements/abonnés enrichie (profil, niveau, présence, suivi du lecteur).
+     * Liste des abonnements/abonnés enrichie (profil, Elo, présence, suivi du lecteur).
      * Le périmètre est borné côté service social ({@value FollowLookup#MAX_LIST_SIZE}), puis
      * filtré/trié/paginé ici.
      */
@@ -459,7 +457,7 @@ public class ProfileViewService {
 
     /**
      * Répartition des parties humaines par sujet (donut « Sujets joués » du profil) : progression
-     * par thème (parties, XP, niveau) enrichie des informations éditoriales du sujet. Les sujets
+     * par thème (parties, XP) enrichie des informations éditoriales du sujet. Les sujets
      * introuvables (supprimés) sont ignorés.
      */
     public CompletableFuture<List<TopicStatView>> topics(String userId) {
@@ -480,7 +478,7 @@ public class ProfileViewService {
                                     Topic topic = topicById.get(progress.topicId());
                                     return new TopicStatView(topic.topicId(), topic.names(), topic.emoji(),
                                             topic.color(), topic.imageUrl(),
-                                            progress.games(), progress.xp(), progress.level());
+                                            progress.games(), progress.xp());
                                 })
                                 .toList();
                     });
@@ -557,17 +555,15 @@ public class ProfileViewService {
                 profile.userId(),
                 profile.pseudonym(),
                 profile.avatarOptions(),
-                progression.level(),
                 progression.rating(),
                 progression.provisional(),
-                progression.title(),
                 viewerFollowing.contains(userId),
                 presence == null ? null : toPresence(presence),
                 status != null && status.suspended(Instant.now())));
     }
 
     private static Comparator<PlayerCardView> peopleComparator(PeopleSort sort) {
-        if (sort == PeopleSort.LEVEL || sort == PeopleSort.ELO) {
+        if (sort == PeopleSort.ELO) {
             return Comparator.comparingInt(PlayerCardView::rating).reversed()
                     .thenComparing(PlayerCardView::pseudonym, String.CASE_INSENSITIVE_ORDER);
         }

@@ -54,8 +54,8 @@ class ProfileViewServiceTest {
                 any(ProgressionQuery.GetTopicProgressionsQuery.class),
                 ArgumentMatchers.<ResponseType<List<TopicProgress>>>any()))
                 .thenReturn(CompletableFuture.completedFuture(List.of(
-                        new TopicProgress("topic-1", 200, 2, 7),
-                        new TopicProgress("missing", 50, 1, 2))));
+                        new TopicProgress("topic-1", 200, 7),
+                        new TopicProgress("missing", 50, 2))));
         when(queryGateway.query(
                 any(TopicQuery.GetTopicsByIdsQuery.class),
                 ArgumentMatchers.<ResponseType<List<Topic>>>any()))
@@ -76,7 +76,6 @@ class ProfileViewServiceTest {
         assertThat(view.get(0).emoji()).isEqualTo("🎮");
         assertThat(view.get(0).games()).isEqualTo(7);
         assertThat(view.get(0).xp()).isEqualTo(200);
-        assertThat(view.get(0).level()).isEqualTo(2);
     }
 
     @Test
@@ -334,7 +333,7 @@ class ProfileViewServiceTest {
         assertThat(view.followersCount()).isZero();
         assertThat(view.followingCount()).isZero();
         assertThat(view.suspended()).isFalse();
-        assertThat(view.progression().level()).isEqualTo(1);
+        assertThat(view.progression().rating()).isEqualTo(200);
     }
 
     private static BadgeCollectionView.BadgeItemView item(BadgeCollectionView view, Badge badge) {

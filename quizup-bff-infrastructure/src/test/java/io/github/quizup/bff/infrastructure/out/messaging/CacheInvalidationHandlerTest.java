@@ -4,10 +4,14 @@ import io.github.quizup.bff.application.FollowLookup;
 import io.github.quizup.bff.application.IdentityLookup;
 import io.github.quizup.bff.application.ProfileLookup;
 import io.github.quizup.bff.application.ProgressionLookup;
+import io.github.quizup.bff.application.RewardLookup;
 import io.github.quizup.identity.domain.event.UserEvent;
 import io.github.quizup.identity.domain.event.UserEvent.UserAccountDeletedEvent;
 import io.github.quizup.microservice.core.domain.model.i18n.Language;
 import io.github.quizup.profile.domain.event.ProfileEvent;
+import io.github.quizup.profile.domain.event.RewardEvent;
+import io.github.quizup.profile.domain.model.RewardCode;
+import io.github.quizup.profile.domain.model.RewardSource;
 import io.github.quizup.social.domain.event.UserFollowerEvent;
 import org.junit.jupiter.api.Test;
 
@@ -28,9 +32,10 @@ class CacheInvalidationHandlerTest {
     private final ProfileLookup profileLookup = mock(ProfileLookup.class);
     private final IdentityLookup identityLookup = mock(IdentityLookup.class);
     private final ProgressionLookup progressionLookup = mock(ProgressionLookup.class);
+    private final RewardLookup rewardLookup = mock(RewardLookup.class);
     private final CacheInvalidationHandler handler =
             new CacheInvalidationHandler(
-                    followLookup, profileLookup, identityLookup, progressionLookup);
+                    followLookup, profileLookup, identityLookup, progressionLookup, rewardLookup);
 
     @Test
     void accountDeletionInvalidatesAllLocalCaches() {
@@ -39,8 +44,17 @@ class CacheInvalidationHandlerTest {
 
         verify(profileLookup).invalidate("u1");
         verify(progressionLookup).invalidate("u1");
+        verify(rewardLookup).invalidate("u1");
         verify(identityLookup).invalidate("u1");
         verify(followLookup).invalidateAllCounts();
+    }
+
+    @Test
+    void rewardGrantedInvalidatesRewardsCache() {
+        handler.on(new RewardEvent.RewardGrantedEvent(
+                "u1", RewardCode.MICAH_AVATAR, RewardSource.BADGE, Instant.now()));
+
+        verify(rewardLookup).invalidate("u1");
     }
 
     @Test

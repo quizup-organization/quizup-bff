@@ -4,9 +4,11 @@ import io.github.quizup.bff.application.FollowLookup;
 import io.github.quizup.bff.application.IdentityLookup;
 import io.github.quizup.bff.application.ProfileLookup;
 import io.github.quizup.bff.application.ProgressionLookup;
+import io.github.quizup.bff.application.RewardLookup;
 import io.github.quizup.identity.domain.event.UserEvent;
 import io.github.quizup.identity.domain.event.UserEvent.UserAccountDeletedEvent;
 import io.github.quizup.profile.domain.event.ProfileEvent;
+import io.github.quizup.profile.domain.event.RewardEvent;
 import io.github.quizup.social.domain.event.UserFollowerEvent;
 import org.axonframework.config.ProcessingGroup;
 import org.axonframework.eventhandling.EventHandler;
@@ -34,15 +36,18 @@ public class CacheInvalidationHandler {
     private final ProfileLookup profileLookup;
     private final IdentityLookup identityLookup;
     private final ProgressionLookup progressionLookup;
+    private final RewardLookup rewardLookup;
 
     public CacheInvalidationHandler(FollowLookup followLookup,
                                     ProfileLookup profileLookup,
                                     IdentityLookup identityLookup,
-                                    ProgressionLookup progressionLookup) {
+                                    ProgressionLookup progressionLookup,
+                                    RewardLookup rewardLookup) {
         this.followLookup = followLookup;
         this.profileLookup = profileLookup;
         this.identityLookup = identityLookup;
         this.progressionLookup = progressionLookup;
+        this.rewardLookup = rewardLookup;
     }
 
     @EventHandler
@@ -91,9 +96,16 @@ public class CacheInvalidationHandler {
     }
 
     @EventHandler
+    public void on(RewardEvent.RewardGrantedEvent event) {
+        rewardLookup.invalidate(event.userId());
+        logger.debug("Récompenses invalidées: userId={}, code={}", event.userId(), event.rewardCode());
+    }
+
+    @EventHandler
     public void on(UserAccountDeletedEvent event) {
         profileLookup.invalidate(event.userId());
         progressionLookup.invalidate(event.userId());
+        rewardLookup.invalidate(event.userId());
         followLookup.invalidateAllCounts();
         identityLookup.invalidate(event.userId());
     }

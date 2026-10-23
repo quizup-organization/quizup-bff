@@ -5,6 +5,7 @@ import io.github.quizup.microservice.core.domain.model.i18n.Language;
 import io.github.quizup.profile.domain.command.ProfileCommand;
 import io.github.quizup.profile.domain.model.MasteryGrade;
 import io.github.quizup.profile.domain.model.PlayerProgress;
+import io.github.quizup.profile.domain.model.PlayerRewards;
 import org.axonframework.commandhandling.gateway.CommandGateway;
 import org.junit.jupiter.api.Test;
 
@@ -29,18 +30,36 @@ class ProfileUpdateServiceTest {
     private final CommandGateway commandGateway = mock(CommandGateway.class);
     private final ProfileLookup profileLookup = mock(ProfileLookup.class);
     private final ProgressionLookup progressionLookup = mock(ProgressionLookup.class);
+    private final RewardLookup rewardLookup = mock(RewardLookup.class);
     private final AvatarEntitlementPolicy avatarEntitlementPolicy = mock(AvatarEntitlementPolicy.class);
+    private final PremiumAccessPolicy premiumAccessPolicy = mock(PremiumAccessPolicy.class);
     private final ProfileUpdateService service =
-            new ProfileUpdateService(commandGateway, profileLookup, progressionLookup, avatarEntitlementPolicy);
+            new ProfileUpdateService(commandGateway, profileLookup, progressionLookup, rewardLookup,
+                    avatarEntitlementPolicy, premiumAccessPolicy);
 
     @Test
     void updateAvatarChecksPremiumEntitlementBeforeDispatch() {
         when(commandGateway.send(any())).thenReturn(CompletableFuture.completedFuture(null));
+        when(rewardLookup.get("u1")).thenReturn(
+                CompletableFuture.completedFuture(PlayerRewards.empty("u1")));
 
         service.updateAvatarOptions("u1", "u1", "{\"style\":\"base\"}").join();
 
-        verify(avatarEntitlementPolicy).assertCanSave("{\"style\":\"base\"}");
+        verify(avatarEntitlementPolicy).assertCanSave("{\"style\":\"base\"}", false, false);
         verify(profileLookup).invalidate("u1");
+    }
+
+    @Test
+    void updateAvatarPassesMicahRewardToThePolicy() {
+        when(commandGateway.send(any())).thenReturn(CompletableFuture.completedFuture(null));
+        when(rewardLookup.get("u1")).thenReturn(CompletableFuture.completedFuture(
+                new PlayerRewards("u1", java.util.Set.of(
+                        io.github.quizup.profile.domain.model.RewardCode.MICAH_AVATAR))));
+
+        service.updateAvatarOptions("u1", "u1", "{\"style\":\"micah\"}").join();
+
+        verify(avatarEntitlementPolicy).assertCanSave(
+                "{\"style\":\"micah\"}", false, true);
     }
 
     @Test

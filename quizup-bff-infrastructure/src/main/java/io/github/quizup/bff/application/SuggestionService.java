@@ -77,9 +77,8 @@ public class SuggestionService {
                         SuggestionView.Type.PLAYER,
                         profile.userId(),
                         profile.pseudonym(),
-                        "Niveau " + ProgressionViews.toView(
-                                progressById.getOrDefault(profile.userId(),
-                                        PlayerProgress.empty(profile.userId()))).level(),
+                        "Elo " + progressById.getOrDefault(profile.userId(),
+                                PlayerProgress.empty(profile.userId())).rating(),
                         null,
                         null,
                         null,

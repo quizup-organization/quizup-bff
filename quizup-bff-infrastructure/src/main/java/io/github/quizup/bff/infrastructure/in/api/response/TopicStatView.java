@@ -6,7 +6,7 @@ import java.util.Map;
 
 /**
  * Part d'un sujet dans l'activité du joueur (donut « Sujets joués » du profil) : parties humaines
- * jouées, XP et niveau sur le sujet, avec les informations éditoriales du sujet.
+ * jouées et XP dans le sujet, avec les informations éditoriales du sujet.
  */
 public record TopicStatView(
         String topicId,
@@ -15,7 +15,6 @@ public record TopicStatView(
         String color,
         String imageUrl,
         int games,
-        int xp,
-        int level
+        int xp
 ) {
 }

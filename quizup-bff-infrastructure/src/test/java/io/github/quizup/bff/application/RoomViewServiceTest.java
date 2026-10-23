@@ -93,8 +93,7 @@ class RoomViewServiceTest {
         assertThat(command.playerId()).isEqualTo("user-1");
         assertThat(command.player().playerName()).isEqualTo("Alice");
         assertThat(command.player().language()).isEqualTo(Language.FR);
-        assertThat(command.player().level()).isEqualTo(12);
-        assertThat(command.player().xpTotal()).isEqualTo(250);
+        assertThat(command.player().rating()).isEqualTo(842);
         assertThat(command.player().topicXp()).isEqualTo(1_200);
     }
 
@@ -114,8 +113,7 @@ class RoomViewServiceTest {
         ArgumentCaptor<RoomCommand.JoinRoomCommand> captor =
                 ArgumentCaptor.forClass(RoomCommand.JoinRoomCommand.class);
         verify(commandGateway).send(captor.capture());
-        assertThat(captor.getValue().player().level()).isEqualTo(1);
-        assertThat(captor.getValue().player().xpTotal()).isZero();
+        assertThat(captor.getValue().player().rating()).isNull();
         assertThat(captor.getValue().player().topicXp()).isZero();
     }
 
@@ -165,8 +163,7 @@ class RoomViewServiceTest {
     private static PlayerProgress progress() {
         return PlayerProgress.builder()
                 .userId("user-1")
-                .xpTotal(250)
-                .level(12)
+                .rating(842)
                 .xpByTopic(Map.of())
                 .badges(Set.of())
                 .gamesPlayed(10)

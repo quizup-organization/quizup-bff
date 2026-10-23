@@ -2,6 +2,7 @@ package io.github.quizup.bff.application;
 
 import io.github.quizup.bff.infrastructure.in.api.response.MeView;
 import io.github.quizup.profile.domain.model.PlayerProgress;
+import io.github.quizup.profile.domain.model.PlayerRewards;
 import io.github.quizup.profile.domain.model.Profile;
 import io.github.quizup.social.domain.model.UserFollowCounts;
 import org.springframework.stereotype.Service;
@@ -18,15 +19,18 @@ public class MeService {
 
     private final ProfileLookup profileLookup;
     private final ProgressionLookup progressionLookup;
+    private final RewardLookup rewardLookup;
     private final FollowLookup followLookup;
     private final PremiumAccessPolicy premiumAccessPolicy;
 
     public MeService(ProfileLookup profileLookup,
                      ProgressionLookup progressionLookup,
+                     RewardLookup rewardLookup,
                      FollowLookup followLookup,
                      PremiumAccessPolicy premiumAccessPolicy) {
         this.profileLookup = profileLookup;
         this.progressionLookup = progressionLookup;
+        this.rewardLookup = rewardLookup;
         this.followLookup = followLookup;
         this.premiumAccessPolicy = premiumAccessPolicy;
     }
@@ -41,12 +45,15 @@ public class MeService {
     public CompletableFuture<MeView> me(String userId, boolean premium) {
         CompletableFuture<Profile> profileFuture = profileLookup.get(userId);
         CompletableFuture<PlayerProgress> progressFuture = progressionLookup.get(userId);
+        CompletableFuture<PlayerRewards> rewardsFuture = rewardLookup.get(userId)
+                .exceptionally(_ -> PlayerRewards.empty(userId));
         CompletableFuture<UserFollowCounts> countsFuture = followLookup.userCounts(userId);
 
-        return CompletableFuture.allOf(profileFuture, progressFuture, countsFuture)
+        return CompletableFuture.allOf(profileFuture, progressFuture, rewardsFuture, countsFuture)
                 .thenApply(_ -> {
                     Profile profile = profileFuture.join();
                     PlayerProgress progress = progressFuture.join();
+                    PlayerRewards rewards = rewardsFuture.join();
                     UserFollowCounts counts = countsFuture.join();
                     return new MeView(
                             profile.userId(),
@@ -62,9 +69,11 @@ public class MeService {
                             counts.following(),
                             counts.followers(),
                             profile.onboardingCompletedAt() != null || progress.gamesPlayed() > 0,
+                            rewards.rewards().stream().map(Enum::name).sorted().toList(),
                             premium);
                 });
     }
+
 
     public boolean isPremium() {
         return premiumAccessPolicy.isPremium();

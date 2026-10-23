@@ -69,7 +69,7 @@ l'ancienne surface et sont migrés lot par lot.
   `DELETE /api/{resource}/{id}/follow` (`204`).
 - **Transitions d'état** : `POST /api/{resource}/{id}/{action}`. `DELETE` est réservé à la
   disparition effective de la ressource.
-- **Composition côté BFF** : enrichissements (profils, niveaux, présences, compteurs, noms,
+- **Composition côté BFF** : enrichissements (profils, Elo, présences, compteurs, noms,
   avatars) systématiquement résolus ici, jamais côté client. Les lectures batch passent par des
   requêtes dédiées (`GetProfilesByIdsQuery`, `GetProgressionsByIdsQuery`,
   `GetPresencesByIdsQuery`…).
@@ -79,15 +79,16 @@ l'ancienne surface et sont migrés lot par lot.
   (paliers verrouillés + progression « 7/10 ») est exposée par
   `GET /api/profiles/{userId}/badges`, composée depuis le catalogue `Badge` et les compteurs du
   read model (`gamesPlayed`, `wins`, `badges`, `xpByTopic`), **sans requête supplémentaire**.
-  `ProgressionView.title` (titre de **compte**) et le `level`/`title` de
-  `TopicOverviewView.myProgress` sont **transitoires** : les titres affichés sont thématiques
-  (`equippedTitle` + `GET …/titles`), l'UI devant basculer dans un lot dédié.
-  Chaque titre expose aussi son **rang** (`rank`, `FER`…`DIAMANT`), dérivé du grade via
-  `MasteryGrade.rank()`.
-  > Pin `quizup.profile-domain.version` : **4.12.0** (recalibrage des seuils de badges/titres :
-  > première victoire à 3 badges, maîtrise `0/500/1 500/4 000/9 000/21 000/45 000`).
-  > Ce pin doit rester aligné sur la release `quizup-profile` qui porte ces seuils, sinon les
-  > vues serviront d'anciennes cibles.
+  `ProgressionView` ne porte plus de niveau, de titre de compte ni d'XP globale : uniquement les
+  badges et l'Elo. `TopicOverviewView.myProgress` porte la maîtrise du sujet (XP, parties,
+  grade) ; les titres affichés sont thématiques (`equippedTitle` + `GET …/titles`). Chaque titre
+  expose aussi son **rang** (`rank`, `FER`…`DIAMANT`), dérivé du grade via
+  `MasteryGrade.rank()`. `MeView.rewards` expose les récompenses persistées
+  (`MICAH_AVATAR`, …) ; l'avatar de base est gratuit, Micah exige `MICAH_AVATAR` ou Premium,
+  Lorelei/Notionists restent Premium.
+  > Pin `quizup.profile-domain.version` : **5.0.0** (XP par thème, Elo, suppression du niveau
+  > de compte et récompenses persistées). Le pin doit rester aligné sur la release qui porte ces
+  > contrats, sinon les vues ne résoudront pas `rewards`/le nouveau `ProgressionView`.
 - **Titres thématiques** : le serveur ne compose **jamais** le libellé (« Confirmé · Histoire ») —
   il expose le grade (`MasteryGrade`, à traduire côté client) et le sujet (`names`), le client
   combine. Un titre est débloqué par un sujet avec **au moins une partie humaine terminée**
@@ -100,8 +101,9 @@ l'ancienne surface et sont migrés lot par lot.
   (`command-preparation`).
 - **Caches de lecture (Caffeine)** : `ProfileLookup` (profil, 30 s, purgé par `ProfileUpdateService`
   après chaque écriture), `ProgressionLookup` (progression, 15 s — lue sur chaque `/api/me`/fiche/
-  enfilage) et les **compteurs de follows** (`FollowLookup.userCounts`, 30 s, purgés après un
-  follow/unfollow dans `ProfileController`). Objectif : amortir les requêtes distribuées sous
+  enfilage), `RewardLookup` (récompenses, 30 s, purgé sur `RewardGrantedEvent`) et les
+  **compteurs de follows** (`FollowLookup.userCounts`, 30 s, purgés après un follow/unfollow dans
+  `ProfileController`). Objectif : amortir les requêtes distribuées sous
   polling/temps réel (charge validée 1000 connexions WS).
   **Règle multi-réplicas** : l'invalidation locale (`ProfileController`/`ProfileUpdateService`) n'est
   qu'un **fast-path** — `CacheInvalidationHandler` (groupe **instance-scopé** `cache-invalidation`,
@@ -138,7 +140,7 @@ l'ancienne surface et sont migrés lot par lot.
 
 | Endpoint | Réponse | Notes |
 |---|---|---|
-| `GET /api/me` | `MeView` | Profil (+ `language` fr/en, + `equippedTitle` = clé du titre porté) + progression + stats de duel + `followingCount` + `followersCount` + `onboardingCompleted` (flag serveur, ou première partie humaine déjà jouée) + `premium` (`ROLE_ADMIN` par défaut ou `ROLE_PREMIUM`) |
+| `GET /api/me` | `MeView` | Profil (+ `language` fr/en, + `equippedTitle` = clé du titre porté) + progression + stats de duel + `followingCount` + `followersCount` + `onboardingCompleted` (flag serveur, ou première partie humaine déjà jouée) + `rewards` (récompenses persistées, ex. `MICAH_AVATAR`) + `premium` (`ROLE_ADMIN` par défaut ou `ROLE_PREMIUM`) |
 | `POST /api/me/onboarding/complete` | `MeView` | Fin explicite ou skip de l'onboarding ; idempotent, renvoie le flag `onboardingCompleted=true` sans attendre la projection profile |
 | `GET /api/suggestions?q=&limit=` | `List<SuggestionView>` | Palette ⌘K : sujets + joueurs (`type`, `id`, libellé, visuel) |
 | `GET /api/clock` | `ServerTimeView` | `serverTime`, `epochMillis` |
@@ -158,7 +160,7 @@ l'ancienne surface et sont migrés lot par lot.
 | `GET /api/topics?q=&category=&followed=&mine=&sort=&page=&size=` | `PageResponse<TopicCardView>` | `sort` ∈ `POPULAR\|MOST_PLAYED\|ALPHA\|RECENT` (défaut `POPULAR` ; `MOST_PLAYED` = compteur communautaire de parties du thème) ; `followed=true` filtre côté serveur ; `mine=true` = sujets créés par le joueur courant (brouillons + publiés, tri `updatedAt desc`), exclusif de `followed`/`q`/`category`/`sort` (400 sinon). `TopicCardView.status` expose le statut |
 | `GET /api/topics/facets?q=&followed=` | `TopicFacetsView` | `total` + `categories[{ category, label, count }]` |
 | `GET /api/topic-categories` | `List<TopicCategoryView>` | `category`, `label` |
-| `GET /api/topics/{topicId}/overview` | `TopicOverviewView` | `topic`, `titles` (titres thématiques par langue puis grade — onglet « Titres » de la fiche sujet), `followersCount`, `myRank`, `myProgress`, `canManage` (créateur). `myProgress` porte la **maîtrise du sujet** : `games` (parties humaines terminées — verrou du titre Fer), `grade` (`MasteryGrade`), `gradeProgressPercent`, `gradeRemainingXp`, `nextGrade` — le `level`/`title` de compte y reste **transitoire** (l'UI basculera sur le grade) |
+| `GET /api/topics/{topicId}/overview` | `TopicOverviewView` | `topic`, `titles` (titres thématiques par langue puis grade — onglet « Titres » de la fiche sujet), `followersCount`, `myRank`, `myProgress`, `canManage` (créateur). `myProgress` porte la **maîtrise du sujet** : `games` (parties humaines terminées — verrou du titre Fer), `grade` (`MasteryGrade`), `gradeProgressPercent`, `gradeRemainingXp`, `nextGrade`, `completedQuestions`, `totalQuestions`, `completionPercent` — plus de niveau/titre de compte. |
 | `PUT /api/topics/{topicId}/follow` | `204` | Idempotent |
 | `DELETE /api/topics/{topicId}/follow` | `204` | |
 | `GET /api/topics/{topicId}/leaderboard?period=&month=&scope=&page=&size=` | `TopicLeaderboardView` | `entries` paginées + `me` ; `period` ∈ `ALL_TIME\|MONTHLY`, `month` (`YYYY-MM`, mensuel uniquement, défaut = mois courant), `scope` ∈ `WORLD\|FOLLOWING\|COUNTRY` |
@@ -310,17 +312,17 @@ de sujet, illustration de question, bannière de profil) : objet référencé �
 | `GET /api/profiles/{userId}/activity?from=&to=` | `ActivityViewResponse` | Calendrier de série : `currentStreak` (**effective à la date de la requête**, retombe à 0 après un jour manqué), `longestStreak`, `lastActiveDate`, `totalActiveDays`, `days[]` (`date`, `games`). Fenêtre 365 jours par défaut, explicite ≤ 366 jours. Les entraînements bot ne comptent pas. |
 | `GET /api/profiles/{userId}/titles` | `TitlesView` | Titres thématiques **débloqués** (**tous les grades atteints** de chaque sujet avec **au moins une partie humaine terminée**, abandon inclus ; entraînement bot exclu — grade d'entrée **Novice compris même à 0 XP**) + `equippedKey` : `key` (`topicId:GRADE`), `grade`, **`rank`** (`FER`…`DIAMANT`), `gradeProgressPercent`, `gradeRemainingXp`, `nextGrade`, `topic` (`TopicRefView`). Un titre porté sur un grade inférieur au grade courant reste donc exposé et résolvable. Le libellé est composé par le client (grade traduit + `topic.names`) — aucun texte figé côté serveur |
 | `PUT /api/profiles/{userId}/title` | `204` | Titre **porté** : `{ titleKey }` (`topicId:GRADE`) ou `null` pour n'en afficher aucun. Propriétaire uniquement (invariant d'agrégat, 403) ; titre **réellement débloqué** exigé — la progression est lue avant l'envoi et un **sujet sans partie humaine terminée** ou un grade insuffisant répond `400` (`urn:quizup:bff:profile:titleNotEarned`), une clé mal formée `400` (`…:invalidTitle`) |
-| `GET /api/profiles/{userId}/following?q=&sort=&page=&size=` | `PageResponse<PlayerCardView>` | `sort` ∈ `RECENT\|ELO\|LEVEL\|ALPHA` |
+| `GET /api/profiles/{userId}/following?q=&sort=&page=&size=` | `PageResponse<PlayerCardView>` | `sort` ∈ `RECENT\|ELO\|ALPHA` |
 | `GET /api/profiles/{userId}/followers?q=&sort=&page=&size=` | `PageResponse<PlayerCardView>` | idem |
 | `PUT /api/profiles/{userId}/follow` | `204` | Idempotent |
 | `DELETE /api/profiles/{userId}/follow` | `204` | |
 | `GET /api/profiles/{userId}/games?topicId=&opponentId=&opponentType=&outcome=&sort=&page=&size=` | `PageResponse<GameHistoryItemView>` | Historique enrichi (adversaire, sujet, résultat, XP). Filtres optionnels : `topicId`, `opponentId`, `opponentType` ∈ `HUMAN\|BOT` (isole les entraînements), `outcome` ∈ `ALL\|WIN\|LOSS\|DRAW\|IN_PROGRESS\|CANCELLED` (**relatif au joueur consulté** : `WIN`/`LOSS` se lisent sur le vainqueur). `sort` ∈ `RECENT\|OLDEST\|SCORE` (défaut `RECENT` ; `SCORE` = meilleur score du joueur consulté). Filtres et tri sont appliqués **côté service game** — la pagination reste exacte. Fiche sujet / « Tes duels contre X » passent le scope par `topicId` / `opponentId` |
-| `GET /api/profiles/{userId}/topics` | `List<TopicStatView>` | Répartition des **parties humaines** par sujet (donut « Sujets joués ») : `names`, `emoji`, `color`, `imageUrl`, `games`, `xp`, `level` ; tri par parties décroissantes, sujets supprimés ignorés |
+| `GET /api/profiles/{userId}/topics` | `List<TopicStatView>` | Répartition des **parties humaines** par sujet (donut « Sujets joués ») : `names`, `emoji`, `color`, `imageUrl`, `games`, `xp` ; tri par parties décroissantes, sujets supprimés ignorés |
 | `GET /api/profiles/{userId}/head-to-head?against=` | `HeadToHeadView` | V/N/D des duels communs **du point de vue de `userId`** ; la fiche d'un autre joueur appelle `userId = viewer` et `against = joueur consulté` |
 | `PUT /api/profiles/{userId}/pseudonym` | `204` | `{ pseudonym }` |
 | `PUT /api/profiles/{userId}/bio` | `204` | `{ bio }` (`null` efface) |
 | `PUT /api/profiles/{userId}/country` | `204` | `{ country }` (`null` efface) |
-| `PUT /api/profiles/{userId}/avatar-options` | `204` | `{ avatarOptions }` (`null` efface). `style:"base"` (icône + fond) est gratuit ; `micah\|lorelei\|notionists` exigent `premium` (`403 urn:quizup:authorization:premiumRequired`). |
+| `PUT /api/profiles/{userId}/avatar-options` | `204` | `{ avatarOptions }` (`null` efface). `style:"base"` (icône + fond) est gratuit ; `micah` exige la récompense `MICAH_AVATAR` ou Premium (`403 urn:quizup:authorization:micahLocked`), `lorelei\|notionists` exigent Premium (`403 urn:quizup:authorization:premiumRequired`). |
 | `PUT /api/profiles/{userId}/banner` | `204` | `{ bannerUrl }` (`null` efface) — bannière de profil (URL image http(s) ≤1024) |
 | `PUT /api/profiles/{userId}/language` | `204` | `{ language }` ∈ `fr\|en` (enum strict) |
 | `GET /api/presence/{userId}` | `PresenceView` | `404` si le joueur ne s'est jamais connecté (l'absence vaut hors ligne) ; poussé aussi en WS |
@@ -438,7 +440,7 @@ invitations d'un même défi et les **relances** d'une même salle. Configuratio
 | `POST /api/games/{gameId}/answer` | `200` | Body `{ choice }` |
 | `POST /api/games/{gameId}/abandon` | `200` | Forfait en cours (`ForfeitGameCommand`) — l'adversaire gagne |
 | `POST /api/games/{gameId}/cancel` | `200` | Annulation avant démarrage |
-| `GET /api/games/{gameId}/result` | `GameResultView` | Résultat après `GAME_ENDED` : scores, détail (`basePoints`, `speedBonus`, `correctAnswers`…), `reward` XP de la partie (`null` tant que la projection n'est pas disponible ; `{ xp: 0, victoryBonus: 0 }` pour un **entraînement** — duel bot, sans XP), progression **à l'instant de la partie** (snapshot `game` + XP gagnée), `opponentLevel/Title` et **enrichissements autosuffisants** : `topic`, `opponent`, `opponentId`, `botDifficulty` (la page web ne fait qu'un GET + l'historique de revue). **Privé** : le viewer doit être l'un des deux joueurs, sinon `403 urn:quizup:bff:game:accessDenied` (garde BFF via `GetGameByIdQuery`, sans changer le contrat game) |
+| `GET /api/games/{gameId}/result` | `GameResultView` | Résultat après `GAME_ENDED` : scores, détail (`basePoints`, `speedBonus`, `correctAnswers`…), `reward` XP **du sujet** (`null` tant que la projection n'est pas disponible ; `{ xp: 0, victoryBonus: 0 }` pour un **entraînement**), Elo **à l'instant de la partie** (snapshot `game` + variation), `topicMastery` (XP du sujet, grade, progression) et **enrichissements autosuffisants** : `topic`, `opponent`, `opponentId`, `botDifficulty`. **Privé** : le viewer doit être l'un des deux joueurs, sinon `403 urn:quizup:bff:game:accessDenied` |
 | `GET /api/games/{gameId}/notifications` | `List<EventEnvelopeResponse>` (payload `GameNotification`) | Même contrat que le push WS. **Privé** : même garde participant que `/result` (`GameViewService.events`), aucun historique de partie pour un tiers |
 
 ---
@@ -458,7 +460,7 @@ déclenche la déconnexion de session côté présence.
 | `/topic/notifications/{userId}` | `EventEnvelopeResponse` (payload `NotificationView`) — inbox personnelle (invitations de défi, follows) ; suppression poussée sous `NOTIFICATION_DELETED` (payload `{ notificationId }`) |
 | `/topic/presence/{userId}` | `PresenceView` — **exception assumée** : événements de session non séquencés, pas d'enveloppe |
 | `/topic/follow-presence/{userId}` | `FollowPresenceView` (`actorId`, `pseudonym`, `avatarOptions`, `at`) — **fan-out éphémère** : quand un joueur passe en ligne, chaque **abonné** reçoit « X est en ligne » ; jamais persisté (pas d'inbox), poussé par le groupe `follow-presence-notification` |
-| `/topic/achievements/{userId}` | `AchievementView` (`kind` ∈ `BADGE\|LEVEL\|TITLE`, badge `code`/`label`/`family`/`tier` + `metric`/`target` (objectif atteint), `level`+`accountTitle`, `topicId`+`grade`, `at`) — **fan-out éphémère des déblocages** (badge gagné, niveau franchi, titre thématique débloqué) : le client fête l'acquisition où qu'il soit (popup + son), hors écran immersif où elle est reportée ; jamais persisté (pas d'inbox), groupe `achievement-notification` **instance-scopé** |
+| `/topic/achievements/{userId}` | `AchievementView` (`kind` ∈ `BADGE\|TITLE`, badge `code`/`label`/`family`/`tier` + `metric`/`target` (objectif atteint), `topicId`+`grade`, `at`) — **fan-out éphémère des déblocages** (badge gagné, titre thématique débloqué) : le client fête l'acquisition où qu'il soit (popup + son), hors écran immersif où elle est reportée ; jamais persisté (pas d'inbox), groupe `achievement-notification` **instance-scopé** |
 
 `EventEnvelopeResponse` : `aggregateId`, `sequenceNumber`, `timestamp`, `eventType` (type web),
 `payload` (DTO de notification). L'historique REST (`GET .../notifications`) et le push WS
