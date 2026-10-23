@@ -2,6 +2,7 @@ package io.github.quizup.bff.infrastructure.in.api;
 
 import io.github.quizup.bff.application.AccountDeletionService;
 import io.github.quizup.bff.application.MeService;
+import io.github.quizup.bff.application.ProfileUpdateService;
 import io.github.quizup.bff.infrastructure.in.api.request.DeleteAccountRequest;
 import io.github.quizup.bff.infrastructure.in.api.response.MeView;
 import io.github.quizup.microservice.security.SecurityHelper;
@@ -25,16 +26,28 @@ public class MeController {
 
     private final MeService meService;
     private final AccountDeletionService accountDeletionService;
+    private final ProfileUpdateService profileUpdateService;
 
     public MeController(MeService meService,
-                        AccountDeletionService accountDeletionService) {
+                        AccountDeletionService accountDeletionService,
+                        ProfileUpdateService profileUpdateService) {
         this.meService = meService;
         this.accountDeletionService = accountDeletionService;
+        this.profileUpdateService = profileUpdateService;
     }
 
     @GetMapping
     public CompletableFuture<ResponseEntity<MeView>> me() {
         return meService.me(SecurityHelper.getUserId()).thenApply(ResponseEntity::ok);
+    }
+
+    /** Termine (ou passe) l'onboarding du joueur courant. */
+    @PostMapping("/onboarding/complete")
+    public CompletableFuture<ResponseEntity<MeView>> completeOnboarding() {
+        String userId = SecurityHelper.getUserId();
+        return profileUpdateService.completeOnboarding(userId)
+                .thenCompose(_ -> meService.me(userId))
+                .thenApply(ResponseEntity::ok);
     }
 
     /** Envoie le code OTP de confirmation de suppression à l'email du compte. */

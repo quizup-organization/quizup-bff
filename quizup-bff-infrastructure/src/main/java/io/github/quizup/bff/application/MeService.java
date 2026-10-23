@@ -50,7 +50,8 @@ public class MeService {
                             profile.language(),
                             ProgressionViews.toView(progress),                            ProgressionViews.toStats(progress),
                             counts.following(),
-                            counts.followers());
+                            counts.followers(),
+                            profile.onboardingCompletedAt() != null || progress.gamesPlayed() > 0);
                 });
     }
 }

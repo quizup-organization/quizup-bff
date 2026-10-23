@@ -2,6 +2,7 @@ package io.github.quizup.bff.infrastructure.in.api;
 
 import io.github.quizup.bff.application.AccountDeletionService;
 import io.github.quizup.bff.application.MeService;
+import io.github.quizup.bff.application.ProfileUpdateService;
 import io.github.quizup.bff.infrastructure.in.api.response.DuelStatsView;
 import io.github.quizup.bff.infrastructure.in.api.response.MeView;
 import io.github.quizup.bff.infrastructure.in.api.response.ProgressionView;
@@ -36,11 +37,12 @@ class MeControllerTest {
 
     private final MeService meService = mock(MeService.class);
     private final AccountDeletionService accountDeletionService = mock(AccountDeletionService.class);
+    private final ProfileUpdateService profileUpdateService = mock(ProfileUpdateService.class);
     private MockMvc mockMvc;
 
     @BeforeEach
     void setUp() {
-        mockMvc = MockMvcBuilders.standaloneSetup(new MeController(meService, accountDeletionService)).build();
+        mockMvc = MockMvcBuilders.standaloneSetup(new MeController(meService, accountDeletionService, profileUpdateService)).build();
         QuizUpPrincipal principal = new QuizUpPrincipal() {
             @Override
             public String getUserId() {
@@ -65,7 +67,7 @@ class MeControllerTest {
         MeView view = new MeView(USER_ID, "user@quizup.io", "Alpha", null, "FR", null, null, null,
                 Language.FR,
                 new ProgressionView(120, 2, "Apprenti", 400, 6, List.of(), 200, 200, 0, true),
-                new DuelStatsView(4, 3, 1, 0, 75, 160, 2, 3), 3, 5);
+                new DuelStatsView(4, 3, 1, 0, 75, 160, 2, 3), 3, 5, false);
         when(meService.me(USER_ID)).thenReturn(CompletableFuture.completedFuture(view));
 
         MvcResult result = mockMvc.perform(get("/api/me"))

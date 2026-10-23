@@ -32,6 +32,11 @@ public class ProfileUpdateService {
         this.progressionLookup = progressionLookup;
     }
 
+    /** Fin explicite ou skip de l'onboarding ; idempotent côté agrégat. */
+    public CompletableFuture<Void> completeOnboarding(String userId) {
+        return dispatch(userId, new ProfileCommand.CompleteOnboardingCommand(userId, java.time.Instant.now()));
+    }
+
     public CompletableFuture<Void> updatePseudonym(String userId, String requestedBy, String pseudonym) {
         return dispatch(userId,
                 new ProfileCommand.UpdateProfilePseudonymCommand(userId, requestedBy, pseudonym));

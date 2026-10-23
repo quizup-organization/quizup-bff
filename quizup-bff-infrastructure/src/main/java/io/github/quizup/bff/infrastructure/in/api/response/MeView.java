@@ -19,6 +19,8 @@ public record MeView(
         ProgressionView progression,
         DuelStatsView stats,
         long followingCount,
-        long followersCount
+        long followersCount,
+        /** Onboarding terminé (ou première partie humaine jouée). */
+        boolean onboardingCompleted
 ) {
 }
