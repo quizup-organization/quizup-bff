@@ -1,3 +1,9 @@
+## [11.44.0](https://github.com/quizup-organization/quizup-bff/compare/v11.43.2...v11.44.0) (2026-10-23)
+
+### Features
+
+* **onboarding:** expose le flag serveur et la fin d'onboarding ([16a1d65](https://github.com/quizup-organization/quizup-bff/commit/16a1d65d1826ece7c46b1540be25eeddaabbfa20))
+
 ## [11.43.2](https://github.com/quizup-organization/quizup-bff/compare/v11.43.1...v11.43.2) (2026-10-22)
 
 ### Bug Fixes
