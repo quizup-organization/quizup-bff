@@ -81,6 +81,26 @@ class MeControllerTest {
                 .andExpect(jsonPath("$.progression.level").value(2));
     }
     @Test
+    void completeOnboarding_returnsUpdatedMeView() throws Exception {
+        MeView view = new MeView(USER_ID, "user@quizup.io", "Alpha", null, "FR", null, null, null,
+                Language.FR,
+                new ProgressionView(120, 2, "Apprenti", 400, 6, List.of(), 200, 200, 0, true),
+                new DuelStatsView(4, 3, 1, 0, 75, 160, 2, 3), 3, 5, false);
+        when(profileUpdateService.completeOnboarding(USER_ID))
+                .thenReturn(CompletableFuture.completedFuture(null));
+        when(meService.me(USER_ID)).thenReturn(CompletableFuture.completedFuture(view));
+
+        MvcResult result = mockMvc.perform(post("/api/me/onboarding/complete"))
+                .andExpect(request().asyncStarted())
+                .andReturn();
+
+        mockMvc.perform(asyncDispatch(result))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.onboardingCompleted").value(true));
+        verify(profileUpdateService).completeOnboarding(USER_ID);
+    }
+
+    @Test
     void requestDeletionCode_returnsAccepted() throws Exception {
         mockMvc.perform(post("/api/me/deletion-code"))
                 .andExpect(status().isAccepted());

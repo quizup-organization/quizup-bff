@@ -47,7 +47,9 @@ public class MeController {
         String userId = SecurityHelper.getUserId();
         return profileUpdateService.completeOnboarding(userId)
                 .thenCompose(_ -> meService.me(userId))
-                .thenApply(ResponseEntity::ok);
+                // La projection profile est asynchrone : le flag renvoyé doit refléter la commande
+                // déjà acceptée, sinon le guard web renvoie le joueur sur l'onboarding.
+                .thenApply(view -> ResponseEntity.ok(view.withOnboardingCompleted(true)));
     }
 
     /** Envoie le code OTP de confirmation de suppression à l'email du compte. */

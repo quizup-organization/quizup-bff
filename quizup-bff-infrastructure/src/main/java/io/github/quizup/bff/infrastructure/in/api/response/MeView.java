@@ -23,4 +23,10 @@ public record MeView(
         /** Onboarding terminé (ou première partie humaine jouée). */
         boolean onboardingCompleted
 ) {
+
+    /** Copie avec le flag forcé (la projection profile peut être en retard juste après la commande). */
+    public MeView withOnboardingCompleted(boolean completed) {
+        return new MeView(userId, email, pseudonym, bio, country, avatarOptions, bannerUrl,
+                equippedTitle, language, progression, stats, followingCount, followersCount, completed);
+    }
 }
