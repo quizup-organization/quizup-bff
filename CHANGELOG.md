@@ -1,3 +1,9 @@
+## [11.44.2](https://github.com/quizup-organization/quizup-bff/compare/v11.44.1...v11.44.2) (2026-10-23)
+
+### Bug Fixes
+
+* **deps:** aligne le pin profile sur la release 4.11.1 ([d88b4b8](https://github.com/quizup-organization/quizup-bff/commit/d88b4b8f02a6709924acedd694e2733e45d4a39e))
+
 ## [11.44.1](https://github.com/quizup-organization/quizup-bff/compare/v11.44.0...v11.44.1) (2026-10-23)
 
 ### Bug Fixes
