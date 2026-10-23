@@ -132,7 +132,8 @@ l'ancienne surface et sont migrés lot par lot.
 
 | Endpoint | Réponse | Notes |
 |---|---|---|
-| `GET /api/me` | `MeView` | Profil (+ `language` fr/en, + `equippedTitle` = clé du titre porté) + progression + stats de duel + `followingCount` + `followersCount` |
+| `GET /api/me` | `MeView` | Profil (+ `language` fr/en, + `equippedTitle` = clé du titre porté) + progression + stats de duel + `followingCount` + `followersCount` + `onboardingCompleted` (flag serveur, ou première partie humaine déjà jouée) |
+| `POST /api/me/onboarding/complete` | `MeView` | Fin explicite ou skip de l'onboarding ; idempotent, renvoie le flag `onboardingCompleted=true` sans attendre la projection profile |
 | `GET /api/suggestions?q=&limit=` | `List<SuggestionView>` | Palette ⌘K : sujets + joueurs (`type`, `id`, libellé, visuel) |
 | `GET /api/clock` | `ServerTimeView` | `serverTime`, `epochMillis` |
 | `POST /api/telemetry/events` | `202` | Événement produit allowlisté (`onboarding_started/completed/skipped`, `play_mode_opened`, `duel_start_requested`, `matchmaking_expired`, `result_viewed`, `paywall_viewed` ; `properties` bornées) → compteur Prometheus `quizup_product_events_total` (tags `event/mode/first/outcome/bot/auto`), logs debug ; jamais de SaaS. Rate-limit 120/min/joueur |
