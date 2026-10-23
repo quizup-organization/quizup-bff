@@ -1,6 +1,9 @@
 package io.github.quizup.bff.application;
 
 import io.github.quizup.identity.domain.model.AccountStatus;
+import io.github.quizup.identity.domain.model.User;
+import io.github.quizup.identity.domain.model.UserSuspension;
+import io.github.quizup.identity.domain.model.UserSuspensionReason;
 import io.github.quizup.identity.domain.model.UserAccountStatus;
 import io.github.quizup.identity.domain.query.UserQuery;
 import org.axonframework.messaging.responsetypes.ResponseType;
@@ -11,6 +14,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Instant;
+import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -30,27 +35,41 @@ class IdentityLookupTest {
 
     @Test
     void resolvesStatusFromIdentity() {
-        UserAccountStatus status = new UserAccountStatus("user-1", AccountStatus.ACTIVE, null);
-        when(queryGateway.query(any(UserQuery.GetUserAccountStatusQuery.class), any(ResponseType.class)))
-                .thenReturn(CompletableFuture.completedFuture(status));
+        User user = new User("user-1", "user@quizup.dev", Set.of(), Instant.now(),
+                AccountStatus.ACTIVE, null);
+        when(queryGateway.query(any(UserQuery.FindUserQuery.class), any(ResponseType.class)))
+                .thenReturn(CompletableFuture.completedFuture(Optional.of(user)));
         IdentityLookup lookup = new IdentityLookup(queryGateway);
 
         assertEquals(AccountStatus.ACTIVE, lookup.status("user-1").join().status());
     }
 
     @Test
+    void reportsMissingUserAsNotFound() {
+        when(queryGateway.query(any(UserQuery.FindUserQuery.class), any(ResponseType.class)))
+                .thenReturn(CompletableFuture.completedFuture(Optional.empty()));
+        IdentityLookup lookup = new IdentityLookup(queryGateway);
+
+        assertTrue(lookup.status("ghost").isCompletedExceptionally());
+    }
+
+    @Test
     void cachesTheStatusAcrossCalls() {
         UserAccountStatus status = new UserAccountStatus(
                 "user-1", AccountStatus.SUSPENDED, Instant.parse("2026-02-01T00:00:00Z"));
-        when(queryGateway.query(any(UserQuery.GetUserAccountStatusQuery.class), any(ResponseType.class)))
-                .thenReturn(CompletableFuture.completedFuture(status));
+        User user = new User("user-1", "user@quizup.dev", Set.of(), Instant.now(),
+                AccountStatus.SUSPENDED, new UserSuspension(
+                        "s1", UserSuspensionReason.SPAM, null, "admin", Instant.now(),
+                        Instant.parse("2026-02-01T00:00:00Z"), null, null, null, null));
+        when(queryGateway.query(any(UserQuery.FindUserQuery.class), any(ResponseType.class)))
+                .thenReturn(CompletableFuture.completedFuture(Optional.of(user)));
         IdentityLookup lookup = new IdentityLookup(queryGateway);
 
         assertTrue(lookup.status("user-1").join().suspended(Instant.parse("2026-01-01T00:00:00Z")));
         assertTrue(lookup.status("user-1").join().suspended(Instant.parse("2026-01-01T00:00:00Z")));
 
         verify(queryGateway, times(1))
-                .query(eq(new UserQuery.GetUserAccountStatusQuery("user-1")), any(ResponseType.class));
+                .query(eq(new UserQuery.FindUserQuery("user-1")), any(ResponseType.class));
     }
 
     @Test

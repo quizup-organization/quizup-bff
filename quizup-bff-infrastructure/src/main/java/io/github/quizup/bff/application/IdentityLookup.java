@@ -2,6 +2,8 @@ package io.github.quizup.bff.application;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import io.github.quizup.identity.domain.exception.UserProblems;
+import io.github.quizup.identity.domain.model.User;
 import io.github.quizup.identity.domain.model.UserAccountStatus;
 import io.github.quizup.identity.domain.query.UserQuery;
 import io.github.quizup.microservice.core.infrastructure.axon.QueryResponseTypes;
@@ -50,16 +52,25 @@ public class IdentityLookup {
 
     /**
      * Statut d'un compte. Le future échoue avec {@code UserNotFoundProblem} si le compte
-     * n'existe pas (le filtre le mappe en 401).
+     * n'existe pas (le filtre le mappe en 401). On interroge {@code FindUserQuery} (Optional)
+     * plutôt que {@code GetUserAccountStatusQuery} : une exception distante traversant Axon ne
+     * conserve pas toujours la cause métier, ce qui faisait retomber le filtre en fail-open
+     * après un reset de base.
      */
     public CompletableFuture<UserAccountStatus> status(String userId) {
         UserAccountStatus cached = cache.getIfPresent(userId);
         if (cached != null) {
             return CompletableFuture.completedFuture(cached);
         }
+        // `FindUserQuery` renvoie `Optional.empty()` pour un compte disparu : contrairement à
+        // `GetUserAccountStatusQuery`, il ne lève pas d'exception distante que le filtre ne peut
+        // pas toujours relier à `UserNotFoundProblem` (reset de base : fail-open involontaire).
         return queryGateway
-                .query(new UserQuery.GetUserAccountStatusQuery(userId),
-                        QueryResponseTypes.instanceOf(UserAccountStatus.class))
+                .query(new UserQuery.FindUserQuery(userId),
+                        QueryResponseTypes.optionalInstanceOf(User.class))
+                .thenApply(user -> user
+                        .map(IdentityLookup::toStatus)
+                        .orElseThrow(() -> new UserProblems.UserNotFoundProblem(userId)))
                 .thenApply(status -> {
                     cacheIfConverged(userId, status);
                     return status;
@@ -104,6 +115,13 @@ public class IdentityLookup {
     /** Statut effectif : une suspension temporaire échue est active. */
     public static boolean suspended(UserAccountStatus status, Instant now) {
         return status != null && status.suspended(now);
+    }
+
+    private static UserAccountStatus toStatus(User user) {
+        return new UserAccountStatus(
+                user.userId(),
+                user.status(),
+                user.suspension() == null ? null : user.suspension().suspendedUntil());
     }
 
     public void invalidate(String userId) {

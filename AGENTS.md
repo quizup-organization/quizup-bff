@@ -112,8 +112,11 @@ l'ancienne surface et sont migrés lot par lot.
   dans identity (base purgée, compte supprimé) est rejeté en `401` par
   `CurrentUserExistsFilter` sur `/api/**` ; un compte suspendu est rejeté en `403`
   `urn:quizup:authorization:accountSuspended` (avec `suspendedUntil`). Le client purge sa
-  session et repasse par le login. Statut résolu via `GetUserAccountStatusQuery` (cache court
-  30 s + fenêtre no-cache de 3 s après invalidation ; identity injoignable ⇒ fail-open). Les
+  session et repasse par le login. Statut résolu via `FindUserQuery` (`Optional<User>`, cache court
+  30 s + fenêtre no-cache de 3 s après invalidation ; identité injoignable ⇒ fail-open). Le
+  `Optional.empty()` permet de distinguer un compte disparu d'une panne distante : avec
+  `GetUserAccountStatusQuery`, l'exception Axon distante perdait parfois la cause métier et
+  l'utilisateur recevait un 404 de profil au lieu du 401 `unknownUser`. Les
   réponses 401/403 portent les **en-têtes CORS** de la configuration du service (le filtre
   court-circuite avant le `CorsFilter` servlet, même ordre par défaut) : sans eux le navigateur
   masque la réponse et le client web ne peut pas purger sa session.
