@@ -1,3 +1,9 @@
+## [11.44.1](https://github.com/quizup-organization/quizup-bff/compare/v11.44.0...v11.44.1) (2026-10-23)
+
+### Bug Fixes
+
+* **onboarding:** renvoie le flag complété sans attendre la projection ([73ba919](https://github.com/quizup-organization/quizup-bff/commit/73ba9192cd9b345c0541e674bc8102fc88a40275))
+
 ## [11.44.0](https://github.com/quizup-organization/quizup-bff/compare/v11.43.2...v11.44.0) (2026-10-23)
 
 ### Features
