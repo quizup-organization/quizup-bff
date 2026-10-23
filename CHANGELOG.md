@@ -1,3 +1,9 @@
+## [11.46.0](https://github.com/quizup-organization/quizup-bff/compare/v11.45.0...v11.46.0) (2026-10-23)
+
+### Features
+
+* **avatar:** réserve les styles DiceBear au premium ([1f4f62f](https://github.com/quizup-organization/quizup-bff/commit/1f4f62f042ba5654040d7e76a4b4d470024cf670))
+
 ## [11.45.0](https://github.com/quizup-organization/quizup-bff/compare/v11.44.3...v11.45.0) (2026-10-23)
 
 ### Features
